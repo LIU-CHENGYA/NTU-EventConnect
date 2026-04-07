@@ -2,10 +2,14 @@
 @tailwind components;
 @tailwind utilities;
 
-/* 確保全螢幕撐滿，且不被原本的預設樣式干擾 */
+@import url('https://fonts.googleapis.com/css2?family=Lemon&family=Inter:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;700&family=Roboto:wght@400;500;700&display=swap');
+
 html, body, #root {
   margin: 0;
   padding: 0;
   width: 100%;
   min-height: 100vh;
+  font-family: 'Inter', 'Noto Sans TC', sans-serif;
+  background: #eff4f8;
+  color: #282424;
 }
