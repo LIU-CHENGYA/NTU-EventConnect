@@ -1,12 +1,16 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  Box, Typography, Paper, Chip, Grid, Button, Collapse, Divider,
+  Box, Typography, Paper, Button, Collapse, Divider, IconButton, Avatar,
 } from "@mui/material";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import { mockRegistrations, mockEvents } from "../mock/data";
 import { useAuth } from "../context/AuthContext";
+import { tokens } from "../theme";
+
+const STATUS_FILTERS = ["全部", "報名成功", "等待候補", "已取消"];
 
 export default function RegistrationRecordPage() {
   const { user } = useAuth();
@@ -22,116 +26,129 @@ export default function RegistrationRecordPage() {
     : registrations.filter((r) => r.status === filter);
 
   const statusColors = {
-    "報名成功": { bg: "#e8f5e9", color: "#2e7d32" },
-    "等待候補": { bg: "#fff3e0", color: "#e65100" },
-    "已取消": { bg: "#ffebee", color: "#c62828" },
+    "報名成功": { bg: tokens.color.success.bg, color: tokens.color.success.fg },
+    "等待候補": { bg: tokens.color.warning.bg, color: tokens.color.warning.fg },
+    "已取消":   { bg: tokens.color.danger.bg,  color: tokens.color.danger.fg  },
+  };
+
+  const cardSx = {
+    borderRadius: "20px",
+    mb: 2,
+    overflow: "hidden",
+    boxShadow: tokens.shadow.pill,
+    bgcolor: "#fffefe",
   };
 
   return (
-    <Box sx={{ minHeight: "100vh", bgcolor: "#f0f2f5" }}>
-      <Box sx={{ maxWidth: 900, mx: "auto", px: 3, py: 4 }}>
-        <Typography variant="h5" sx={{ fontWeight: 700, mb: 3, color: "#1a237e" }}>
-          報名紀錄
-        </Typography>
+    <Box sx={{ minHeight: "calc(100vh - 76px)", bgcolor: tokens.color.bg, py: 4 }}>
+      <Box sx={{ maxWidth: 900, mx: "auto", px: 3 }}>
+        {/* Header */}
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 3 }}>
+          <IconButton onClick={() => navigate(-1)} sx={{ color: tokens.color.text }}>
+            <ArrowBackIcon />
+          </IconButton>
+          <Typography sx={{ fontFamily: tokens.font.logo, fontStyle: "italic", fontSize: 32, color: tokens.color.navy }}>
+            報名紀錄
+          </Typography>
+          <Box sx={{ ml: "auto" }}>
+            <Avatar src={user.avatar} sx={{ width: 52, height: 52 }} />
+          </Box>
+        </Box>
 
         {/* Filters */}
-        <Box sx={{ display: "flex", gap: 1, mb: 3 }}>
-          {["全部", "報名成功", "等待候補", "已取消"].map((s) => (
-            <Chip
+        <Box sx={{ display: "flex", gap: 1, mb: 3, flexWrap: "wrap" }}>
+          {STATUS_FILTERS.map((s) => (
+            <Box
               key={s}
-              label={s}
               onClick={() => setFilter(s)}
               sx={{
-                bgcolor: filter === s ? "#1a237e" : "white",
-                color: filter === s ? "white" : "#333",
-                fontWeight: 500,
-                "&:hover": { bgcolor: filter === s ? "#0d1754" : "#e8eaf6" },
+                px: 1.8, py: "6px", fontSize: 14, borderRadius: "8px",
+                border: "1px solid #cac4d0",
+                bgcolor: filter === s ? "rgba(57,167,255,0.42)" : "#fff",
+                color: tokens.color.text, cursor: "pointer",
+                fontFamily: "'Roboto',sans-serif", fontWeight: 500,
               }}
-            />
+            >
+              {s}
+            </Box>
           ))}
         </Box>
 
-        {/* Records */}
         {filtered.map((reg) => {
-          const event = mockEvents.find((e) => e.id === reg.eventId);
           const isExpanded = expandedId === reg.id;
-
           return (
-            <Paper key={reg.id} sx={{ borderRadius: 3, mb: 2, overflow: "hidden" }}>
+            <Paper key={reg.id} sx={cardSx}>
               <Box
                 sx={{
-                  display: "flex",
-                  alignItems: "center",
-                  p: 2,
+                  display: "flex", alignItems: "center", p: 2.2,
                   cursor: "pointer",
-                  "&:hover": { bgcolor: "#fafafa" },
+                  "&:hover": { bgcolor: tokens.color.bg },
                 }}
                 onClick={() => setExpandedId(isExpanded ? null : reg.id)}
               >
                 <Box
                   component="img"
                   src={reg.eventImage}
-                  sx={{ width: 60, height: 60, borderRadius: 2, objectFit: "cover", mr: 2 }}
+                  sx={{ width: 72, height: 72, borderRadius: "12px", objectFit: "cover", mr: 2 }}
                 />
                 <Box sx={{ flex: 1 }}>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                  <Typography sx={{ fontSize: 15, fontWeight: 700, color: tokens.color.text }}>
                     {reg.eventTitle}
                   </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    {reg.sessionName} | {reg.date}
+                  <Typography sx={{ fontSize: 12, color: tokens.color.textSecondary, mt: 0.3 }}>
+                    {reg.sessionName} · {reg.date}
                   </Typography>
                 </Box>
-                <Chip
-                  label={reg.status}
-                  size="small"
+                <Box
                   sx={{
+                    px: 1.5, py: "5px", borderRadius: "20px",
                     bgcolor: statusColors[reg.status]?.bg,
                     color: statusColors[reg.status]?.color,
-                    fontWeight: 600,
-                    mr: 1,
+                    fontSize: 12, fontWeight: 700, mr: 1,
                   }}
-                />
-                {isExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                >
+                  {reg.status}
+                </Box>
+                {isExpanded ? <ExpandLessIcon sx={{ color: tokens.color.textSecondary }} /> : <ExpandMoreIcon sx={{ color: tokens.color.textSecondary }} />}
               </Box>
 
               <Collapse in={isExpanded}>
-                <Divider />
-                <Box sx={{ p: 2 }}>
-                  <Grid container spacing={2}>
-                    <Grid item xs={6}>
-                      <Typography variant="body2" color="text.secondary">報名時間</Typography>
-                      <Typography variant="body2">{reg.registrationTime}</Typography>
-                    </Grid>
-                    <Grid item xs={6}>
-                      <Typography variant="body2" color="text.secondary">活動地點</Typography>
-                      <Typography variant="body2">{reg.location}</Typography>
-                    </Grid>
-                    <Grid item xs={6}>
-                      <Typography variant="body2" color="text.secondary">名額</Typography>
-                      <Typography variant="body2">{reg.remainingSlots}/{reg.capacity}</Typography>
-                    </Grid>
-                    <Grid item xs={6}>
-                      <Typography variant="body2" color="text.secondary">活動日期</Typography>
-                      <Typography variant="body2">{reg.date}</Typography>
-                    </Grid>
-                  </Grid>
+                <Divider sx={{ borderColor: tokens.color.bg }} />
+                <Box sx={{ p: 2.5 }}>
+                  <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2 }}>
+                    {[
+                      ["報名時間", reg.registrationTime],
+                      ["活動地點", reg.location],
+                      ["名額", `${reg.remainingSlots}/${reg.capacity}`],
+                      ["活動日期", reg.date],
+                    ].map(([k, v]) => (
+                      <Box key={k}>
+                        <Typography sx={{ fontSize: 12, color: tokens.color.placeholder }}>{k}</Typography>
+                        <Typography sx={{ fontSize: 14, color: tokens.color.text, fontWeight: 500 }}>{v}</Typography>
+                      </Box>
+                    ))}
+                  </Box>
 
-                  <Box sx={{ display: "flex", gap: 1, mt: 2 }}>
+                  <Box sx={{ display: "flex", gap: 1.5, mt: 2.5 }}>
                     <Button
-                      size="small"
                       variant="outlined"
                       onClick={() => navigate(`/events/${reg.eventId}`)}
-                      sx={{ textTransform: "none", borderRadius: 2 }}
+                      sx={{
+                        textTransform: "none", borderRadius: "22px", height: 44, px: 2.5,
+                        borderColor: tokens.color.border, color: tokens.color.text, fontSize: 14,
+                      }}
                     >
                       查看活動
                     </Button>
                     {reg.status === "報名成功" && (
                       <Button
-                        size="small"
-                        variant="outlined"
-                        color="error"
+                        variant="contained"
                         onClick={() => alert("已取消報名（Mock）")}
-                        sx={{ textTransform: "none", borderRadius: 2 }}
+                        sx={{
+                          textTransform: "none", borderRadius: "22px", height: 44, px: 2.5,
+                          bgcolor: tokens.color.black, color: "#fff", fontSize: 14, fontWeight: 600,
+                          "&:hover": { bgcolor: tokens.color.navyDark },
+                        }}
                       >
                         取消報名
                       </Button>
@@ -144,7 +161,7 @@ export default function RegistrationRecordPage() {
         })}
 
         {filtered.length === 0 && (
-          <Typography color="text.secondary" sx={{ textAlign: "center", py: 4 }}>
+          <Typography sx={{ textAlign: "center", py: 6, color: tokens.color.placeholder }}>
             沒有符合條件的報名紀錄
           </Typography>
         )}
