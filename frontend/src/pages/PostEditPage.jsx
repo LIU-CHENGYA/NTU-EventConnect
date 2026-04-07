@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
-  Box, Typography, Paper, Button, TextField, RadioGroup, Radio, FormControlLabel, IconButton,
+  Box, Typography, Paper, Button, TextField, RadioGroup, Radio, FormControlLabel, IconButton, Avatar,
 } from "@mui/material";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import StarIcon from "@mui/icons-material/Star";
 import StarBorderIcon from "@mui/icons-material/StarBorder";
 import AddPhotoAlternateIcon from "@mui/icons-material/AddPhotoAlternate";
@@ -10,6 +11,7 @@ import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import PlaceIcon from "@mui/icons-material/Place";
 import { mockPosts, mockEvents } from "../mock/data";
 import { useAuth } from "../context/AuthContext";
+import { tokens } from "../theme";
 
 export default function PostEditPage() {
   const { id } = useParams();
@@ -25,7 +27,7 @@ export default function PostEditPage() {
   if (!user) { navigate("/login"); return null; }
   if (!post) {
     return (
-      <Box sx={{ p: 4, textAlign: "center" }}>
+      <Box sx={{ p: 4, textAlign: "center", bgcolor: tokens.color.bg, minHeight: "calc(100vh - 76px)" }}>
         <Typography>找不到此貼文</Typography>
       </Box>
     );
@@ -38,97 +40,107 @@ export default function PostEditPage() {
     navigate(`/posts/${post.id}`);
   };
 
-  return (
-    <Box sx={{ minHeight: "100vh", bgcolor: "#f0f2f5" }}>
-      <Box sx={{ maxWidth: 800, mx: "auto", px: 3, py: 4 }}>
-        <Typography variant="h5" sx={{ fontWeight: 700, mb: 3, color: "#1a237e" }}>
-          編輯文章
-        </Typography>
+  const cardSx = {
+    borderRadius: "20px",
+    p: 3,
+    boxShadow: tokens.shadow.pill,
+    bgcolor: "#fffefe",
+  };
+  const fieldSx = {
+    "& .MuiOutlinedInput-root": { borderRadius: "10px", bgcolor: tokens.color.bg },
+  };
 
-        <Box sx={{ display: "flex", gap: 3 }}>
-          <Paper sx={{ borderRadius: 3, p: 3, flex: 1 }}>
-            {/* Star rating */}
+  return (
+    <Box sx={{ minHeight: "calc(100vh - 76px)", bgcolor: tokens.color.bg, py: 4 }}>
+      <Box sx={{ maxWidth: 960, mx: "auto", px: 3 }}>
+        {/* Header */}
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 3 }}>
+          <IconButton onClick={() => navigate(-1)} sx={{ color: tokens.color.text }}>
+            <ArrowBackIcon />
+          </IconButton>
+          <Typography sx={{ fontFamily: tokens.font.logo, fontStyle: "italic", fontSize: 32, color: tokens.color.navy }}>
+            編輯文章
+          </Typography>
+          <Box sx={{ ml: "auto" }}>
+            <Avatar src={user.avatar} sx={{ width: 52, height: 52 }} />
+          </Box>
+        </Box>
+
+        <Box sx={{ display: "flex", gap: 2.5, alignItems: "flex-start" }}>
+          <Paper sx={{ ...cardSx, flex: 1 }}>
             {event && (
-              <Box sx={{ mb: 2 }}>
-                <Box sx={{ display: "flex", gap: 0.5 }}>
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <IconButton
-                      key={star}
-                      size="small"
-                      onMouseEnter={() => setHoverRating(star)}
-                      onMouseLeave={() => setHoverRating(0)}
-                      onClick={() => setRating(star)}
-                    >
-                      {star <= (hoverRating || rating) ? (
-                        <StarIcon sx={{ color: "#ffc107", fontSize: 32 }} />
-                      ) : (
-                        <StarBorderIcon sx={{ color: "#ccc", fontSize: 32 }} />
-                      )}
-                    </IconButton>
-                  ))}
-                </Box>
+              <Box sx={{ mb: 2, display: "flex", gap: 0.5 }}>
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <IconButton
+                    key={star} size="small"
+                    onMouseEnter={() => setHoverRating(star)}
+                    onMouseLeave={() => setHoverRating(0)}
+                    onClick={() => setRating(star)}
+                  >
+                    {star <= (hoverRating || rating)
+                      ? <StarIcon sx={{ color: tokens.color.star, fontSize: 32 }} />
+                      : <StarBorderIcon sx={{ color: tokens.color.border, fontSize: 32 }} />}
+                  </IconButton>
+                ))}
               </Box>
             )}
 
             <TextField
-              fullWidth
-              multiline
-              rows={6}
+              fullWidth multiline rows={8}
               value={content}
               onChange={(e) => setContent(e.target.value)}
-              sx={{ mb: 1 }}
+              sx={fieldSx}
             />
-            <Typography variant="caption" color="text.secondary">
+            <Typography sx={{ fontSize: 12, color: tokens.color.placeholder, mt: 0.5 }}>
               字數：{content.length}
             </Typography>
 
-            {/* Existing images */}
             {post.images?.length > 0 && (
-              <Box sx={{ display: "flex", gap: 1, mt: 2 }}>
+              <Box sx={{ display: "flex", gap: 1.2, mt: 2, flexWrap: "wrap" }}>
                 {post.images.map((img, idx) => (
                   <Box
                     key={idx}
                     component="img"
                     src={img}
-                    sx={{ width: 100, height: 100, borderRadius: 2, objectFit: "cover" }}
+                    sx={{ width: 110, height: 110, borderRadius: "12px", objectFit: "cover" }}
                   />
                 ))}
               </Box>
             )}
 
-            {/* Upload more */}
             <Box
               sx={{
-                border: "2px dashed #ccc",
-                borderRadius: 2,
-                p: 2,
-                textAlign: "center",
-                cursor: "pointer",
-                mt: 2,
-                "&:hover": { borderColor: "#1a237e" },
+                border: `2px dashed ${tokens.color.border}`,
+                borderRadius: "12px",
+                p: 2.5, textAlign: "center", cursor: "pointer", mt: 2,
+                bgcolor: tokens.color.bg,
+                "&:hover": { borderColor: tokens.color.navy },
               }}
             >
-              <AddPhotoAlternateIcon sx={{ fontSize: 24, color: "#999" }} />
-              <Typography variant="caption" color="text.secondary">
+              <AddPhotoAlternateIcon sx={{ fontSize: 28, color: tokens.color.placeholder }} />
+              <Typography sx={{ fontSize: 13, color: tokens.color.textSecondary }}>
                 + 新增圖片
               </Typography>
             </Box>
 
-            {/* Visibility */}
-            <Box sx={{ mt: 2, display: "flex", alignItems: "center", gap: 1 }}>
-              <Typography variant="body2" sx={{ fontWeight: 500 }}>權限：</Typography>
+            <Box sx={{ mt: 2.5, display: "flex", alignItems: "center", gap: 1 }}>
+              <Typography sx={{ fontSize: 14, fontWeight: 600, color: tokens.color.text }}>權限：</Typography>
               <RadioGroup row value={visibility} onChange={(e) => setVisibility(e.target.value)}>
-                <FormControlLabel value="public" control={<Radio size="small" />} label="公開" />
-                <FormControlLabel value="private" control={<Radio size="small" />} label="私人" />
-                <FormControlLabel value="group" control={<Radio size="small" />} label="僅限群組" />
+                <FormControlLabel value="public" control={<Radio size="small" />} label={<Typography sx={{ fontSize: 13 }}>公開</Typography>} />
+                <FormControlLabel value="private" control={<Radio size="small" />} label={<Typography sx={{ fontSize: 13 }}>私人</Typography>} />
+                <FormControlLabel value="group" control={<Radio size="small" />} label={<Typography sx={{ fontSize: 13 }}>僅限群組</Typography>} />
               </RadioGroup>
             </Box>
 
-            <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 2, mt: 2 }}>
+            <Box sx={{ display: "flex", gap: 2, mt: 2 }}>
               <Button
                 variant="outlined"
                 onClick={() => navigate(`/posts/${post.id}`)}
-                sx={{ textTransform: "none", borderRadius: 2 }}
+                sx={{
+                  flex: 1, textTransform: "none",
+                  borderRadius: "27px", height: 54, fontSize: 15,
+                  borderColor: tokens.color.border, color: tokens.color.text,
+                }}
               >
                 取消
               </Button>
@@ -136,10 +148,11 @@ export default function PostEditPage() {
                 variant="contained"
                 onClick={handleSave}
                 sx={{
-                  bgcolor: "#1a237e",
+                  flex: 1,
+                  bgcolor: tokens.color.black, color: "#fff",
                   textTransform: "none",
-                  borderRadius: 2,
-                  "&:hover": { bgcolor: "#0d1754" },
+                  borderRadius: "27px", height: 54, fontSize: 15, fontWeight: 600,
+                  "&:hover": { bgcolor: tokens.color.navyDark },
                 }}
               >
                 儲存
@@ -147,21 +160,25 @@ export default function PostEditPage() {
             </Box>
           </Paper>
 
-          {/* Event info */}
           {event && (
-            <Paper sx={{ borderRadius: 3, p: 3, width: 280, flexShrink: 0 }}>
-              <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1.5 }}>
+            <Paper sx={{ ...cardSx, width: 280, flexShrink: 0 }}>
+              <Box
+                component="img"
+                src={event.image}
+                sx={{ width: "100%", height: 140, borderRadius: "12px", objectFit: "cover", mb: 1.5 }}
+              />
+              <Typography sx={{ fontSize: 15, fontWeight: 700, color: tokens.color.text, mb: 1 }}>
                 {event.title}
               </Typography>
-              <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, mb: 1 }}>
-                <CalendarTodayIcon sx={{ fontSize: 14, color: "#666" }} />
-                <Typography variant="body2" color="text.secondary">
+              <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, mb: 0.7 }}>
+                <CalendarTodayIcon sx={{ fontSize: 14, color: tokens.color.textSecondary }} />
+                <Typography sx={{ fontSize: 12, color: tokens.color.textSecondary }}>
                   {event.date} {event.time}
                 </Typography>
               </Box>
               <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-                <PlaceIcon sx={{ fontSize: 14, color: "#666" }} />
-                <Typography variant="body2" color="text.secondary">
+                <PlaceIcon sx={{ fontSize: 14, color: tokens.color.textSecondary }} />
+                <Typography sx={{ fontSize: 12, color: tokens.color.textSecondary }}>
                   {event.location}
                 </Typography>
               </Box>
