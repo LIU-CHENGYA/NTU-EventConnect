@@ -1,155 +1,183 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Box, Typography, TextField, Button, Grid, Paper, MenuItem, Select, FormControl } from "@mui/material";
-import AddPhotoAlternateIcon from "@mui/icons-material/AddPhotoAlternate";
+import { Box, Typography, InputBase, Button, MenuItem, Select } from "@mui/material";
+import AddCircleIcon from "@mui/icons-material/AddCircle";
 import { useAuth } from "../context/AuthContext";
 import { categories } from "../mock/data";
+import { tokens } from "../theme";
 
-export default function EventCreatePage() {
-  const navigate = useNavigate();
-  const { user } = useAuth();
-  const [form, setForm] = useState({
-    title: "", time: "", location: "", sessionName: "", sessionContent: "",
-    instructor: "", category: "講座", registrationTime: "", restrictions: "",
-    organizer: "", organizerContact: "", capacity: "", meal: "無",
-    civilServantHours: "", totalHours: "", learningCategory: "", city: "台北市",
-    note: "", attachment: "",
-  });
+const TAG_COLORS = {
+  "英文": "rgba(255,57,57,0.42)",
+  "運動": "rgba(57,167,255,0.42)",
+  "便當": "rgba(0,0,0,0.1)",
+  "就業": "rgba(0,0,0,0.11)",
+};
 
-  if (!user) { navigate("/login"); return null; }
+const LEFT_FIELDS = [
+  "活動名稱", "場次名稱", "場次內容", "授課人", "活動地點", "場次時間",
+  "報名時間", "承辦單位", "承辦人", "報名類型", "參加對象", "其他限制條件",
+];
+const RIGHT_FIELDS = [
+  "報名費", "人數名額", "用餐", "是否提供公務人員學習時數",
+  "研習總時數", "學習類別", "學位學分", "期別", "活動縣市", "附件", "備註",
+];
 
-  const handleChange = (field) => (e) => setForm({ ...form, [field]: e.target.value });
-
-  const handleSubmit = () => {
-    alert("活動已發布！（Mock）");
-    navigate("/");
-  };
-
+function PillInput({ value, onChange, placeholder, width = 291 }) {
   return (
-    <Box sx={{ minHeight: "100vh", bgcolor: "#f0f2f5" }}>
-      <Box sx={{ maxWidth: 1100, mx: "auto", px: 3, py: 4 }}>
-        <Typography variant="h5" sx={{ fontWeight: 700, mb: 3, color: "#1a237e" }}>
-          發布新的活動
-        </Typography>
-
-        <Grid container spacing={3}>
-          {/* Left column */}
-          <Grid item xs={12} md={6}>
-            <Paper sx={{ borderRadius: 3, p: 3 }}>
-              <Field label="活動名稱" value={form.title} onChange={handleChange("title")} />
-              <Field label="時間" value={form.time} onChange={handleChange("time")} placeholder="2026-04-15 09:00-17:00" />
-              <Field label="地點" value={form.location} onChange={handleChange("location")} />
-              <Field label="場次名稱" value={form.sessionName} onChange={handleChange("sessionName")} />
-              <Field label="場次內容" value={form.sessionContent} onChange={handleChange("sessionContent")} multiline rows={3} />
-              <Field label="授課人" value={form.instructor} onChange={handleChange("instructor")} />
-
-              <Typography variant="body2" sx={{ mb: 0.5, fontWeight: 500 }}>類別</Typography>
-              <FormControl fullWidth size="small" sx={{ mb: 2 }}>
-                <Select value={form.category} onChange={handleChange("category")}>
-                  {categories.filter(c => c !== "全部").map((cat) => (
-                    <MenuItem key={cat} value={cat}>{cat}</MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-
-              <Field label="報名時間" value={form.registrationTime} onChange={handleChange("registrationTime")} placeholder="2026-04-01 ~ 2026-04-10" />
-              <Field label="限制條件" value={form.restrictions} onChange={handleChange("restrictions")} />
-              <Field label="承辦單位" value={form.organizer} onChange={handleChange("organizer")} />
-              <Field label="承辦人" value={form.organizerContact} onChange={handleChange("organizerContact")} />
-            </Paper>
-          </Grid>
-
-          {/* Right column */}
-          <Grid item xs={12} md={6}>
-            <Paper sx={{ borderRadius: 3, p: 3, mb: 3 }}>
-              <Field label="人數名額" value={form.capacity} onChange={handleChange("capacity")} />
-
-              <Typography variant="body2" sx={{ mb: 0.5, fontWeight: 500 }}>用餐</Typography>
-              <FormControl fullWidth size="small" sx={{ mb: 2 }}>
-                <Select value={form.meal} onChange={handleChange("meal")}>
-                  <MenuItem value="無">無</MenuItem>
-                  <MenuItem value="提供午餐">提供午餐</MenuItem>
-                  <MenuItem value="提供茶點">提供茶點</MenuItem>
-                  <MenuItem value="提供早餐">提供早餐</MenuItem>
-                </Select>
-              </FormControl>
-
-              <Typography variant="body2" sx={{ mb: 0.5, fontWeight: 500 }}>
-                是否提供公務人員學習時數
-              </Typography>
-              <FormControl fullWidth size="small" sx={{ mb: 2 }}>
-                <Select value={form.civilServantHours} onChange={handleChange("civilServantHours")}>
-                  <MenuItem value="">否</MenuItem>
-                  <MenuItem value="2小時">2小時</MenuItem>
-                  <MenuItem value="4小時">4小時</MenuItem>
-                  <MenuItem value="6小時">6小時</MenuItem>
-                  <MenuItem value="8小時">8小時</MenuItem>
-                </Select>
-              </FormControl>
-
-              <Field label="研習總時數" value={form.totalHours} onChange={handleChange("totalHours")} />
-              <Field label="學習類別" value={form.learningCategory} onChange={handleChange("learningCategory")} />
-              <Field label="活動縣市" value={form.city} onChange={handleChange("city")} />
-              <Field label="備註" value={form.note} onChange={handleChange("note")} multiline rows={2} />
-              <Field label="附件" value={form.attachment} onChange={handleChange("attachment")} placeholder="上傳附件連結" />
-            </Paper>
-
-            {/* Image upload area */}
-            <Paper sx={{ borderRadius: 3, p: 3, mb: 3 }}>
-              <Box
-                sx={{
-                  border: "2px dashed #ccc",
-                  borderRadius: 2,
-                  p: 4,
-                  textAlign: "center",
-                  cursor: "pointer",
-                  "&:hover": { borderColor: "#1a237e", bgcolor: "#f5f5ff" },
-                }}
-              >
-                <AddPhotoAlternateIcon sx={{ fontSize: 40, color: "#999" }} />
-                <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                  + 新增圖片
-                </Typography>
-              </Box>
-            </Paper>
-
-            <Button
-              fullWidth
-              variant="contained"
-              onClick={handleSubmit}
-              sx={{
-                bgcolor: "#1a237e",
-                py: 1.3,
-                borderRadius: 2,
-                textTransform: "none",
-                fontSize: 16,
-                fontWeight: 600,
-                "&:hover": { bgcolor: "#0d1754" },
-              }}
-            >
-              發布
-            </Button>
-          </Grid>
-        </Grid>
-      </Box>
+    <Box sx={{
+      bgcolor: "#fffefe", borderRadius: "20px", boxShadow: tokens.shadow.pill,
+      height: 30, width, px: 2, display: "flex", alignItems: "center",
+    }}>
+      <InputBase
+        fullWidth value={value} onChange={onChange} placeholder={placeholder}
+        sx={{ fontSize: 14, color: tokens.color.text }}
+      />
     </Box>
   );
 }
 
-function Field({ label, value, onChange, multiline, rows, placeholder }) {
+function FieldRow({ label, children }) {
   return (
-    <>
-      <Typography variant="body2" sx={{ mb: 0.5, fontWeight: 500 }}>{label}</Typography>
-      <TextField
-        fullWidth
-        size="small"
-        value={value}
-        onChange={onChange}
-        multiline={multiline}
-        rows={rows}
-        placeholder={placeholder}
-        sx={{ mb: 2 }}
-      />
-    </>
+    <Box sx={{ display: "flex", alignItems: "center", height: 45, gap: 2 }}>
+      <Typography sx={{ fontFamily: "'Lexend',sans-serif", fontSize: 18, width: 160 }}>{label}</Typography>
+      {children}
+    </Box>
+  );
+}
+
+export default function EventCreatePage() {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const [form, setForm] = useState({});
+  const [tags, setTags] = useState(["運動"]);
+
+  if (!user) { navigate("/login"); return null; }
+
+  const set = (k) => (e) => setForm({ ...form, [k]: e.target.value });
+  const toggleTag = (t) => setTags(tags.includes(t) ? tags.filter(x => x !== t) : [...tags, t]);
+
+  return (
+    <Box sx={{ minHeight: "calc(100vh - 76px)", bgcolor: tokens.color.bg, py: 4 }}>
+      <Box sx={{ maxWidth: 1280, mx: "auto", px: 6 }}>
+        <Typography sx={{ fontFamily: "'Lexend',sans-serif", fontSize: 32, mb: 4 }}>
+          發布新的活動
+        </Typography>
+
+        <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, alignItems: "start" }}>
+          {/* LEFT column */}
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+            {LEFT_FIELDS.map((label) => (
+              <FieldRow key={label} label={label}>
+                <PillInput value={form[label] || ""} onChange={set(label)} />
+              </FieldRow>
+            ))}
+          </Box>
+
+          {/* RIGHT column */}
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+            {RIGHT_FIELDS.map((label) => {
+              if (label === "用餐" || label === "是否提供公務人員學習時數") {
+                return (
+                  <FieldRow key={label} label={label}>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 3, fontSize: 16 }}>
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, cursor: "pointer" }}
+                           onClick={() => setForm({ ...form, [label]: "是" })}>
+                        <Box sx={{
+                          width: 16, height: 16, borderRadius: "50%",
+                          border: "1.5px solid #444",
+                          bgcolor: form[label] === "是" ? tokens.color.navy : "transparent",
+                        }} />
+                        是
+                      </Box>
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, cursor: "pointer" }}
+                           onClick={() => setForm({ ...form, [label]: "否" })}>
+                        <Box sx={{
+                          width: 16, height: 16, borderRadius: "50%",
+                          border: "1.5px solid #444",
+                          bgcolor: form[label] === "否" ? tokens.color.navy : "transparent",
+                        }} />
+                        否
+                      </Box>
+                    </Box>
+                  </FieldRow>
+                );
+              }
+              if (label === "學習類別") {
+                return (
+                  <FieldRow key={label} label={label}>
+                    <Select
+                      value={form[label] || ""}
+                      onChange={set(label)}
+                      displayEmpty
+                      sx={{
+                        bgcolor: "#fffefe", borderRadius: "20px", boxShadow: tokens.shadow.pill,
+                        height: 30, width: 291, fontSize: 14,
+                        "& .MuiOutlinedInput-notchedOutline": { border: "none" },
+                      }}
+                    >
+                      <MenuItem value="">請選擇</MenuItem>
+                      {categories.filter(c => c !== "全部").map((c) => (
+                        <MenuItem key={c} value={c}>{c}</MenuItem>
+                      ))}
+                    </Select>
+                  </FieldRow>
+                );
+              }
+              return (
+                <FieldRow key={label} label={label}>
+                  <PillInput value={form[label] || ""} onChange={set(label)} />
+                </FieldRow>
+              );
+            })}
+
+            {/* Tag chips row */}
+            <FieldRow label="標籤">
+              <Box sx={{ display: "flex", gap: 0.7 }}>
+                {Object.keys(TAG_COLORS).map((t) => (
+                  <Box
+                    key={t}
+                    onClick={() => toggleTag(t)}
+                    sx={{
+                      px: 1.2, py: "2px", borderRadius: "20px", fontSize: 13,
+                      bgcolor: tags.includes(t) ? TAG_COLORS[t] : "rgba(0,0,0,0.05)",
+                      cursor: "pointer", fontFamily: "'Lemon',sans-serif",
+                    }}
+                  >
+                    {t}
+                  </Box>
+                ))}
+              </Box>
+            </FieldRow>
+          </Box>
+        </Box>
+
+        {/* Image upload card */}
+        <Box sx={{
+          mt: 4, bgcolor: "#fffefe", borderRadius: "20px", boxShadow: tokens.shadow.pill,
+          width: "60%", maxWidth: 600, ml: "auto", p: 4,
+          display: "flex", alignItems: "center", justifyContent: "center", gap: 2,
+          cursor: "pointer",
+        }}>
+          <AddCircleIcon sx={{ fontSize: 46, color: tokens.color.text }} />
+          <Typography sx={{ fontFamily: "'Lexend',sans-serif", fontSize: 24 }}>新增圖片</Typography>
+        </Box>
+
+        {/* Publish button */}
+        <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 3 }}>
+          <Button
+            onClick={() => { alert("活動已發布！(Mock)"); navigate("/"); }}
+            sx={{
+              bgcolor: "#39a7ff", color: "#000",
+              borderRadius: "10px", height: 51, width: 110,
+              fontFamily: "'Lexend',sans-serif", fontSize: 24,
+              textTransform: "none",
+              "&:hover": { bgcolor: "#1e88e5", color: "white" },
+            }}
+          >
+            發布
+          </Button>
+        </Box>
+      </Box>
+    </Box>
   );
 }

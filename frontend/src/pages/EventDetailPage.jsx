@@ -1,9 +1,6 @@
 import { useParams, useNavigate } from "react-router-dom";
-import {
-  Box, Typography, Button, Avatar, Divider, Grid, Paper, IconButton, Chip,
-} from "@mui/material";
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-import BookmarkBorderIcon from "@mui/icons-material/BookmarkBorder";
+import { Box, Typography, Button, Avatar, IconButton, Divider } from "@mui/material";
+import ArrowBackIosNewIcon from "@mui/icons-material/ArrowBackIosNew";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import PlaceIcon from "@mui/icons-material/Place";
 import PersonIcon from "@mui/icons-material/Person";
@@ -11,6 +8,7 @@ import PhoneIcon from "@mui/icons-material/Phone";
 import StarIcon from "@mui/icons-material/Star";
 import { mockEvents, mockReviews } from "../mock/data";
 import { useAuth } from "../context/AuthContext";
+import { tokens } from "../theme";
 
 export default function EventDetailPage() {
   const { id } = useParams();
@@ -28,222 +26,157 @@ export default function EventDetailPage() {
     );
   }
 
+  const Card = ({ children, sx }) => (
+    <Box sx={{ bgcolor: "#fffefe", borderRadius: "20px", boxShadow: tokens.shadow.pill, ...sx }}>
+      {children}
+    </Box>
+  );
+
   return (
-    <Box sx={{ minHeight: "100vh", bgcolor: "#f0f2f5" }}>
-      <Box sx={{ maxWidth: 1100, mx: "auto", px: 3, py: 4 }}>
-        {/* Header */}
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 3 }}>
-          <IconButton onClick={() => navigate(-1)}>
-            <ArrowBackIcon />
+    <Box sx={{ minHeight: "calc(100vh - 76px)", bgcolor: tokens.color.bg, py: 4 }}>
+      <Box sx={{ maxWidth: 1280, mx: "auto", px: 4 }}>
+        {/* Breadcrumb header */}
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 3 }}>
+          <IconButton onClick={() => navigate(-1)} sx={{ border: "1.5px solid #333", width: 38, height: 38 }}>
+            <ArrowBackIosNewIcon sx={{ fontSize: 18 }} />
           </IconButton>
-          <Typography variant="h5" sx={{ fontWeight: 700 }}>
+          <Typography sx={{ fontFamily: tokens.font.logo, fontStyle: "italic", fontSize: 28, color: "#000" }}>
             活動詳情
           </Typography>
         </Box>
 
-        <Grid container spacing={3}>
-          {/* Left: main content */}
-          <Grid item xs={12} md={8}>
-            <Paper sx={{ borderRadius: 3, overflow: "hidden", mb: 3 }}>
-              {/* Event image */}
-              <Box
-                component="img"
+        <Box sx={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 3 }}>
+          {/* LEFT column */}
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
+            {/* Main image */}
+            <Card sx={{ overflow: "hidden", height: 320 }}>
+              <img
                 src={event.image}
                 alt={event.title}
-                sx={{ width: "100%", height: 300, objectFit: "cover" }}
+                style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
               />
+            </Card>
 
-              <Box sx={{ p: 3 }}>
-                <Typography variant="h5" sx={{ fontWeight: 700, mb: 1 }}>
-                  {event.title}
-                </Typography>
-                {event.sessionName && (
-                  <Chip label={event.sessionName} size="small" sx={{ mb: 2 }} />
-                )}
+            {/* Content card */}
+            <Card sx={{ p: 3 }}>
+              <Typography sx={{ fontWeight: 700, fontSize: 18, mb: 1 }}>活動內容</Typography>
+              <Typography sx={{ fontSize: 14, color: "#444", lineHeight: 1.8, mb: 2 }}>
+                {event.content}
+              </Typography>
+              {event.instructor && (
+                <>
+                  <Typography sx={{ fontWeight: 700, fontSize: 15, mb: 0.5 }}>授課人</Typography>
+                  <Typography sx={{ fontSize: 14, color: "#444", mb: 2 }}>{event.instructor}</Typography>
+                </>
+              )}
 
-                <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1, color: "#333" }}>
-                  活動內容
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 2, lineHeight: 1.8 }}>
-                  {event.content}
-                </Typography>
-
-                {event.instructor && (
-                  <>
-                    <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 0.5 }}>
-                      授課人
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                      {event.instructor}
-                    </Typography>
-                  </>
-                )}
-              </Box>
-            </Paper>
-
-            {/* Reviews */}
-            <Paper sx={{ borderRadius: 3, p: 3 }}>
+              <Divider sx={{ my: 2 }} />
               <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
-                <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-                  評論與分享 ({reviews.length})
-                </Typography>
+                <Typography sx={{ fontWeight: 700, fontSize: 16 }}>評論與分享 ({reviews.length})</Typography>
                 {user && (
                   <Button
-                    variant="outlined"
-                    size="small"
                     onClick={() => navigate(`/posts/create?eventId=${event.id}`)}
-                    sx={{ textTransform: "none", borderColor: "#1a237e", color: "#1a237e" }}
+                    sx={{
+                      textTransform: "none", color: "#fff", bgcolor: tokens.color.navy,
+                      borderRadius: "20px", px: 2, fontSize: 13,
+                      "&:hover": { bgcolor: tokens.color.navyDark },
+                    }}
                   >
                     寫評論
                   </Button>
                 )}
               </Box>
-
-              {reviews.map((review) => (
-                <Box key={review.id} sx={{ mb: 3 }}>
+              {reviews.map((r, idx) => (
+                <Box key={r.id} sx={{ mb: 2 }}>
                   <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
-                    <Avatar
-                      src={review.userAvatar}
-                      sx={{ width: 36, height: 36, cursor: "pointer" }}
-                      onClick={() => navigate(`/profile/${review.userId}`)}
-                    />
+                    <Avatar src={r.userAvatar} sx={{ width: 36, height: 36, cursor: "pointer" }}
+                      onClick={() => navigate(`/profile/${r.userId}`)} />
                     <Box>
-                      <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                        {review.userName}
-                      </Typography>
-                      <Box sx={{ display: "flex", gap: 0.2 }}>
-                        {[1, 2, 3, 4, 5].map((s) => (
-                          <StarIcon
-                            key={s}
-                            sx={{ fontSize: 14, color: s <= review.rating ? "#ffc107" : "#e0e0e0" }}
-                          />
+                      <Typography sx={{ fontSize: 14, fontWeight: 600 }}>{r.userName}</Typography>
+                      <Box sx={{ display: "flex" }}>
+                        {[1,2,3,4,5].map(s => (
+                          <StarIcon key={s} sx={{ fontSize: 14, color: s <= r.rating ? tokens.color.star : "#e0e0e0" }} />
                         ))}
                       </Box>
                     </Box>
-                    <Typography variant="caption" color="text.secondary" sx={{ ml: "auto" }}>
-                      {review.createdAt}
-                    </Typography>
+                    <Typography sx={{ ml: "auto", fontSize: 12, color: "#999" }}>{r.createdAt}</Typography>
                   </Box>
-                  <Typography variant="body2" sx={{ mb: 1 }}>
-                    {review.content}
-                  </Typography>
-                  {review.images?.length > 0 && (
+                  <Typography sx={{ fontSize: 14, mb: 1 }}>{r.content}</Typography>
+                  {r.images?.length > 0 && (
                     <Box sx={{ display: "flex", gap: 1 }}>
-                      {review.images.map((img, idx) => (
-                        <Box
-                          key={idx}
-                          component="img"
-                          src={img}
-                          sx={{ width: 100, height: 100, borderRadius: 2, objectFit: "cover" }}
-                        />
+                      {r.images.map((img, i) => (
+                        <Box key={i} component="img" src={img}
+                          sx={{ width: 90, height: 90, borderRadius: 2, objectFit: "cover" }} />
                       ))}
                     </Box>
                   )}
-                  {reviews.indexOf(review) < reviews.length - 1 && <Divider sx={{ mt: 2 }} />}
+                  {idx < reviews.length - 1 && <Divider sx={{ mt: 2 }} />}
                 </Box>
               ))}
-
               {reviews.length === 0 && (
-                <Typography color="text.secondary" sx={{ textAlign: "center", py: 2 }}>
-                  尚無評論
-                </Typography>
+                <Typography sx={{ textAlign: "center", color: "#999", py: 2 }}>尚無評論</Typography>
               )}
-            </Paper>
-          </Grid>
+            </Card>
+          </Box>
 
-          {/* Right sidebar */}
-          <Grid item xs={12} md={4}>
-            <Paper sx={{ borderRadius: 3, p: 3, mb: 2, position: "sticky", top: 80 }}>
-              {/* Bookmark */}
-              <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 1 }}>
-                <IconButton>
-                  <BookmarkBorderIcon />
-                </IconButton>
+          {/* RIGHT column */}
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
+            {/* Title pill */}
+            <Card sx={{ p: 2.5, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <Typography sx={{ fontSize: 18, fontWeight: 700, color: "#000", flex: 1 }}>
+                {event.title}
+              </Typography>
+              <Box sx={{ bgcolor: "#1e1e1e", color: "#fffefe", px: 1.5, py: 0.5, borderRadius: "20px", fontSize: 12, ml: 1 }}>
+                {event.category}
               </Box>
+            </Card>
 
-              <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1.5 }}>
-                活動資訊
-              </Typography>
+            {/* Info card with image + details */}
+            <Card sx={{ p: 2.5, display: "flex", flexDirection: "column", gap: 1.2 }}>
+              <Box component="img" src={event.image}
+                sx={{ width: "100%", height: 180, objectFit: "cover", borderRadius: "10px", mb: 1 }} />
 
-              <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1, mb: 1.5 }}>
-                <CalendarTodayIcon sx={{ fontSize: 18, color: "#666", mt: 0.3 }} />
-                <Box>
-                  <Typography variant="body2">{event.date}</Typography>
-                  <Typography variant="caption" color="text.secondary">{event.time}</Typography>
-                </Box>
-              </Box>
+              <Section icon={<CalendarTodayIcon sx={{ fontSize: 18 }} />} title="日期時間"
+                lines={[event.date, event.time]} />
+              <Section icon={<PlaceIcon sx={{ fontSize: 18 }} />} title="地點" lines={[event.location]} />
+              <Section icon={<PersonIcon sx={{ fontSize: 18 }} />} title="承辦"
+                lines={[event.organizer, `聯絡人：${event.organizerContact}`]} />
+              <Section icon={<PhoneIcon sx={{ fontSize: 18 }} />} title="" lines={[event.contactPhone]} />
 
-              <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1, mb: 1.5 }}>
-                <PlaceIcon sx={{ fontSize: 18, color: "#666", mt: 0.3 }} />
-                <Typography variant="body2">{event.location}</Typography>
-              </Box>
-
-              <Divider sx={{ my: 1.5 }} />
-
-              <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
-                承辦資訊
-              </Typography>
-              <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
-                <PersonIcon sx={{ fontSize: 18, color: "#666" }} />
-                <Typography variant="body2">{event.organizer}</Typography>
-              </Box>
-              <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
-                <PersonIcon sx={{ fontSize: 18, color: "#666" }} />
-                <Typography variant="body2">聯絡人：{event.organizerContact}</Typography>
-              </Box>
-              <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1.5 }}>
-                <PhoneIcon sx={{ fontSize: 18, color: "#666" }} />
-                <Typography variant="body2">{event.contactPhone}</Typography>
-              </Box>
-
-              <Divider sx={{ my: 1.5 }} />
-
-              <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
-                報名資訊
-              </Typography>
-              <Typography variant="body2" sx={{ mb: 0.5 }}>
-                報名時間：{event.registrationStart} ~ {event.registrationEnd}
-              </Typography>
-              <Typography variant="body2" sx={{ mb: 0.5 }}>
-                報名類型：{event.registrationType}
-              </Typography>
-              <Typography variant="body2" sx={{ mb: 0.5 }}>
-                參加對象：{event.targetAudience}
-              </Typography>
-              {event.restrictions && (
-                <Typography variant="body2" sx={{ mb: 0.5 }}>
-                  限制條件：{event.restrictions}
-                </Typography>
-              )}
-              <Typography variant="body2" sx={{ mb: 0.5 }}>
-                名額：{event.remainingSlots}/{event.capacity}
-              </Typography>
+              <Divider sx={{ my: 0.5 }} />
+              <Typography sx={{ fontSize: 13 }}>報名時間：{event.registrationStart} ~ {event.registrationEnd}</Typography>
+              <Typography sx={{ fontSize: 13 }}>報名類型：{event.registrationType}</Typography>
+              <Typography sx={{ fontSize: 13 }}>參加對象：{event.targetAudience}</Typography>
+              <Typography sx={{ fontSize: 13 }}>名額：{event.remainingSlots}/{event.capacity}</Typography>
               {event.meal && event.meal !== "無" && (
-                <Typography variant="body2" sx={{ mb: 0.5 }}>
-                  用餐：{event.meal}
-                </Typography>
+                <Typography sx={{ fontSize: 13 }}>用餐：{event.meal}</Typography>
               )}
 
               <Button
-                fullWidth
-                variant="contained"
                 onClick={() => navigate(`/events/${event.id}/register`)}
                 sx={{
-                  mt: 2,
-                  bgcolor: "#1a237e",
-                  py: 1.2,
-                  borderRadius: 2,
-                  textTransform: "none",
-                  fontSize: 16,
-                  fontWeight: 600,
-                  "&:hover": { bgcolor: "#0d1754" },
+                  mt: 1.5, bgcolor: "#1e1e1e", color: "#fffefe",
+                  borderRadius: "30px", height: 54, fontSize: 22, fontWeight: 700,
+                  textTransform: "none", "&:hover": { bgcolor: "#000" },
                 }}
               >
                 立即報名
               </Button>
-            </Paper>
-          </Grid>
-        </Grid>
+            </Card>
+          </Box>
+        </Box>
+      </Box>
+    </Box>
+  );
+}
+
+function Section({ icon, title, lines }) {
+  return (
+    <Box sx={{ display: "flex", gap: 1, alignItems: "flex-start" }}>
+      <Box sx={{ color: "#666", mt: "2px" }}>{icon}</Box>
+      <Box>
+        {title && <Typography sx={{ fontSize: 12, color: "#999" }}>{title}</Typography>}
+        {lines.map((l, i) => <Typography key={i} sx={{ fontSize: 14, color: "#222" }}>{l}</Typography>)}
       </Box>
     </Box>
   );

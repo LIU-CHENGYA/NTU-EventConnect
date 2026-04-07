@@ -1,13 +1,15 @@
 import { useState, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Box, Typography, InputBase, Chip, Grid } from "@mui/material";
-import SearchIcon from "@mui/icons-material/Search";
+import { Box, Typography, IconButton } from "@mui/material";
+import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 import EventCard from "../components/EventCard";
 import { mockEvents, categories } from "../mock/data";
+import { tokens } from "../theme";
 
 export default function HomePage() {
-  const [searchParams, setSearchParams] = useSearchParams();
-  const [searchQuery, setSearchQuery] = useState(searchParams.get("search") || "");
+  const [searchParams] = useSearchParams();
+  const searchQuery = searchParams.get("search") || "";
   const [selectedCategory, setSelectedCategory] = useState("全部");
 
   const filteredEvents = useMemo(() => {
@@ -24,94 +26,80 @@ export default function HomePage() {
     if (selectedCategory !== "全部") {
       result = result.filter((e) => e.category === selectedCategory);
     }
-    return result;
+    return result.slice(0, 4);
   }, [searchQuery, selectedCategory]);
 
-  const hotEvents = useMemo(() => {
-    return [...mockEvents].sort((a, b) => b.reviewCount - a.reviewCount).slice(0, 3);
-  }, []);
+  const hotEvents = useMemo(
+    () => [...mockEvents].sort((a, b) => b.reviewCount - a.reviewCount).slice(0, 4),
+    []
+  );
 
-  const handleSearch = (e) => {
-    if (e.key === "Enter") {
-      setSearchParams(searchQuery ? { search: searchQuery } : {});
-    }
-  };
-
-  return (
-    <Box sx={{ minHeight: "100vh", bgcolor: "#f0f2f5" }}>
-      {/* Search + Category */}
-      <Box sx={{ maxWidth: 1200, mx: "auto", px: 3, pt: 4 }}>
-        {/* Search bar */}
-        <Box
+  const Section = ({ title, items, showCategories }) => (
+    <Box sx={{ mb: 6 }}>
+      {/* Header row */}
+      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 2 }}>
+        <Typography
           sx={{
-            display: "flex",
-            alignItems: "center",
-            bgcolor: "white",
-            borderRadius: 2,
-            px: 2,
-            py: 1,
-            boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
-            mb: 2,
+            fontFamily: tokens.font.heading,
+            fontWeight: 500,
+            fontSize: 24,
+            color: tokens.color.text,
           }}
         >
-          <SearchIcon sx={{ color: "#999", mr: 1 }} />
-          <InputBase
-            placeholder="搜尋活動名稱、內容..."
-            fullWidth
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            onKeyDown={handleSearch}
-            sx={{ fontSize: 15 }}
-          />
-        </Box>
-
-        {/* Categories */}
-        <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", mb: 3 }}>
-          {categories.map((cat) => (
-            <Chip
-              key={cat}
-              label={cat}
-              onClick={() => setSelectedCategory(cat)}
-              sx={{
-                bgcolor: selectedCategory === cat ? "#1a237e" : "white",
-                color: selectedCategory === cat ? "white" : "#333",
-                fontWeight: 500,
-                "&:hover": { bgcolor: selectedCategory === cat ? "#0d1754" : "#e8eaf6" },
-              }}
-            />
-          ))}
-        </Box>
-
-        {/* Event list */}
-        <Typography variant="h6" sx={{ fontWeight: 700, mb: 2, color: "#1a237e" }}>
-          活動列表
+          {title}
         </Typography>
-        <Grid container spacing={2.5} sx={{ mb: 4 }}>
-          {filteredEvents.map((event) => (
-            <Grid item xs={12} sm={6} md={4} key={event.id}>
-              <EventCard event={event} />
-            </Grid>
-          ))}
-          {filteredEvents.length === 0 && (
-            <Grid item xs={12}>
-              <Typography color="text.secondary" sx={{ textAlign: "center", py: 4 }}>
-                找不到符合條件的活動
-              </Typography>
-            </Grid>
-          )}
-        </Grid>
 
-        {/* Hot events */}
-        <Typography variant="h6" sx={{ fontWeight: 700, mb: 2, color: "#1a237e" }}>
-          熱門活動
-        </Typography>
-        <Grid container spacing={2.5} sx={{ mb: 4 }}>
-          {hotEvents.map((event) => (
-            <Grid item xs={12} sm={6} md={4} key={event.id}>
-              <EventCard event={event} />
-            </Grid>
+        {showCategories && (
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <Typography sx={{ fontSize: 14, color: tokens.color.text, mr: 1 }}>推薦類別</Typography>
+            {categories.filter(c => c !== "全部").slice(0, 4).map(cat => (
+              <Box
+                key={cat}
+                onClick={() => setSelectedCategory(cat)}
+                sx={{
+                  px: 1.2, py: "3px",
+                  fontSize: 12,
+                  borderRadius: "10px",
+                  cursor: "pointer",
+                  bgcolor: selectedCategory === cat ? tokens.color.navy : "#fff",
+                  color: selectedCategory === cat ? "#fff" : tokens.color.text,
+                  border: `1px solid ${tokens.color.border}`,
+                }}
+              >
+                {cat}
+              </Box>
+            ))}
+            <ArrowDropDownIcon sx={{ color: tokens.color.text }} />
+          </Box>
+        )}
+      </Box>
+
+      {/* Card row */}
+      <Box sx={{ display: "flex", alignItems: "center", gap: 2.5 }}>
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: "repeat(4, 1fr)",
+            gap: 2.5,
+            flex: 1,
+          }}
+        >
+          {items.map((ev) => (
+            <EventCard key={ev.id} event={ev} />
           ))}
-        </Grid>
+        </Box>
+        <IconButton sx={{ color: tokens.color.placeholder }}>
+          <ChevronRightIcon sx={{ fontSize: 48 }} />
+        </IconButton>
+      </Box>
+    </Box>
+  );
+
+  return (
+    <Box sx={{ minHeight: "calc(100vh - 76px)", bgcolor: tokens.color.bg, py: 5 }}>
+      <Box sx={{ maxWidth: 1200, mx: "auto", px: 4 }}>
+        <Section title="活動列表" items={filteredEvents} showCategories />
+        <Section title="熱門活動" items={hotEvents} />
       </Box>
     </Box>
   );

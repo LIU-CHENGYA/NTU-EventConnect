@@ -1,9 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  Box, Typography, Avatar, Paper, Tabs, Tab, Grid, Chip, Button, TextField, Dialog, DialogTitle, DialogContent, DialogActions,
+  Box, Typography, Avatar, Button, TextField, Dialog, DialogTitle, DialogContent, DialogActions,
 } from "@mui/material";
-import EditIcon from "@mui/icons-material/Edit";
 import EventCard from "../components/EventCard";
 import PostCard from "../components/PostCard";
 import { useAuth } from "../context/AuthContext";
@@ -11,13 +10,27 @@ import {
   mockPosts, mockRegistrations, mockDrafts,
   mockBookmarkedEvents, mockBookmarkedPosts, mockEvents,
 } from "../mock/data";
+import { tokens } from "../theme";
+
+const TAG_COLORS = {
+  "運動": "rgba(57,167,255,0.42)",
+  "便當": "rgba(255,205,57,0.42)",
+  "英文": "rgba(255,57,57,0.42)",
+  "就業": "rgba(255,57,159,0.42)",
+  "講座": "rgba(57,255,167,0.42)",
+  "美食": "rgba(255,205,57,0.42)",
+  "求職": "rgba(255,57,159,0.42)",
+};
+
+const TABS = ["我的貼文", "即將到來的活動", "收藏貼文", "收藏活動"];
+const STATUS_FILTERS = ["全部", "報名成功", "等待候補", "已取消"];
 
 export default function ProfilePage() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [tab, setTab] = useState(0);
-  const [editOpen, setEditOpen] = useState(false);
+  const [tab, setTab] = useState(1);
   const [statusFilter, setStatusFilter] = useState("全部");
+  const [editOpen, setEditOpen] = useState(false);
 
   if (!user) { navigate("/login"); return null; }
 
@@ -27,198 +40,174 @@ export default function ProfilePage() {
     ? myRegistrations
     : myRegistrations.filter((r) => r.status === statusFilter);
 
-  const tabs = ["我的貼文", "即將到來的活動", "小棧", "收藏貼文", "收藏活動"];
+  const sidebarCard = {
+    bgcolor: "#fffefe",
+    borderRadius: "20px",
+    boxShadow: tokens.shadow.pill,
+    p: 3,
+  };
+
+  const stats = [
+    { label: "貼文", value: user.postCount },
+    { label: "已參加的活動", value: user.joinedEventCount },
+    { label: "即將到來的活動", value: user.upcomingEventCount },
+    { label: "關注的標籤", value: "" },
+  ];
 
   return (
-    <Box sx={{ minHeight: "100vh", bgcolor: "#f0f2f5" }}>
-      <Box sx={{ maxWidth: 1200, mx: "auto", px: 3, py: 4 }}>
-        <Grid container spacing={3}>
-          {/* Left sidebar */}
-          <Grid item xs={12} md={3}>
-            <Paper sx={{ borderRadius: 3, p: 3, mb: 2 }}>
-              <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>Profile</Typography>
-              <Box sx={{ display: "flex", justifyContent: "space-between", mb: 0.5 }}>
-                <Typography variant="body2">貼文</Typography>
-                <Typography variant="body2" sx={{ fontWeight: 600 }}>{user.postCount}</Typography>
+    <Box sx={{ minHeight: "calc(100vh - 76px)", bgcolor: tokens.color.bg, py: 4 }}>
+      <Box sx={{ maxWidth: 1280, mx: "auto", px: 4, display: "grid", gridTemplateColumns: "291px 1fr", gap: 3 }}>
+        {/* SIDEBAR */}
+        <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
+          <Box sx={sidebarCard}>
+            <Typography sx={{ fontFamily: "'Lexend',sans-serif", fontSize: 24, mb: 2 }}>Profile</Typography>
+            {stats.map((s) => (
+              <Box key={s.label} sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", py: 0.6 }}>
+                <Typography sx={{ fontFamily: "'Lexend',sans-serif", fontSize: 16 }}>{s.label}</Typography>
+                {s.value !== "" && <Typography sx={{ fontSize: 16 }}>{s.value}</Typography>}
               </Box>
-              <Box sx={{ display: "flex", justifyContent: "space-between", mb: 0.5 }}>
-                <Typography variant="body2">已參加的活動</Typography>
-                <Typography variant="body2" sx={{ fontWeight: 600 }}>{user.joinedEventCount}</Typography>
-              </Box>
-              <Box sx={{ display: "flex", justifyContent: "space-between", mb: 1 }}>
-                <Typography variant="body2">即將到來的活動</Typography>
-                <Typography variant="body2" sx={{ fontWeight: 600 }}>{user.upcomingEventCount}</Typography>
-              </Box>
-              <Typography variant="body2" sx={{ mb: 0.5 }}>關注的標籤</Typography>
-              <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap" }}>
-                {user.tags?.map((tag) => (
-                  <Chip key={tag} label={tag} size="small" sx={{ fontSize: 11 }} />
-                ))}
-              </Box>
-            </Paper>
+            ))}
+            <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.7, mt: 1 }}>
+              {user.tags?.map((tag) => (
+                <Box key={tag} sx={{
+                  bgcolor: TAG_COLORS[tag] || "rgba(0,0,0,0.1)",
+                  px: 1, py: "2px", borderRadius: "20px", fontSize: 13,
+                }}>
+                  {tag}
+                </Box>
+              ))}
+            </Box>
+          </Box>
 
-            <Paper sx={{ borderRadius: 3, p: 3 }}>
-              <Typography variant="h6" sx={{ fontWeight: 700 }}>My Calendar</Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                即將到來的活動日曆（開發中）
-              </Typography>
-            </Paper>
-          </Grid>
+          <Box sx={sidebarCard}>
+            <Typography sx={{ fontFamily: "'Lexend',sans-serif", fontSize: 24, mb: 1 }}>My Calendar</Typography>
+            <Typography sx={{ fontSize: 13, color: "#999" }}>即將到來的活動日曆（開發中）</Typography>
+          </Box>
+        </Box>
 
-          {/* Right content */}
-          <Grid item xs={12} md={9}>
-            {/* Cover + Avatar */}
-            <Paper sx={{ borderRadius: 3, overflow: "hidden", mb: 2 }}>
-              <Box
-                sx={{
-                  height: 160,
-                  background: "linear-gradient(135deg, #1a237e 0%, #3f51b5 100%)",
-                  position: "relative",
-                }}
-              >
-                <Avatar
-                  src={user.avatar}
+        {/* MAIN */}
+        <Box>
+          {/* Header card */}
+          <Box sx={{
+            bgcolor: "#fffefe", borderRadius: "20px", boxShadow: tokens.shadow.pill,
+            mb: 3, position: "relative", overflow: "hidden",
+          }}>
+            <Box sx={{
+              height: 90,
+              background: "linear-gradient(135deg,#1a237e 0%,#3f51b5 50%,#7e57c2 100%)",
+            }} />
+            <Avatar
+              src={user.avatar}
+              sx={{
+                width: 76, height: 76,
+                position: "absolute", top: 52, left: "50%", transform: "translateX(-50%)",
+                border: "3px solid white",
+              }}
+            />
+            <Box sx={{ pt: 5, pb: 1, textAlign: "center" }}>
+              <Typography sx={{ fontFamily: "'Lemon',sans-serif", fontSize: 20 }}>{user.name}</Typography>
+            </Box>
+            {/* Tabs */}
+            <Box sx={{ display: "flex", justifyContent: "center", gap: 4, pb: 1.5 }}>
+              {TABS.map((t, i) => (
+                <Box
+                  key={t}
+                  onClick={() => setTab(i)}
                   sx={{
-                    width: 80, height: 80,
-                    position: "absolute", bottom: -40, left: "50%", transform: "translateX(-50%)",
-                    border: "4px solid white",
-                  }}
-                />
-                <Button
-                  size="small"
-                  startIcon={<EditIcon />}
-                  onClick={() => setEditOpen(true)}
-                  sx={{
-                    position: "absolute", top: 12, right: 12,
-                    bgcolor: "rgba(255,255,255,0.9)", textTransform: "none",
-                    fontSize: 12, borderRadius: 2,
+                    cursor: "pointer",
+                    fontSize: 18,
+                    color: tab === i ? tokens.color.navy : "#000",
+                    fontFamily: "'Lemon',sans-serif",
+                    pb: 0.5,
+                    borderBottom: tab === i ? `2px solid ${tokens.color.navy}` : "2px solid transparent",
                   }}
                 >
-                  Edit Profile
-                </Button>
-              </Box>
-              <Box sx={{ textAlign: "center", pt: 5, pb: 2 }}>
-                <Typography variant="h6" sx={{ fontWeight: 700 }}>{user.name}</Typography>
-              </Box>
-
-              {/* Tabs */}
-              <Tabs
-                value={tab}
-                onChange={(_, v) => setTab(v)}
-                centered
-                sx={{
-                  "& .MuiTab-root": { textTransform: "none", fontWeight: 600, fontSize: 14 },
-                  "& .Mui-selected": { color: "#1a237e" },
-                  "& .MuiTabs-indicator": { bgcolor: "#1a237e" },
-                }}
-              >
-                {tabs.map((t) => <Tab key={t} label={t} />)}
-              </Tabs>
-            </Paper>
-
-            {/* Tab content */}
-            {tab === 0 && (
-              <Grid container spacing={2}>
-                {myPosts.map((post) => (
-                  <Grid item xs={12} sm={6} md={4} key={post.id}>
-                    <PostCard post={post} />
-                  </Grid>
-                ))}
-                {myPosts.length === 0 && (
-                  <Grid item xs={12}>
-                    <Typography color="text.secondary" sx={{ textAlign: "center", py: 4 }}>
-                      尚無貼文
-                    </Typography>
-                  </Grid>
-                )}
-              </Grid>
-            )}
-
-            {tab === 1 && (
-              <>
-                <Box sx={{ display: "flex", gap: 1, mb: 2 }}>
-                  {["全部", "報名成功", "等待候補", "已取消"].map((s) => (
-                    <Chip
-                      key={s}
-                      label={s}
-                      onClick={() => setStatusFilter(s)}
-                      sx={{
-                        bgcolor: statusFilter === s ? "#1a237e" : "white",
-                        color: statusFilter === s ? "white" : "#333",
-                        fontWeight: 500,
-                      }}
-                    />
-                  ))}
+                  {t}
                 </Box>
-                <Grid container spacing={2}>
-                  {filteredRegistrations.map((reg) => {
-                    const event = mockEvents.find((e) => e.id === reg.eventId) || {
-                      ...reg, id: reg.eventId, title: reg.eventTitle, image: reg.eventImage,
-                    };
-                    return (
-                      <Grid item xs={12} sm={6} md={4} key={reg.id}>
-                        <EventCard event={event} showActions status={reg.status} />
-                      </Grid>
-                    );
-                  })}
-                </Grid>
-              </>
-            )}
+              ))}
+            </Box>
+            {/* Edit Profile pill */}
+            <Box
+              onClick={() => setEditOpen(true)}
+              sx={{
+                position: "absolute", top: 12, right: 12,
+                bgcolor: "#39a7ff", color: "white",
+                px: 1.5, py: "5px", borderRadius: "20px", fontSize: 12,
+                cursor: "pointer", fontFamily: "'Lexend',sans-serif",
+              }}
+            >
+              Edit Profile
+            </Box>
+          </Box>
 
-            {tab === 2 && (
-              <Grid container spacing={2}>
-                {mockDrafts.map((draft) => (
-                  <Grid item xs={12} sm={6} md={4} key={draft.id}>
-                    <Paper
-                      sx={{ p: 2, borderRadius: 3, cursor: "pointer" }}
-                      onClick={() => navigate(`/posts/create?draftId=${draft.id}`)}
-                    >
-                      <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                        {draft.eventTitle || "無關聯活動"}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                        {draft.content}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {draft.createdAt}
-                      </Typography>
-                    </Paper>
-                  </Grid>
+          {/* Tab content */}
+          {tab === 1 && (
+            <>
+              <Box sx={{ display: "flex", gap: 1, mb: 2.5 }}>
+                {STATUS_FILTERS.map((s) => (
+                  <Box
+                    key={s}
+                    onClick={() => setStatusFilter(s)}
+                    sx={{
+                      px: 1.5, py: "6px", fontSize: 14, borderRadius: "8px",
+                      border: "1px solid #cac4d0",
+                      bgcolor: statusFilter === s ? "rgba(57,167,255,0.42)" : "#fff",
+                      color: "#49454f", cursor: "pointer", fontFamily: "'Roboto',sans-serif",
+                      fontWeight: 500,
+                    }}
+                  >
+                    {s}
+                  </Box>
                 ))}
-                {mockDrafts.length === 0 && (
-                  <Grid item xs={12}>
-                    <Typography color="text.secondary" sx={{ textAlign: "center", py: 4 }}>
-                      尚無草稿
-                    </Typography>
-                  </Grid>
-                )}
-              </Grid>
-            )}
+              </Box>
+              <Box sx={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 2.5 }}>
+                {filteredRegistrations.map((reg) => {
+                  const event = mockEvents.find((e) => e.id === reg.eventId) || {
+                    ...reg, id: reg.eventId, title: reg.eventTitle, image: reg.eventImage,
+                  };
+                  return <EventCard key={reg.id} event={event} showActions status={reg.status} />;
+                })}
+              </Box>
+            </>
+          )}
 
-            {tab === 3 && (
-              <Grid container spacing={2}>
-                {mockBookmarkedPosts.map((post) => (
-                  <Grid item xs={12} sm={6} md={4} key={post.id}>
-                    <PostCard post={post} />
-                  </Grid>
-                ))}
-              </Grid>
-            )}
+          {tab === 0 && (
+            <Box sx={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 2.5 }}>
+              {myPosts.map((p) => <PostCard key={p.id} post={p} />)}
+              {myPosts.length === 0 && (
+                <Typography sx={{ textAlign: "center", color: "#999", gridColumn: "1/-1", py: 4 }}>尚無貼文</Typography>
+              )}
+            </Box>
+          )}
 
-            {tab === 4 && (
-              <Grid container spacing={2}>
-                {mockBookmarkedEvents.map((event) => (
-                  <Grid item xs={12} sm={6} md={4} key={event.id}>
-                    <EventCard event={event} showActions />
-                  </Grid>
-                ))}
-              </Grid>
-            )}
-          </Grid>
-        </Grid>
+          {tab === 2 && (
+            <Box sx={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 2.5 }}>
+              {mockBookmarkedPosts.map((p) => <PostCard key={p.id} post={p} />)}
+            </Box>
+          )}
+
+          {tab === 3 && (
+            <Box sx={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 2.5 }}>
+              {mockBookmarkedEvents.map((e) => <EventCard key={e.id} event={e} favorited />)}
+            </Box>
+          )}
+
+          {/* Floating add */}
+          <Box
+            onClick={() => navigate("/posts/create")}
+            sx={{
+              position: "fixed", bottom: 24, right: 24,
+              width: 50, height: 50, borderRadius: "50%",
+              bgcolor: tokens.color.navy, color: "white",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              cursor: "pointer", fontSize: 28, boxShadow: tokens.shadow.pill,
+            }}
+          >
+            +
+          </Box>
+        </Box>
       </Box>
 
-      {/* Edit Profile Dialog */}
       <Dialog open={editOpen} onClose={() => setEditOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle sx={{ fontWeight: 700 }}>編輯個人資料</DialogTitle>
         <DialogContent>
@@ -228,9 +217,7 @@ export default function ProfilePage() {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setEditOpen(false)}>取消</Button>
-          <Button variant="contained" onClick={() => setEditOpen(false)} sx={{ bgcolor: "#1a237e" }}>
-            儲存
-          </Button>
+          <Button variant="contained" onClick={() => setEditOpen(false)} sx={{ bgcolor: tokens.color.navy }}>儲存</Button>
         </DialogActions>
       </Dialog>
     </Box>

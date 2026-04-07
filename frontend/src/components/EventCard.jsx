@@ -1,149 +1,156 @@
 import { useNavigate } from "react-router-dom";
-import { Card, CardMedia, CardContent, Typography, Box, Chip, IconButton } from "@mui/material";
+import { Box, Typography, IconButton } from "@mui/material";
 import StarIcon from "@mui/icons-material/Star";
 import FavoriteIcon from "@mui/icons-material/Favorite";
+import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
 import PlaceIcon from "@mui/icons-material/Place";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import PeopleIcon from "@mui/icons-material/People";
+import { tokens } from "../theme";
 
-export default function EventCard({ event, showActions = false, status, onRegister, onCancel }) {
+export default function EventCard({
+  event,
+  showActions = false,
+  status,
+  onCancel,
+  favorited = false,
+  onToggleFavorite,
+}) {
   const navigate = useNavigate();
 
   const statusColors = {
-    "報名成功": { bg: "#e8f5e9", color: "#2e7d32" },
-    "等待候補": { bg: "#fff3e0", color: "#e65100" },
-    "已取消": { bg: "#ffebee", color: "#c62828" },
+    "報名成功": { bg: "#c8e6c9", color: "#1b5e20" },
+    "等待候補": { bg: "#ffe0b2", color: "#bf360c" },
+    "已取消":   { bg: "#ffcdd2", color: "#b71c1c" },
   };
 
   return (
-    <Card
+    <Box
+      onClick={() => navigate(`/events/${event.id}`)}
       sx={{
-        borderRadius: 3,
+        width: "100%",
+        maxWidth: 252,
+        bgcolor: "white",
+        borderRadius: "8px",
         overflow: "hidden",
-        boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+        boxShadow: tokens.shadow.card,
         cursor: "pointer",
-        transition: "transform 0.2s, box-shadow 0.2s",
-        "&:hover": {
-          transform: "translateY(-4px)",
-          boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
-        },
         position: "relative",
-        height: "100%",
         display: "flex",
         flexDirection: "column",
+        transition: "transform .15s",
+        "&:hover": { transform: "translateY(-2px)" },
       }}
-      onClick={() => navigate(`/events/${event.id}`)}
     >
-      {/* Bookmark heart */}
-      <IconButton
-        sx={{
-          position: "absolute",
-          top: 8,
-          right: 8,
-          bgcolor: "rgba(255,255,255,0.9)",
-          zIndex: 1,
-          "&:hover": { bgcolor: "rgba(255,255,255,1)" },
-        }}
-        size="small"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <FavoriteIcon sx={{ color: "#e53935", fontSize: 18 }} />
-      </IconButton>
-
-      {/* Status badge */}
-      {status && (
-        <Chip
-          label={status}
-          size="small"
-          sx={{
-            position: "absolute",
-            top: 8,
-            left: 8,
-            zIndex: 1,
-            bgcolor: statusColors[status]?.bg || "#e0e0e0",
-            color: statusColors[status]?.color || "#333",
-            fontWeight: 600,
-            fontSize: 12,
-          }}
+      {/* Image */}
+      <Box sx={{ position: "relative", height: 180 }}>
+        <img
+          src={event.image || "https://images.unsplash.com/photo-1523050854058-8df90110c476?w=800"}
+          alt={event.title}
+          style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
         />
-      )}
+        {/* Heart top-left */}
+        <IconButton
+          size="small"
+          onClick={(e) => { e.stopPropagation(); onToggleFavorite?.(); }}
+          sx={{
+            position: "absolute", top: 6, left: 6,
+            bgcolor: "rgba(255,255,255,0.85)",
+            "&:hover": { bgcolor: "white" },
+            width: 30, height: 30,
+          }}
+        >
+          {favorited
+            ? <FavoriteIcon sx={{ color: tokens.color.heart, fontSize: 18 }} />
+            : <FavoriteBorderIcon sx={{ color: tokens.color.heart, fontSize: 18 }} />}
+        </IconButton>
+        {/* Category chip top-right */}
+        {event.category && (
+          <Box
+            sx={{
+              position: "absolute", top: 8, right: 8,
+              bgcolor: "rgba(0,0,0,0.6)", color: "white",
+              fontSize: 11, px: 1, py: "2px",
+              borderRadius: "4px",
+            }}
+          >
+            {event.category}
+          </Box>
+        )}
+      </Box>
 
-      <CardMedia
-        component="img"
-        height="160"
-        image={event.image || "https://images.unsplash.com/photo-1523050854058-8df90110c476?w=800"}
-        alt={event.title}
-        sx={{ objectFit: "cover" }}
-      />
-
-      <CardContent sx={{ flexGrow: 1, p: 2 }}>
-        <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 0.5, lineHeight: 1.3 }}>
-          {event.title}
-        </Typography>
+      {/* Content */}
+      <Box sx={{ p: 1.5, flex: 1, display: "flex", flexDirection: "column" }}>
+        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 1 }}>
+          <Typography sx={{ fontWeight: 700, fontSize: 15, color: tokens.color.text, lineHeight: 1.3 }}>
+            {event.title}
+          </Typography>
+          {event.rating && (
+            <Box sx={{ display: "flex", alignItems: "center", gap: 0.3, flexShrink: 0 }}>
+              <StarIcon sx={{ fontSize: 14, color: tokens.color.star }} />
+              <Typography sx={{ fontSize: 12, fontWeight: 600 }}>{event.rating}</Typography>
+            </Box>
+          )}
+        </Box>
 
         {event.sessionName && (
-          <Typography variant="caption" color="text.secondary">
+          <Typography sx={{ fontSize: 11, color: tokens.color.textSecondary, mt: 0.3 }}>
             {event.sessionName}
           </Typography>
         )}
 
-        <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, mt: 1 }}>
-          <CalendarTodayIcon sx={{ fontSize: 14, color: "#666" }} />
-          <Typography variant="body2" color="text.secondary" sx={{ fontSize: 13 }}>
-            {event.date}
-          </Typography>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, mt: 0.7 }}>
+          <CalendarTodayIcon sx={{ fontSize: 12, color: tokens.color.textSecondary }} />
+          <Typography sx={{ fontSize: 11, color: tokens.color.textSecondary }}>{event.date}</Typography>
         </Box>
-
         {event.location && (
           <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, mt: 0.3 }}>
-            <PlaceIcon sx={{ fontSize: 14, color: "#666" }} />
-            <Typography variant="body2" color="text.secondary" sx={{ fontSize: 13, noWrap: true }}>
+            <PlaceIcon sx={{ fontSize: 12, color: tokens.color.textSecondary }} />
+            <Typography sx={{ fontSize: 11, color: tokens.color.textSecondary, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
               {event.location}
             </Typography>
           </Box>
         )}
-
         {event.capacity && (
           <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, mt: 0.3 }}>
-            <PeopleIcon sx={{ fontSize: 14, color: "#666" }} />
-            <Typography variant="body2" color="text.secondary" sx={{ fontSize: 13 }}>
-              剩餘 {event.remainingSlots}/{event.capacity}
+            <PeopleIcon sx={{ fontSize: 12, color: tokens.color.textSecondary }} />
+            <Typography sx={{ fontSize: 11, color: tokens.color.textSecondary }}>
+              剩餘名額：{event.remainingSlots}/{event.capacity}
             </Typography>
           </Box>
         )}
 
-        {event.rating && (
-          <Box sx={{ display: "flex", alignItems: "center", gap: 0.3, mt: 0.5 }}>
-            <StarIcon sx={{ fontSize: 16, color: "#ffc107" }} />
-            <Typography variant="body2" sx={{ fontWeight: 600, fontSize: 13 }}>
-              {event.rating}
-            </Typography>
-          </Box>
-        )}
-      </CardContent>
-
-      {/* Action buttons for profile page */}
-      {showActions && (
-        <Box sx={{ display: "flex", gap: 1, p: 1.5, pt: 0 }}>
-          {status === "報名成功" && (
-            <button
-              onClick={(e) => { e.stopPropagation(); onCancel?.(); }}
-              style={{
-                flex: 1, padding: "6px 0", border: "none", borderRadius: 6,
-                backgroundColor: "#ffcdd2", color: "#c62828", fontWeight: 600,
-                cursor: "pointer", fontSize: 13,
+        {/* Status pill */}
+        {status && (
+          <Box sx={{ mt: 1 }}>
+            <Box
+              sx={{
+                display: "inline-block",
+                bgcolor: statusColors[status]?.bg || "#eee",
+                color: statusColors[status]?.color || "#333",
+                fontSize: 11,
+                fontWeight: 600,
+                px: 1,
+                py: "2px",
+                borderRadius: "4px",
               }}
             >
-              取消
-            </button>
-          )}
-          {status === "等待候補" && (
+              {status}
+            </Box>
+          </Box>
+        )}
+
+        <Box sx={{ flex: 1 }} />
+
+        {/* CTA buttons */}
+        <Box sx={{ display: "flex", gap: 0.5, mt: 1.2 }}>
+          {showActions && (status === "報名成功" || status === "等待候補") && (
             <button
               onClick={(e) => { e.stopPropagation(); onCancel?.(); }}
               style={{
-                flex: 1, padding: "6px 0", border: "none", borderRadius: 6,
-                backgroundColor: "#fff3e0", color: "#e65100", fontWeight: 600,
-                cursor: "pointer", fontSize: 13,
+                flex: "0 0 auto", padding: "7px 12px", border: "none",
+                borderRadius: 4, backgroundColor: "#e0e0e0", color: "#333",
+                fontWeight: 600, fontSize: 12, cursor: "pointer",
               }}
             >
               取消
@@ -152,15 +159,15 @@ export default function EventCard({ event, showActions = false, status, onRegist
           <button
             onClick={(e) => { e.stopPropagation(); navigate(`/events/${event.id}`); }}
             style={{
-              flex: 1, padding: "6px 0", border: "none", borderRadius: 6,
-              backgroundColor: "#e8eaf6", color: "#1a237e", fontWeight: 600,
-              cursor: "pointer", fontSize: 13,
+              flex: 1, padding: "7px 0", border: "none", borderRadius: 4,
+              backgroundColor: tokens.color.navy, color: "white",
+              fontWeight: 600, fontSize: 12, cursor: "pointer",
             }}
           >
             查看詳情
           </button>
         </Box>
-      )}
-    </Card>
+      </Box>
+    </Box>
   );
 }
