@@ -169,70 +169,88 @@ export default function ProfilePage() {
           {/* 加上 Provider 解決 UI Crash 報錯 */}
           <LocalizationProvider dateAdapter={AdapterDateFns}>
             <StaticDatePicker
-            displayStaticWrapperAs="desktop"
-            value={new Date()}
-            slots={{
-              day: (props) => {
-                const { day, outsideCurrentMonth, ...other } = props;
-                // 檢查是否有活動
-                const hasEvent = !outsideCurrentMonth && myRegistrations.some(reg => 
-                  reg.date && isSameDay(parseISO(reg.date), day)
-                );
+              displayStaticWrapperAs="desktop"
+              value={new Date()}
+              slots={{
+                day: (props) => {
+                  const { day, outsideCurrentMonth, ...other } = props;
+                  const hasEvent = !outsideCurrentMonth && myRegistrations.some(reg => 
+                    reg.date && isSameDay(parseISO(reg.date), day)
+                  );
 
-                return (
-                  <Box
-                    {...other}
-                    sx={{
-                      ...other.sx,
-                      // 如果有活動，文字變紅並加粗；沒活動則維持原樣
-                      color: hasEvent ? "red !important" : "inherit",
-                      fontWeight: hasEvent ? "900 !important" : "normal",
-                      backgroundColor: "transparent !important", // 確保背景不干擾
-                    }}
-                  >
-                    {day.getDate()}
-                  </Box>
-                );
-              }
-            }}
-            slotProps={{
-              actionBar: { sx: { display: 'none' } },
-              toolbar: { hidden: true }
-            }}
-            sx={{
-              width: '100%',
-              maxWidth: '100%',
-              minWidth: 'unset',
-              '& .MuiPickersLayout-root': { minWidth: 'unset', width: '100%' },
-              '& .MuiDateCalendar-root': { width: '100%', minWidth: 'unset' },
-              
-              // 統一星期標題與日期的對齊邏輯
-              '& .MuiDayCalendar-header': {
+                  return (
+                    <Box
+                      {...other}
+                      sx={{
+                        ...other.sx,
+                        color: hasEvent ? "red !important" : "inherit",
+                        fontWeight: hasEvent ? "900 !important" : "normal",
+                        backgroundColor: "transparent !important",
+                        // 強制格子寬度與標題一致
+                        width: '32px !important',
+                        height: '32px !important',
+                        minWidth: 'unset !important',
+                        display: 'flex',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        margin: '0 !important', 
+                      }}
+                    >
+                      {day.getDate()}
+                    </Box>
+                  );
+                }
+              }}
+              slotProps={{
+                actionBar: { sx: { display: 'none' } },
+                toolbar: { hidden: true }
+              }}
+              sx={{
                 width: '100%',
-                display: 'flex',
-                justifyContent: 'space-between',
-                padding: '0 10px',
-              },
-              '& .MuiDayCalendar-weekContainer': {
-                width: '100%',
-                display: 'flex',
-                justifyContent: 'space-between',
-                padding: '0 10px',
-              },
-              '& .MuiPickersDay-root': {
-                width: '32px',
-                height: '32px',
-                fontSize: '0.85rem',
-                margin: 0,
-              },
-              '& .MuiDayCalendar-weekDayLabel': {
-                width: '32px',
-                height: '32px',
-                margin: 0,
-                fontSize: '0.75rem',
-              }
-            }}
-          />
+                maxWidth: '100%',
+                minWidth: 'unset !important',
+                '& .MuiPickersLayout-root': { minWidth: 'unset !important', width: '100%' },
+                '& .MuiDateCalendar-root': { width: '100% !important', minWidth: 'unset !important' },
+                
+                // 關鍵修正：移除所有內部的寬度限制
+                '& .MuiDayCalendar-monthContainer': { width: '100% !important' },
+                
+                // 1. 強制星期標題 (S, M, T...) 均勻分佈
+                '& .MuiDayCalendar-header': {
+                  width: '100% !important',
+                  display: 'flex !important',
+                  justifyContent: 'space-between !important',
+                  padding: '0 10px !important',
+                },
+
+                // 2. 強制日期行 (1, 2, 3...) 均勻分佈，並與標題對齊
+                '& .MuiDayCalendar-weekContainer': {
+                  width: '100% !important',
+                  display: 'flex !important',
+                  justifyContent: 'space-between !important',
+                  padding: '0 10px !important',
+                  margin: '2px 0 !important',
+                },
+
+                // 3. 統一標題文字的大小與寬度
+                '& .MuiDayCalendar-weekDayLabel': {
+                  width: '32px !important',
+                  height: '32px !important',
+                  margin: '0 !important',
+                  fontSize: '0.75rem',
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                },
+
+                // 4. 移除標題列的預設高度
+                '& .MuiPickersCalendarHeader-root': {
+                  padding: '0 12px !important',
+                  margin: 0,
+                  minHeight: '40px !important'
+                }
+              }}
+            />
           </LocalizationProvider>
         </Box>
         </Box>
