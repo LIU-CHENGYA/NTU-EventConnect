@@ -20,12 +20,12 @@ const TAG_COLORS = {
   "求職": "rgba(255,57,159,0.42)",
 };
 
-const [selectedFile, setSelectedFile] = useState(null);
 const TABS = ["我的貼文", "即將到來的活動", "收藏貼文", "收藏活動"];
 const STATUS_FILTERS = ["全部", "報名成功", "等待候補", "已取消"];
 const STATUS_TO_ZH = { success: "報名成功", waitlist: "等待候補", cancelled: "已取消" };
 
 export default function ProfilePage() {
+  const [selectedFile, setSelectedFile] = useState(null);
   const { user, ready, setUser } = useAuth();
   const navigate = useNavigate();
   const { drafts, refreshUserData } = useData();
