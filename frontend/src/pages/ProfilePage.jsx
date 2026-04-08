@@ -171,49 +171,42 @@ export default function ProfilePage() {
             <StaticDatePicker
             displayStaticWrapperAs="desktop"
             value={new Date()}
-            // 1. 確保 slots 裡的 Badge 邏輯正確
             slots={{
               day: (props) => {
                 const { day, outsideCurrentMonth, ...other } = props;
-                // 這裡確保變數名稱是 myRegistrations
+                // 檢查是否有活動
                 const hasEvent = !outsideCurrentMonth && myRegistrations.some(reg => 
                   reg.date && isSameDay(parseISO(reg.date), day)
                 );
+
                 return (
-                  <Badge
-                    key={day.toString()}
-                    overlap="circular"
-                    // 紅點標記
-                    badgeContent={hasEvent ? '•' : undefined}
-                    sx={{ 
-                      "& .MuiBadge-badge": { 
-                        color: 'red', 
-                        fontSize: '24px', // 調整點的大小
-                        top: '4px',      // 調整點的高低
-                        right: '4px'     // 調整點的左右
-                      } 
+                  <Box
+                    {...other}
+                    sx={{
+                      ...other.sx,
+                      // 如果有活動，文字變紅並加粗；沒活動則維持原樣
+                      color: hasEvent ? "red !important" : "inherit",
+                      fontWeight: hasEvent ? "900 !important" : "normal",
+                      backgroundColor: "transparent !important", // 確保背景不干擾
                     }}
                   >
-                    <Box {...other}>{day.getDate()}</Box>
-                  </Badge>
+                    {day.getDate()}
+                  </Box>
                 );
               }
             }}
-            // 2. 徹底隱藏下方的 CANCEL / OK 按鈕
             slotProps={{
-              actionBar: { 
-                sx: { display: 'none' } 
-              },
+              actionBar: { sx: { display: 'none' } },
               toolbar: { hidden: true }
             }}
-            // 3. 沿用之前的對齊設定
             sx={{
               width: '100%',
               maxWidth: '100%',
               minWidth: 'unset',
               '& .MuiPickersLayout-root': { minWidth: 'unset', width: '100%' },
-              '& .MuiDateCalendar-root': { width: '100%', minWidth: 'unset', height: 'auto' },
-              '& .MuiDayCalendar-monthContainer': { width: '100%' },
+              '& .MuiDateCalendar-root': { width: '100%', minWidth: 'unset' },
+              
+              // 統一星期標題與日期的對齊邏輯
               '& .MuiDayCalendar-header': {
                 width: '100%',
                 display: 'flex',
@@ -225,12 +218,11 @@ export default function ProfilePage() {
                 display: 'flex',
                 justifyContent: 'space-between',
                 padding: '0 10px',
-                margin: '2px 0',
               },
               '& .MuiPickersDay-root': {
                 width: '32px',
                 height: '32px',
-                fontSize: '0.8rem',
+                fontSize: '0.85rem',
                 margin: 0,
               },
               '& .MuiDayCalendar-weekDayLabel': {
@@ -238,11 +230,6 @@ export default function ProfilePage() {
                 height: '32px',
                 margin: 0,
                 fontSize: '0.75rem',
-              },
-              '& .MuiPickersCalendarHeader-root': {
-                padding: '0 12px',
-                margin: 0,
-                minHeight: '40px'
               }
             }}
           />
