@@ -170,12 +170,10 @@ export default function ProfilePage() {
           <LocalizationProvider dateAdapter={AdapterDateFns}>
             <StaticDatePicker
               displayStaticWrapperAs="desktop"
-              // 這裡直接使用原本已有的 myRegistrations
-              value={new Date()} 
+              value={new Date()}
               slots={{
                 day: (props) => {
                   const { day, outsideCurrentMonth, ...other } = props;
-                  // 檢查是否有活動日期與今天相同
                   const hasEvent = !outsideCurrentMonth && myRegistrations.some(reg => 
                     reg.date && isSameDay(parseISO(reg.date), day)
                   );
@@ -184,7 +182,7 @@ export default function ProfilePage() {
                       key={day.toString()}
                       overlap="circular"
                       badgeContent={hasEvent ? '•' : undefined}
-                      sx={{ "& .MuiBadge-badge": { color: 'red', fontSize: 20, top: 10 } }}
+                      sx={{ "& .MuiBadge-badge": { color: 'red', fontSize: 24, top: 12 } }}
                     >
                       <Box {...other}>{day.getDate()}</Box>
                     </Badge>
@@ -197,9 +195,42 @@ export default function ProfilePage() {
               }}
               sx={{
                 width: '100%',
-                '& .MuiPickersCalendarHeader-root': { padding: 0, mt: 0 },
-                '& .MuiDayCalendar-header': { justifyContent: 'space-between' },
-                '& .MuiDayCalendar-weekContainer': { justifyContent: 'space-between' }
+                minWidth: 'unset', 
+                maxWidth: '100%',
+                bgcolor: 'transparent',
+
+                '& .MuiPickersLayout-root': {
+                  minWidth: 'unset',
+                  maxWidth: '100%',
+                  overflow: 'hidden',
+                },
+                '& .MuiDateCalendar-root': {
+                  width: '100%',
+                  height: 'auto',
+                  maxHeight: '300px', 
+                },
+                
+                '& .MuiDayCalendar-monthContainer': {
+                  width: '100%',
+                },
+                '& .MuiDayCalendar-header': {
+                  justifyContent: 'space-around',
+                },
+                '& .MuiDayCalendar-weekContainer': {
+                  justifyContent: 'space-around',
+                  margin: '2px 0',
+                },
+                '& .MuiPickersDay-root': {
+                  width: '32px', 
+                  height: '32px', 
+                  fontSize: '0.8rem',
+                },
+                
+                '& .MuiPickersCalendarHeader-root': {
+                  paddingLeft: '8px',
+                  paddingRight: '8px',
+                  marginTop: 0,
+                }
               }}
             />
           </LocalizationProvider>
