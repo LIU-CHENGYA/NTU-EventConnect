@@ -171,54 +171,78 @@ export default function ProfilePage() {
             <StaticDatePicker
             displayStaticWrapperAs="desktop"
             value={new Date()}
-            // ... slots 和 slotProps 保持不變
+            // 1. 確保 slots 裡的 Badge 邏輯正確
+            slots={{
+              day: (props) => {
+                const { day, outsideCurrentMonth, ...other } = props;
+                // 這裡確保變數名稱是 myRegistrations
+                const hasEvent = !outsideCurrentMonth && myRegistrations.some(reg => 
+                  reg.date && isSameDay(parseISO(reg.date), day)
+                );
+                return (
+                  <Badge
+                    key={day.toString()}
+                    overlap="circular"
+                    // 紅點標記
+                    badgeContent={hasEvent ? '•' : undefined}
+                    sx={{ 
+                      "& .MuiBadge-badge": { 
+                        color: 'red', 
+                        fontSize: '24px', // 調整點的大小
+                        top: '4px',      // 調整點的高低
+                        right: '4px'     // 調整點的左右
+                      } 
+                    }}
+                  >
+                    <Box {...other}>{day.getDate()}</Box>
+                  </Badge>
+                );
+              }
+            }}
+            // 2. 徹底隱藏下方的 CANCEL / OK 按鈕
+            slotProps={{
+              actionBar: { 
+                sx: { display: 'none' } 
+              },
+              toolbar: { hidden: true }
+            }}
+            // 3. 沿用之前的對齊設定
             sx={{
               width: '100%',
               maxWidth: '100%',
               minWidth: 'unset',
               '& .MuiPickersLayout-root': { minWidth: 'unset', width: '100%' },
-              '& .MuiDateCalendar-root': { width: '100%', minWidth: 'unset' },
-              
-              // 1. 調整日曆內部的容器寬度
+              '& .MuiDateCalendar-root': { width: '100%', minWidth: 'unset', height: 'auto' },
               '& .MuiDayCalendar-monthContainer': { width: '100%' },
-              
-              // 2. 關鍵：對齊星期標題 (S, M, T...)
               '& .MuiDayCalendar-header': {
                 width: '100%',
                 display: 'flex',
-                justifyContent: 'space-between', // 讓星期均勻分佈
-                padding: '0 4px', // 左右微調
+                justifyContent: 'space-between',
+                padding: '0 10px',
               },
-
-              // 3. 關鍵：對齊日期格子 (1, 2, 3...)
               '& .MuiDayCalendar-weekContainer': {
                 width: '100%',
                 display: 'flex',
-                justifyContent: 'space-between', // 讓日期數字跟上面的星期對齊
-                margin: 0,
-                padding: '0 4px',
+                justifyContent: 'space-between',
+                padding: '0 10px',
+                margin: '2px 0',
               },
-
-              // 4. 縮小格子尺寸，確保 7 個格子加起來不會超出側邊欄 (291px)
               '& .MuiPickersDay-root': {
-                width: '30px',
-                height: '30px',
-                fontSize: '0.75rem',
-                margin: 0, // 移除預設的 margin，改用 flex 佈局
+                width: '32px',
+                height: '32px',
+                fontSize: '0.8rem',
+                margin: 0,
               },
-
-              // 5. 縮小星期的標題文字
               '& .MuiDayCalendar-weekDayLabel': {
-                width: '30px',
-                height: '30px',
+                width: '32px',
+                height: '32px',
                 margin: 0,
                 fontSize: '0.75rem',
               },
-
-              // 移除不必要的 header 邊距
               '& .MuiPickersCalendarHeader-root': {
-                padding: '0 8px',
+                padding: '0 12px',
                 margin: 0,
+                minHeight: '40px'
               }
             }}
           />
