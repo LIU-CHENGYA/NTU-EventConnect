@@ -40,7 +40,6 @@ function mapEvent(e) {
 function mapPost(p) {
   if (!p) return null;
 
-  // 定義一個內部小工具來處理頭貼路徑
   const getAvatar = (userId, avatarPath) => {
     if (avatarPath && avatarPath.trim() !== "") {
       return avatarPath.startsWith('http') ? avatarPath : `http://localhost:8000${avatarPath}`;
@@ -49,13 +48,13 @@ function mapPost(p) {
   };
 
   return {
-    ...p, // 保留原始欄位
+    ...p,
     userAvatar: getAvatar(p.user_id, p.user_avatar), // 貼文者的頭貼
     comments: (p.comments || []).map((c) => ({
       ...c,
       userName: c.user_name || `User #${c.user_id}`,
-      // 關鍵修正：留言者的頭貼也要從 c.user_avatar 讀取
-      userAvatar: getAvatar(c.user_id, c.user_avatar || c.avatar_url), 
+      // 關鍵修正：處理留言者的頭貼路徑
+      userAvatar: getAvatar(c.user_id, c.user_avatar), 
     })),
   };
 }
