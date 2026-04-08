@@ -47,10 +47,11 @@ function FieldRow({ label, children }) {
 
 export default function EventCreatePage() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, ready } = useAuth();
   const [form, setForm] = useState({});
   const [tags, setTags] = useState(["運動"]);
 
+  if (!ready) return null;
   if (!user) { navigate("/login"); return null; }
 
   const set = (k) => (e) => setForm({ ...form, [k]: e.target.value });

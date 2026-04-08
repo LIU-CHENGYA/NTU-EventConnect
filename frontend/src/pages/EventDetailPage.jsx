@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Box, Typography, Button, Avatar, IconButton, Divider } from "@mui/material";
 import ArrowBackIosNewIcon from "@mui/icons-material/ArrowBackIosNew";
@@ -6,7 +7,7 @@ import PlaceIcon from "@mui/icons-material/Place";
 import PersonIcon from "@mui/icons-material/Person";
 import PhoneIcon from "@mui/icons-material/Phone";
 import StarIcon from "@mui/icons-material/Star";
-import { mockEvents, mockReviews } from "../mock/data";
+import { eventsApi, postsApi } from "../api";
 import { useAuth } from "../context/AuthContext";
 import { tokens } from "../theme";
 
@@ -14,9 +15,48 @@ export default function EventDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const event = mockEvents.find((e) => e.id === Number(id));
-  const reviews = mockReviews.filter((r) => r.eventId === Number(id));
+  const REVIEW_PAGE_SIZE = 10;
+  const [event, setEvent] = useState(null);
+  const [reviews, setReviews] = useState([]);
+  const [reviewPage, setReviewPage] = useState(1);
+  const [hasMoreReviews, setHasMoreReviews] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [loading, setLoading] = useState(true);
 
+  const mapReview = (p) => ({
+    id: p.id,
+    eventId: p.eventId,
+    userId: p.userId,
+    userName: p.userName,
+    userAvatar: p.userAvatar,
+    rating: p.rating,
+    content: p.content,
+    images: p.images,
+    createdAt: (p.createdAt || "").slice(0, 10),
+  });
+
+  useEffect(() => {
+    let live = true;
+    setLoading(true);
+    setReviewPage(1);
+    Promise.all([
+      eventsApi.get(Number(id)).catch(() => null),
+      postsApi.list({ event_id: Number(id), page: 1, size: REVIEW_PAGE_SIZE }).catch(() => []),
+    ]).then(([e, ps]) => {
+      if (!live) return;
+      setEvent(e);
+      setHasMoreReviews(ps.length === REVIEW_PAGE_SIZE);
+      setReviews(ps.map(mapReview));
+      setLoading(false);
+    });
+    return () => {
+      live = false;
+    };
+  }, [id]);
+
+  if (loading) {
+    return <Box sx={{ p: 4, textAlign: "center" }}><Typography>載入中...</Typography></Box>;
+  }
   if (!event) {
     return (
       <Box sx={{ p: 4, textAlign: "center" }}>
@@ -115,6 +155,32 @@ export default function EventDetailPage() {
               ))}
               {reviews.length === 0 && (
                 <Typography sx={{ textAlign: "center", color: "#999", py: 2 }}>尚無評論</Typography>
+              )}
+              {hasMoreReviews && (
+                <Box sx={{ textAlign: "center", mt: 1 }}>
+                  <Button
+                    disabled={loadingMore}
+                    onClick={async () => {
+                      setLoadingMore(true);
+                      const next = reviewPage + 1;
+                      try {
+                        const ps = await postsApi.list({
+                          event_id: Number(id), page: next, size: REVIEW_PAGE_SIZE,
+                        });
+                        setReviews((prev) => [...prev, ...ps.map(mapReview)]);
+                        setHasMoreReviews(ps.length === REVIEW_PAGE_SIZE);
+                        setReviewPage(next);
+                      } catch {
+                        setHasMoreReviews(false);
+                      } finally {
+                        setLoadingMore(false);
+                      }
+                    }}
+                    sx={{ textTransform: "none", color: tokens.color.navy }}
+                  >
+                    {loadingMore ? "載入中..." : "載入更多評論"}
+                  </Button>
+                </Box>
               )}
             </Card>
           </Box>

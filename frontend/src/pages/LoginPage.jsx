@@ -1,30 +1,77 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import {
   Box, Typography, TextField, Button, InputAdornment, IconButton, Divider,
+  Dialog, DialogTitle, DialogContent, DialogActions,
 } from "@mui/material";
 import EmailIcon from "@mui/icons-material/Email";
 import LockIcon from "@mui/icons-material/Lock";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
-import RadioButtonUncheckedIcon from "@mui/icons-material/RadioButtonUnchecked";
 import { useAuth } from "../context/AuthContext";
+import { usersApi } from "../api";
 import { tokens } from "../theme";
 
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
+
 export default function LoginPage() {
-  const { login } = useAuth();
+  const { login, googleLogin, setUser } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
+  const [usernameOpen, setUsernameOpen] = useState(false);
+  const [newUsername, setNewUsername] = useState("");
+  const googleBtnRef = useRef(null);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!email || !password) { setError("請輸入帳號和密碼"); return; }
-    const result = login(email, password);
+    const result = await login(email, password);
     if (result.success) navigate("/");
-    else setError("帳號或密碼錯誤");
+    else setError(result.error || "帳號或密碼錯誤");
+  };
+
+  useEffect(() => {
+    if (!GOOGLE_CLIENT_ID) return;
+    let cancelled = false;
+    const init = () => {
+      if (cancelled || !window.google?.accounts?.id || !googleBtnRef.current) return;
+      window.google.accounts.id.initialize({
+        client_id: GOOGLE_CLIENT_ID,
+        callback: async (response) => {
+          const result = await googleLogin(response.credential);
+          if (!result.success) { setError(result.error); return; }
+          if (result.needsUsername) setUsernameOpen(true);
+          else navigate("/");
+        },
+      });
+      window.google.accounts.id.renderButton(googleBtnRef.current, {
+        theme: "outline", size: "large", width: 360, text: "signin_with",
+      });
+    };
+    if (window.google?.accounts?.id) init();
+    else {
+      const t = setInterval(() => {
+        if (window.google?.accounts?.id) { clearInterval(t); init(); }
+      }, 100);
+      return () => { cancelled = true; clearInterval(t); };
+    }
+    return () => { cancelled = true; };
+  }, [googleLogin, navigate]);
+
+  const handleSaveUsername = async () => {
+    const name = newUsername.trim();
+    if (!name) return;
+    try {
+      const updated = await usersApi.updateMe({ name });
+      setUser(updated);
+      setUsernameOpen(false);
+      navigate("/");
+    } catch (e) {
+      setError(e?.response?.data?.detail || "設定使用者名稱失敗");
+    }
   };
 
   return (
@@ -101,22 +148,37 @@ export default function LoginPage() {
           <Typography sx={{ fontSize: 13, color: tokens.color.placeholder }}>或</Typography>
         </Divider>
 
-        <Button
-          fullWidth variant="outlined"
-          startIcon={<RadioButtonUncheckedIcon />}
-          sx={{
-            borderColor: tokens.color.border, color: tokens.color.text,
-            textTransform: "none", py: 1.3, borderRadius: "10px", mb: 3, fontSize: 15,
-          }}
-        >
-          使用 NTU SSO 登入
-        </Button>
+        <Box sx={{ display: "flex", justifyContent: "center", mb: 3 }}>
+          {GOOGLE_CLIENT_ID ? (
+            <div ref={googleBtnRef} />
+          ) : (
+            <Typography sx={{ fontSize: 12, color: tokens.color.placeholder }}>
+              尚未設定 VITE_GOOGLE_CLIENT_ID，無法使用 Google 登入
+            </Typography>
+          )}
+        </Box>
 
         <Typography sx={{ fontSize: 14, textAlign: "center", color: tokens.color.text }}>
           還沒有帳號？{" "}
           <Link to="/register" style={{ color: "#1976d2", fontWeight: 600, textDecoration: "none" }}>立即註冊</Link>
         </Typography>
       </Box>
+
+      <Dialog open={usernameOpen} disableEscapeKeyDown>
+        <DialogTitle>請設定使用者名稱</DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus fullWidth margin="dense"
+            label="使用者名稱"
+            value={newUsername}
+            onChange={(e) => setNewUsername(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") handleSaveUsername(); }}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleSaveUsername} disabled={!newUsername.trim()}>確認</Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

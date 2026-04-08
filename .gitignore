@@ -1,3 +1,9 @@
+# SQLite dev databases
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+
 # Python
 venv/
 .venv/
@@ -35,3 +41,10 @@ Thumbs.db
 # Claude Code 工作檔
 CLAUDE.md
 .claude/
+
+# 執行時上傳檔案
+backend/uploads/
+
+# 個人筆記 / 測試計畫（不進 repo）
+problem.md
+TEST_PLAN.md

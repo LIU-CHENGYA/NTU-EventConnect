@@ -1,38 +1,60 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   Box, Typography, Paper, TextField, Button, Checkbox, FormControlLabel, Avatar, Chip, IconButton,
 } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-import { mockEvents } from "../mock/data";
+import { eventsApi } from "../api";
+import api from "../api/client";
 import { useAuth } from "../context/AuthContext";
 import { tokens } from "../theme";
 
 export default function EventRegisterPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const event = mockEvents.find((e) => e.id === Number(id));
+  const { user, ready } = useAuth();
+  const [event, setEvent] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   const [form, setForm] = useState({
     name: user?.name || "",
-    studentId: user?.studentId || "",
+    studentId: user?.student_id || user?.studentId || "",
     department: user?.department || "",
     email: user?.email || "",
     phone: "",
   });
   const [agreed, setAgreed] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (!ready) return;
+    if (!user) { navigate("/login"); return; }
+    eventsApi.get(Number(id))
+      .then(setEvent)
+      .catch(() => setEvent(null))
+      .finally(() => setLoading(false));
+  }, [id, user, ready, navigate]);
 
   const handleChange = (field) => (e) => setForm({ ...form, [field]: e.target.value });
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!agreed) return;
-    setSubmitted(true);
-    setTimeout(() => navigate("/my-registrations"), 1500);
+    const session = event?.sessions?.[0];
+    if (!session) { setError("此活動沒有可報名的場次"); return; }
+    try {
+      await api.post(`/api/sessions/${session.id}/register`);
+      setSubmitted(true);
+      setTimeout(() => navigate("/my-registrations"), 1200);
+    } catch (e) {
+      setError(e?.response?.data?.detail || "報名失敗");
+    }
   };
 
+  if (!ready) return null;
+  if (!user) return null;
+  if (loading) return <Box sx={{ p: 4, textAlign: "center" }}><Typography>載入中...</Typography></Box>;
   if (!event) {
     return (
       <Box sx={{ p: 4, textAlign: "center", bgcolor: tokens.color.bg, minHeight: "calc(100vh - 76px)" }}>
@@ -40,7 +62,6 @@ export default function EventRegisterPage() {
       </Box>
     );
   }
-  if (!user) { navigate("/login"); return null; }
 
   const cardSx = {
     borderRadius: "20px",
@@ -159,6 +180,9 @@ export default function EventRegisterPage() {
 
             {/* Agreement and submit */}
             <Paper sx={{ ...cardSx, mb: 0 }}>
+              {error && (
+                <Typography sx={{ color: "#d32f2f", fontSize: 13, mb: 1 }}>{error}</Typography>
+              )}
               <FormControlLabel
                 control={<Checkbox checked={agreed} onChange={(e) => setAgreed(e.target.checked)} />}
                 label={

@@ -19,15 +19,16 @@ export default function RegisterPage() {
 
   const handleChange = (field) => (e) => setForm({ ...form, [field]: e.target.value });
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.name || !form.email || !form.password || !form.confirmPassword) {
       setError("請填寫所有必填欄位"); return;
     }
     if (form.password !== form.confirmPassword) { setError("兩次密碼輸入不一致"); return; }
     if (form.password.length < 8) { setError("密碼需至少 8 個字元"); return; }
-    const result = register(form.name, form.email, form.password);
+    const result = await register(form.name, form.email, form.password);
     if (result.success) navigate("/");
+    else setError(result.error || "註冊失敗");
   };
 
   const fieldSx = {

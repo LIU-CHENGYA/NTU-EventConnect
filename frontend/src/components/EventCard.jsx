@@ -85,7 +85,7 @@ export default function EventCard({
           <Typography sx={{ fontWeight: 700, fontSize: 15, color: tokens.color.text, lineHeight: 1.3 }}>
             {event.title}
           </Typography>
-          {event.rating && (
+          {event.rating > 0 && (
             <Box sx={{ display: "flex", alignItems: "center", gap: 0.3, flexShrink: 0 }}>
               <StarIcon sx={{ fontSize: 14, color: tokens.color.star }} />
               <Typography sx={{ fontSize: 12, fontWeight: 600 }}>{event.rating}</Typography>
