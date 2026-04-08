@@ -9,34 +9,56 @@ import StarBorderIcon from "@mui/icons-material/StarBorder";
 import AddPhotoAlternateIcon from "@mui/icons-material/AddPhotoAlternate";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import PlaceIcon from "@mui/icons-material/Place";
-import { mockEvents } from "../mock/data";
+import { postsApi } from "../api";
 import { useAuth } from "../context/AuthContext";
 import { tokens } from "../theme";
 
 export default function PostCreatePage() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, ready } = useAuth();
   const [searchParams] = useSearchParams();
   const eventId = searchParams.get("eventId");
-  const event = eventId ? mockEvents.find((e) => e.id === Number(eventId)) : null;
+  const event = eventId ? { id: Number(eventId) } : null;
 
   const [rating, setRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
   const [content, setContent] = useState("");
   const [visibility, setVisibility] = useState("public");
 
+  if (!ready) return null;
   if (!user) { navigate("/login"); return null; }
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!content.trim()) return;
-    alert("貼文已發布！（Mock）");
-    if (event) navigate(`/events/${event.id}`);
-    else navigate("/profile");
+    try {
+      await postsApi.create({
+        event_id: event ? event.id : null,
+        rating,
+        content,
+        images: [],
+        visibility,
+      });
+      if (event) navigate(`/events/${event.id}`);
+      else navigate("/profile");
+    } catch (e) {
+      alert("發布失敗: " + (e?.response?.data?.detail || e.message));
+    }
   };
 
-  const handleSaveDraft = () => {
-    alert("草稿已儲存！（Mock）");
-    navigate("/profile");
+  const handleSaveDraft = async () => {
+    if (!content.trim()) return;
+    try {
+      await postsApi.create({
+        event_id: event ? event.id : null,
+        rating,
+        content,
+        images: [],
+        visibility: "private",
+      });
+      navigate("/profile");
+    } catch (e) {
+      alert("儲存草稿失敗: " + (e?.response?.data?.detail || e.message));
+    }
   };
 
   const cardSx = {

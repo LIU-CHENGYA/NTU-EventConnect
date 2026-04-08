@@ -1,11 +1,14 @@
+import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Box, Typography, Paper, Avatar, Button, IconButton } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import StarIcon from "@mui/icons-material/Star";
 import EditIcon from "@mui/icons-material/Edit";
+import FavoriteIcon from "@mui/icons-material/Favorite";
+import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import PlaceIcon from "@mui/icons-material/Place";
-import { mockPosts, mockEvents } from "../mock/data";
+import { postsApi, eventsApi } from "../api";
 import { useAuth } from "../context/AuthContext";
 import { tokens } from "../theme";
 
@@ -13,8 +16,30 @@ export default function PostDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const post = mockPosts.find((p) => p.id === Number(id));
+  const [post, setPost] = useState(null);
+  const [event, setEvent] = useState(null);
+  const [loading, setLoading] = useState(true);
 
+  useEffect(() => {
+    let live = true;
+    setLoading(true);
+    postsApi.get(Number(id)).then(async (p) => {
+      if (!live) return;
+      setPost(p);
+      if (p?.eventId) {
+        const e = await eventsApi.get(p.eventId).catch(() => null);
+        if (live) setEvent(e);
+      }
+      setLoading(false);
+    }).catch(() => {
+      if (live) { setPost(null); setLoading(false); }
+    });
+    return () => { live = false; };
+  }, [id]);
+
+  if (loading) {
+    return <Box sx={{ p: 4, textAlign: "center" }}><Typography>載入中...</Typography></Box>;
+  }
   if (!post) {
     return (
       <Box sx={{ p: 4, textAlign: "center", bgcolor: tokens.color.bg, minHeight: "calc(100vh - 76px)" }}>
@@ -23,8 +48,10 @@ export default function PostDetailPage() {
     );
   }
 
-  const event = post.eventId ? mockEvents.find((e) => e.id === post.eventId) : null;
   const isOwner = user && user.id === post.userId;
+  const userName = post.userName;
+  const userAvatar = post.userAvatar;
+  const createdAt = (post.createdAt || "").slice(0, 10);
 
   const cardSx = {
     borderRadius: "20px",
@@ -53,8 +80,25 @@ export default function PostDetailPage() {
 
         <Box sx={{ display: "flex", gap: 2.5, alignItems: "flex-start" }}>
           <Paper sx={{ ...cardSx, flex: 1 }}>
-            {isOwner && (
-              <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 1 }}>
+            <Box sx={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 1, mb: 1 }}>
+              {user && (
+                <IconButton
+                  onClick={async () => {
+                    const next = !post.isBookmarked;
+                    setPost({ ...post, isBookmarked: next });
+                    try {
+                      if (next) await postsApi.bookmark(post.id);
+                      else await postsApi.unbookmark(post.id);
+                    } catch {
+                      setPost({ ...post, isBookmarked: !next });
+                    }
+                  }}
+                  sx={{ color: post.isBookmarked ? "#e91e63" : tokens.color.text }}
+                >
+                  {post.isBookmarked ? <FavoriteIcon /> : <FavoriteBorderIcon />}
+                </IconButton>
+              )}
+              {isOwner && (
                 <Button
                   size="small"
                   startIcon={<EditIcon />}
@@ -63,22 +107,22 @@ export default function PostDetailPage() {
                 >
                   編輯貼文
                 </Button>
-              </Box>
-            )}
+              )}
+            </Box>
 
             {/* Author */}
             <Box sx={{ display: "flex", alignItems: "center", gap: 1.2, mb: 2 }}>
               <Avatar
-                src={post.userAvatar}
+                src={userAvatar}
                 sx={{ width: 44, height: 44, cursor: "pointer" }}
                 onClick={() => navigate(`/profile/${post.userId}`)}
               />
               <Box>
                 <Typography sx={{ fontSize: 14, fontWeight: 700, color: tokens.color.text }}>
-                  {post.userName}
+                  {userName}
                 </Typography>
                 <Typography sx={{ fontSize: 12, color: tokens.color.placeholder }}>
-                  {post.createdAt}
+                  {createdAt}
                 </Typography>
               </Box>
             </Box>

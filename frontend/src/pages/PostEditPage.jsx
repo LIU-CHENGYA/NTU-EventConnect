@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   Box, Typography, Paper, Button, TextField, RadioGroup, Radio, FormControlLabel, IconButton, Avatar,
@@ -9,22 +9,44 @@ import StarBorderIcon from "@mui/icons-material/StarBorder";
 import AddPhotoAlternateIcon from "@mui/icons-material/AddPhotoAlternate";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import PlaceIcon from "@mui/icons-material/Place";
-import { mockPosts, mockEvents } from "../mock/data";
+import { postsApi, eventsApi } from "../api";
 import { useAuth } from "../context/AuthContext";
 import { tokens } from "../theme";
 
 export default function PostEditPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const post = mockPosts.find((p) => p.id === Number(id));
-
-  const [rating, setRating] = useState(post?.rating || 0);
+  const { user, ready } = useAuth();
+  const [post, setPost] = useState(null);
+  const [event, setEvent] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [rating, setRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
-  const [content, setContent] = useState(post?.content || "");
-  const [visibility, setVisibility] = useState(post?.visibility || "public");
+  const [content, setContent] = useState("");
+  const [visibility, setVisibility] = useState("public");
 
-  if (!user) { navigate("/login"); return null; }
+  useEffect(() => {
+    if (!ready) return;
+    if (!user) { navigate("/login"); return; }
+    let live = true;
+    postsApi.get(Number(id)).then(async (p) => {
+      if (!live) return;
+      setPost(p);
+      setRating(p.rating || 0);
+      setContent(p.content || "");
+      setVisibility(p.visibility || "public");
+      if (p.eventId) {
+        const e = await eventsApi.get(p.eventId).catch(() => null);
+        if (live) setEvent(e);
+      }
+      setLoading(false);
+    }).catch(() => { if (live) { setPost(null); setLoading(false); } });
+    return () => { live = false; };
+  }, [id, user, ready, navigate]);
+
+  if (!ready) return null;
+  if (!user) return null;
+  if (loading) return <Box sx={{ p: 4, textAlign: "center" }}><Typography>載入中...</Typography></Box>;
   if (!post) {
     return (
       <Box sx={{ p: 4, textAlign: "center", bgcolor: tokens.color.bg, minHeight: "calc(100vh - 76px)" }}>
@@ -33,11 +55,13 @@ export default function PostEditPage() {
     );
   }
 
-  const event = post.eventId ? mockEvents.find((e) => e.id === post.eventId) : null;
-
-  const handleSave = () => {
-    alert("貼文已更新！（Mock）");
-    navigate(`/posts/${post.id}`);
+  const handleSave = async () => {
+    try {
+      await postsApi.update(post.id, { rating, content, visibility });
+      navigate(`/posts/${post.id}`);
+    } catch (e) {
+      alert("更新失敗: " + (e?.response?.data?.detail || e.message));
+    }
   };
 
   const cardSx = {

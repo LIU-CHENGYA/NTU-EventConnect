@@ -1,8 +1,9 @@
+import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Box, Typography, Avatar, IconButton } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import PostCard from "../components/PostCard";
-import { mockUsers, mockPosts } from "../mock/data";
+import { usersApi, postsApi } from "../api";
 import { useAuth } from "../context/AuthContext";
 import { tokens } from "../theme";
 
@@ -20,8 +21,26 @@ export default function OtherProfilePage() {
   const { userId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const profileUser = mockUsers.find((u) => u.id === Number(userId));
+  const [profileUser, setProfileUser] = useState(null);
+  const [publicPosts, setPublicPosts] = useState([]);
+  const [loading, setLoading] = useState(true);
 
+  useEffect(() => {
+    let live = true;
+    setLoading(true);
+    Promise.all([
+      usersApi.get(Number(userId)).catch(() => null),
+      postsApi.list({ user_id: Number(userId), visibility: "public" }).catch(() => []),
+    ]).then(([u, posts]) => {
+      if (!live) return;
+      setProfileUser(u);
+      setPublicPosts(posts);
+      setLoading(false);
+    });
+    return () => { live = false; };
+  }, [userId]);
+
+  if (loading) return <Box sx={{ p: 4, textAlign: "center" }}><Typography>載入中...</Typography></Box>;
   if (!profileUser) {
     return (
       <Box sx={{ p: 4, textAlign: "center", bgcolor: tokens.color.bg, minHeight: "calc(100vh - 76px)" }}>
@@ -29,10 +48,6 @@ export default function OtherProfilePage() {
       </Box>
     );
   }
-
-  const publicPosts = mockPosts.filter(
-    (p) => p.userId === profileUser.id && p.visibility === "public"
-  );
 
   const sidebarCard = {
     bgcolor: "#fffefe",
@@ -42,8 +57,8 @@ export default function OtherProfilePage() {
   };
 
   const stats = [
-    { label: "貼文", value: profileUser.postCount },
-    { label: "已參加的活動", value: profileUser.joinedEventCount },
+    { label: "貼文", value: profileUser.post_count ?? 0 },
+    { label: "已參加的活動", value: profileUser.joined_event_count ?? 0 },
     { label: "關注的標籤", value: "" },
   ];
 
@@ -101,7 +116,7 @@ export default function OtherProfilePage() {
                 background: "linear-gradient(135deg,#1a237e 0%,#3f51b5 50%,#7e57c2 100%)",
               }} />
               <Avatar
-                src={profileUser.avatar}
+                src={profileUser.avatar_url || profileUser.avatar}
                 sx={{
                   width: 76, height: 76,
                   position: "absolute", top: 52, left: "50%", transform: "translateX(-50%)",
