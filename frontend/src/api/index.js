@@ -37,11 +37,16 @@ function mapEvent(e) {
 }
 
 function mapPost(p) {
+  // 判斷頭貼來源：優先使用資料庫網址，沒有才用 Dicebear
+  const avatarUrl = p.user_avatar 
+    ? (p.user_avatar.startsWith('http') ? p.user_avatar : `http://localhost:8000${p.user_avatar}`)
+    : `https://api.dicebear.com/7.x/adventurer/svg?seed=${p.user_id}`;
+
   return {
     id: p.id,
     userId: p.user_id,
     userName: p.user_name || `User #${p.user_id}`,
-    userAvatar: `https://api.dicebear.com/7.x/adventurer/svg?seed=${p.user_id}`,
+    userAvatar: avatarUrl, // 使用動態判斷後的結果
     eventId: p.event_id,
     rating: p.rating,
     content: p.content,
@@ -54,7 +59,10 @@ function mapPost(p) {
     comments: (p.comments || []).map((c) => ({
       ...c,
       userName: c.user_name || `User #${c.user_id}`,
-      userAvatar: `https://api.dicebear.com/7.x/adventurer/svg?seed=${c.user_id}`,
+      // 留言區的頭貼也要同步修改
+      userAvatar: c.user_avatar 
+        ? (c.user_avatar.startsWith('http') ? c.user_avatar : `http://localhost:8000${c.user_avatar}`)
+        : `https://api.dicebear.com/7.x/adventurer/svg?seed=${c.user_id}`,
     })),
   };
 }

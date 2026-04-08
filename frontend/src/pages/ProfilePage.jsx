@@ -99,12 +99,21 @@ export default function ProfilePage() {
 
   const handleSaveEdit = async () => {
     try {
-      const updated = await usersApi.updateMe({ name: editForm.name, bio: editForm.bio });
-      setUser(updated);
-      setEditOpen(false);
-    } catch (e) {
-      alert("更新失敗: " + (e?.response?.data?.detail || e.message));
-    }
+        // 檢查 editForm.avatarUrl 是否有值 (例如: /uploads/xxx.png)
+        console.log("Saving avatar:", editForm.avatarUrl); 
+
+        const updatedUser = await usersApi.updateMe({
+          name: editForm.name,
+          bio: editForm.bio,
+          avatar_url: editForm.avatarUrl,
+        });
+
+        console.log("Update response:", updatedUser);
+        setUser(updatedUser);
+        setOpen(false);
+      } catch (error) {
+        console.error("Failed to update profile:", error);
+      }
   };
 
   return (
