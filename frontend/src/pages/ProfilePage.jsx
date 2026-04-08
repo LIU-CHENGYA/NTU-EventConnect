@@ -96,29 +96,26 @@ export default function ProfilePage() {
   ];
   const handleSaveEdit = async () => {
     try {
-      let finalAvatarUrl = editForm.avatarUrl;
-
-      // 只有在真的有選新檔案時，才執行上傳
-      if (selectedFile) {
-        const uploadRes = await uploadsApi.upload(selectedFile);
-        finalAvatarUrl = uploadRes.url; // 拿到後端存好的網址 (例如 /uploads/xxx.jpg)
-      }
-
-      // 更新個人資料
-      const updatedUser = await usersApi.updateMe({
+      // 確保這裡拿到的 editForm.avatarUrl 是最新上傳成功的網址
+      const payload = {
         name: editForm.name,
         bio: editForm.bio,
-        avatar_url: finalAvatarUrl, // 傳給後端
-      });
+        avatar_url: editForm.avatarUrl, // 這裡要對接後端欄位
+      };
 
-      setUser(updatedUser);      // 更新全站狀態 (AuthContext)
-      setEditOpen(false);        // 確定存檔後才關閉視窗
-      setSelectedFile(null);     // 清除暫存
+      const updated = await usersApi.updateMe(payload);
       
-      console.log("更新成功");
-    } catch (error) {
-      console.error("Failed to update profile:", error);
-      alert("儲存失敗，請檢查檔案格式或大小");
+      // 手動做一次格式轉換，確保前端立刻有感
+      const formattedUser = {
+        ...updated,
+        avatarUrl: updated.avatar_url || updated.avatarUrl
+      };
+
+      setUser(formattedUser); 
+      setEditOpen(false); 
+      console.log("一次存檔成功！");
+    } catch (e) {
+      console.error("更新失敗", e);
     }
   };
 
