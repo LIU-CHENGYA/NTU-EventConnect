@@ -45,7 +45,7 @@ export default function ProfilePage() {
       navigate("/login");
       return;
     }
-    setEditForm({ name: user.name || "", bio: user.bio || "" });
+    setEditForm({ name: user.name || "", bio: user.bio || "", avatarUrl: user.avatarUrl || ""});
     Promise.all([
       postsApi.list({ user_id: user.id }).catch(() => []),
       usersApi.myRegistrations().catch(() => []),
