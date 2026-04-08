@@ -171,57 +171,78 @@ export default function ProfilePage() {
             <StaticDatePicker
               displayStaticWrapperAs="desktop"
               value={new Date()}
-              // ... slots 與 slotProps 保持不變
+              // 1. 徹底殺掉 Cancel / OK 按鈕
+              slotProps={{
+                actionBar: { 
+                  sx: { display: 'none !important' } 
+                },
+                toolbar: { hidden: true }
+              }}
+              // 2. 處理數字變紅邏輯
+              slots={{
+                day: (props) => {
+                  const { day, outsideCurrentMonth, ...other } = props;
+                  // 確保名稱與你 state 定義的一致
+                  const hasEvent = !outsideCurrentMonth && myRegistrations.some(reg => 
+                    reg.date && isSameDay(parseISO(reg.date), day)
+                  );
+
+                  return (
+                    <Box
+                      {...other}
+                      sx={{
+                        ...other.sx,
+                        // 有活動變紅粗體，沒活動維持原樣
+                        color: hasEvent ? "red !important" : "inherit",
+                        fontWeight: hasEvent ? "900 !important" : "normal",
+                        width: '32px !important',
+                        height: '32px !important',
+                        display: 'flex',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        margin: '0 !important',
+                      }}
+                    >
+                      {day.getDate()}
+                    </Box>
+                  );
+                }
+              }}
+              // 3. 靠左對齊與寬度縮放樣式
               sx={{
                 width: '100% !important',
                 maxWidth: '100% !important',
                 minWidth: 'unset !important',
-                margin: 0,
-                padding: 0,
-                
-                // 1. 移除最外層佈局的限制
+                // 移除所有外層邊距讓它往左靠
                 '& .MuiPickersLayout-root': { 
                   minWidth: 'unset !important', 
                   width: '100% !important',
-                  display: 'block', // 強制取消 flex 可能導致的擠壓
                 },
-                '& .MuiPickersLayout-contentWrapper': {
-                  width: '100% !important',
-                },
-                
-                // 2. 移除日曆內容區域的所有邊距 (關鍵：這能把日曆往左拉)
                 '& .MuiDateCalendar-root': { 
                   width: '100% !important', 
                   minWidth: 'unset !important',
                   margin: '0 !important',
                   padding: '0 !important',
                 },
-                
-                // 3. 強制月份容器填滿
                 '& .MuiDayCalendar-monthContainer': { 
                   width: '100% !important' 
                 },
-                
-                // 4. 對齊星期標題與日期列
+                // 強制星期與日期對齊並填滿寬度
                 '& .MuiDayCalendar-header': {
                   width: '100% !important',
                   display: 'flex !important',
                   justifyContent: 'space-between !important',
-                  padding: '0 !important', // 歸零邊距，讓它往左靠
+                  padding: '0 !important',
                 },
                 '& .MuiDayCalendar-weekContainer': {
                   width: '100% !important',
                   display: 'flex !important',
                   justifyContent: 'space-between !important',
                   padding: '0 !important',
-                  margin: '2px 0 !important',
                 },
-
-                // 5. 再次微調格子大小
                 '& .MuiPickersDay-root': {
                   width: '32px !important',
                   height: '32px !important',
-                  fontSize: '0.8rem',
                   margin: '0 !important',
                 },
                 '& .MuiDayCalendar-weekDayLabel': {
@@ -230,16 +251,10 @@ export default function ProfilePage() {
                   margin: '0 !important',
                   fontSize: '0.75rem',
                 },
-
-                // 6. 標題列 (月份切換處) 也要往左靠
                 '& .MuiPickersCalendarHeader-root': {
-                  padding: '0 !important', 
+                  padding: '0 !important',
                   margin: '0 !important',
                   width: '100% !important',
-                  minHeight: '40px !important'
-                },
-                '& .MuiPickersCalendarHeader-labelContainer': {
-                  margin: 0, // 減少月份文字左邊的空間
                 }
               }}
             />
