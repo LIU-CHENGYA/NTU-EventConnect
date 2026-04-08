@@ -161,28 +161,22 @@ export default function ProfilePage() {
             </Box>
           </Box>
 
-          <Box sx={{ 
-            flex: 1, 
-            bgcolor: "white", 
-            borderRadius: 4, 
-            p: 2, 
-            boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
-            height: "fit-content"
-          }}>
-            <Typography variant="h6" fontWeight="bold" mb={2}>
-              My Calendar
-            </Typography>
-            
-            {/* 這裡是日曆組件本體 */}
+          <Box sx={sidebarCard}>
+          <Typography sx={{ fontFamily: "'Lexend',sans-serif", fontSize: 24, mb: 1 }}>
+            My Calendar
+          </Typography>
+
+          {/* 加上 Provider 解決 UI Crash 報錯 */}
+          <LocalizationProvider dateAdapter={AdapterDateFns}>
             <StaticDatePicker
               displayStaticWrapperAs="desktop"
-              value={selectedDate}
-              onChange={(newValue) => setSelectedDate(newValue)}
+              // 這裡直接使用原本已有的 myRegistrations
+              value={new Date()} 
               slots={{
                 day: (props) => {
                   const { day, outsideCurrentMonth, ...other } = props;
-                  // 判斷這一天是否有活動，有的話就畫紅點
-                  const hasEvent = !outsideCurrentMonth && registrations.some(reg => 
+                  // 檢查是否有活動日期與今天相同
+                  const hasEvent = !outsideCurrentMonth && myRegistrations.some(reg => 
                     reg.date && isSameDay(parseISO(reg.date), day)
                   );
                   return (
@@ -190,7 +184,7 @@ export default function ProfilePage() {
                       key={day.toString()}
                       overlap="circular"
                       badgeContent={hasEvent ? '•' : undefined}
-                      color="error"
+                      sx={{ "& .MuiBadge-badge": { color: 'red', fontSize: 20, top: 10 } }}
                     >
                       <Box {...other}>{day.getDate()}</Box>
                     </Badge>
@@ -198,25 +192,18 @@ export default function ProfilePage() {
                 }
               }}
               slotProps={{
-                actionBar: { sx: { display: 'none' } }, 
+                actionBar: { sx: { display: 'none' } },
                 toolbar: { hidden: true }
               }}
+              sx={{
+                width: '100%',
+                '& .MuiPickersCalendarHeader-root': { padding: 0, mt: 0 },
+                '& .MuiDayCalendar-header': { justifyContent: 'space-between' },
+                '& .MuiDayCalendar-weekContainer': { justifyContent: 'space-between' }
+              }}
             />
-
-            {/* 下方顯示選取日期的活動清單 */}
-            <Box mt={2}>
-              <Typography variant="subtitle2" color="text.secondary">
-                {selectedDate.toLocaleDateString()} 的活動：
-              </Typography>
-              {registrations
-                .filter(reg => reg.date && isSameDay(parseISO(reg.date), selectedDate))
-                .map((reg, idx) => (
-                  <Typography key={idx} variant="body2" sx={{ mt: 1, color: "#1a237e", fontWeight: "bold" }}>
-                    • {reg.title}
-                  </Typography>
-                ))}
-            </Box>
-          </Box>
+          </LocalizationProvider>
+        </Box>
         </Box>
 
         <Box>
