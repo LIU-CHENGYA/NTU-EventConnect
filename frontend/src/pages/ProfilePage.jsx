@@ -100,9 +100,8 @@ export default function ProfilePage() {
     const file = e.target.files[0];
     if (!file) return;
 
-    setSelectedFile(file); // 先把檔案存在 state 裡
+    setSelectedFile(file); 
 
-    // 產生本地預覽網址，讓 editForm.avatarUrl 變更，Avatar 就會立刻換圖
     const previewUrl = URL.createObjectURL(file);
     setEditForm({ ...editForm, avatarUrl: previewUrl });
   };
@@ -116,16 +115,14 @@ export default function ProfilePage() {
   ];
   const handleSaveEdit = async () => {
     try {
-      // 確保這裡拿到的 editForm.avatarUrl 是最新上傳成功的網址
       const payload = {
         name: editForm.name,
         bio: editForm.bio,
-        avatar_url: editForm.avatarUrl, // 這裡要對接後端欄位
+        avatar_url: editForm.avatarUrl, 
       };
 
       const updated = await usersApi.updateMe(payload);
       
-      // 手動做一次格式轉換，確保前端立刻有感
       const formattedUser = {
         ...updated,
         avatarUrl: updated.avatar_url || updated.avatarUrl
@@ -166,23 +163,19 @@ export default function ProfilePage() {
             My Calendar
           </Typography>
 
-          {/* 加上 Provider 解決 UI Crash 報錯 */}
           <LocalizationProvider dateAdapter={AdapterDateFns}>
             <StaticDatePicker
               displayStaticWrapperAs="desktop"
               value={new Date()}
-              // 1. 徹底殺掉 Cancel / OK 按鈕
               slotProps={{
                 actionBar: { 
                   sx: { display: 'none !important' } 
                 },
                 toolbar: { hidden: true }
               }}
-              // 2. 處理數字變紅邏輯
               slots={{
                 day: (props) => {
                   const { day, outsideCurrentMonth, ...other } = props;
-                  // 確保名稱與你 state 定義的一致
                   const hasEvent = !outsideCurrentMonth && myRegistrations.some(reg => 
                     reg.date && isSameDay(parseISO(reg.date), day)
                   );
@@ -208,12 +201,10 @@ export default function ProfilePage() {
                   );
                 }
               }}
-              // 3. 靠左對齊與寬度縮放樣式
               sx={{
                 width: '100% !important',
                 maxWidth: '100% !important',
                 minWidth: 'unset !important',
-                // 移除所有外層邊距讓它往左靠
                 '& .MuiPickersLayout-root': { 
                   minWidth: 'unset !important', 
                   width: '100% !important',
@@ -227,7 +218,6 @@ export default function ProfilePage() {
                 '& .MuiDayCalendar-monthContainer': { 
                   width: '100% !important' 
                 },
-                // 強制星期與日期對齊並填滿寬度
                 '& .MuiDayCalendar-header': {
                   width: '100% !important',
                   display: 'flex !important',
