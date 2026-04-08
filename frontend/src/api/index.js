@@ -37,16 +37,23 @@ function mapEvent(e) {
 }
 
 function mapPost(p) {
-  // 判斷頭貼來源：優先使用資料庫網址，沒有才用 Dicebear
-  const avatarUrl = p.user_avatar 
-    ? (p.user_avatar.startsWith('http') ? p.user_avatar : `http://localhost:8000${p.user_avatar}`)
-    : `https://api.dicebear.com/7.x/adventurer/svg?seed=${p.user_id}`;
+  if (!p) return null;
+
+  // 定義一個內部的小工具，處理頭貼路徑
+  const getAvatar = (userId, avatarPath) => {
+    if (avatarPath) {
+      // 如果已經是完整網址就直接用，否則加上後端位址
+      return avatarPath.startsWith('http') ? avatarPath : `http://localhost:8000${avatarPath}`;
+    }
+    // 沒頭貼就用 Dicebear 備案
+    return `https://api.dicebear.com/7.x/adventurer/svg?seed=${userId}`;
+  };
 
   return {
     id: p.id,
     userId: p.user_id,
     userName: p.user_name || `User #${p.user_id}`,
-    userAvatar: avatarUrl, // 使用動態判斷後的結果
+    userAvatar: getAvatar(p.user_id, p.user_avatar), // 使用處理後的頭貼
     eventId: p.event_id,
     rating: p.rating,
     content: p.content,
@@ -59,10 +66,8 @@ function mapPost(p) {
     comments: (p.comments || []).map((c) => ({
       ...c,
       userName: c.user_name || `User #${c.user_id}`,
-      // 留言區的頭貼也要同步修改
-      userAvatar: c.user_avatar 
-        ? (c.user_avatar.startsWith('http') ? c.user_avatar : `http://localhost:8000${c.user_avatar}`)
-        : `https://api.dicebear.com/7.x/adventurer/svg?seed=${c.user_id}`,
+      // 留言者的頭貼也一併處理
+      userAvatar: getAvatar(c.user_id, c.user_avatar),
     })),
   };
 }
