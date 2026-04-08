@@ -80,9 +80,9 @@ export default function ProfilePage() {
     const file = e.target.files[0];
     if (!file) return;
 
-    setSelectedFile(file); // 存下檔案，等一下按儲存才送
-    
-    // 建立本地預覽網址，讓 Avatar 立刻變圖
+    setSelectedFile(file); // 先把檔案存在 state 裡
+
+    // 產生本地預覽網址，讓 editForm.avatarUrl 變更，Avatar 就會立刻換圖
     const previewUrl = URL.createObjectURL(file);
     setEditForm({ ...editForm, avatarUrl: previewUrl });
   };
@@ -98,26 +98,27 @@ export default function ProfilePage() {
     try {
       let finalAvatarUrl = editForm.avatarUrl;
 
-      // 如果使用者有選新檔案，這時候才執行上傳
+      // 只有在真的有選新檔案時，才執行上傳
       if (selectedFile) {
         const uploadRes = await uploadsApi.upload(selectedFile);
-        finalAvatarUrl = uploadRes.url; // 拿到後端真正的 /uploads/xxx.png
+        finalAvatarUrl = uploadRes.url; // 拿到後端存好的網址 (例如 /uploads/xxx.jpg)
       }
 
+      // 更新個人資料
       const updatedUser = await usersApi.updateMe({
         name: editForm.name,
         bio: editForm.bio,
-        avatar_url: finalAvatarUrl, // 將最終網址傳給後端
+        avatar_url: finalAvatarUrl, // 傳給後端
       });
 
-      setUser(updatedUser);      // 更新全站 User 狀態
-      setEditOpen(false);        // 確定更改後，關閉編輯視窗
-      setSelectedFile(null);     // 清空暫存檔案
+      setUser(updatedUser);      // 更新全站狀態 (AuthContext)
+      setEditOpen(false);        // 確定存檔後才關閉視窗
+      setSelectedFile(null);     // 清除暫存
       
-      console.log("個人資料更新成功！");
+      console.log("更新成功");
     } catch (error) {
       console.error("Failed to update profile:", error);
-      alert("儲存失敗，請檢查檔案大小或網路連線");
+      alert("儲存失敗，請檢查檔案格式或大小");
     }
   };
 
