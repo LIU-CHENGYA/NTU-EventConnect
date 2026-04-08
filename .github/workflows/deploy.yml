@@ -22,7 +22,7 @@ jobs:
       - name: Install Python Dependencies
         run: |
           pip install --upgrade pip
-          pip install -r requirements.txt # 這裡會吃到你鎖定的 == 版本
+          pip install -r backend/requirements.txt
 
       - name: Run ETL Crawlers
         run: |
