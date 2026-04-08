@@ -80,13 +80,23 @@ function mapUser(u) {
 
 // ---------- endpoints ----------
 export const authApi = {
+  // 修正：所有的回應都要加上 .then((r) => mapUser(r.data))
   register: (name, email, password) =>
-    api.post("/api/auth/register", { name, email, password }).then((r) => r.data),
+    api.post("/api/auth/register", { name, email, password }).then((r) => mapUser(r.data.user || r.data)),
   login: (email, password) =>
-    api.post("/api/auth/login", { email, password }).then((r) => r.data),
+    api.post("/api/auth/login", { email, password }).then((r) => {
+      // 因為 login 回傳結構通常包含 { access_token, user }
+      const data = r.data;
+      if (data.user) data.user = mapUser(data.user);
+      return data;
+    }),
   me: () => api.get("/api/auth/me").then((r) => mapUser(r.data)),
   googleLogin: (credential) =>
-    api.post("/api/auth/google", { credential }).then((r) => r.data),
+    api.post("/api/auth/google", { credential }).then((r) => {
+      const data = r.data;
+      if (data.user) data.user = mapUser(data.user);
+      return data;
+    }),
 };
 
 export const eventsApi = {
