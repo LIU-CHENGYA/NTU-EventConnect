@@ -9,6 +9,11 @@ import { useAuth } from "../context/AuthContext";
 import { useData } from "../context/DataContext";
 import { postsApi, usersApi, bookmarksApi, uploadsApi } from "../api";
 import { tokens } from "../theme";
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { StaticDatePicker } from '@mui/x-date-pickers/StaticDatePicker';
+import { Badge } from '@mui/material';
+import { parseISO, isSameDay } from 'date-fns';
 
 const TAG_COLORS = {
   "運動": "rgba(57,167,255,0.42)",
@@ -25,6 +30,8 @@ const STATUS_FILTERS = ["全部", "報名成功", "等待候補", "已取消"];
 const STATUS_TO_ZH = { success: "報名成功", waitlist: "等待候補", cancelled: "已取消" };
 
 export default function ProfilePage() {
+  const [registrations, setRegistrations] = useState([]); // 存儲報名活動
+  const [selectedDate, setSelectedDate] = useState(new Date());
   const [selectedFile, setSelectedFile] = useState(null);
   const { user, ready, setUser } = useAuth();
   const navigate = useNavigate();
@@ -39,6 +46,19 @@ export default function ProfilePage() {
   const [profileStats, setProfileStats] = useState({ post_count: 0, joined_event_count: 0 });
   const [bookmarkedEvents, setBookmarkedEvents] = useState([]);
   const [bookmarkedPosts, setBookmarkedPosts] = useState([]);
+
+  // 取得報名資料
+  useEffect(() => {
+    const fetchRegistrations = async () => {
+      try {
+        const data = await usersApi.myRegistrations();
+        setRegistrations(data);
+      } catch (err) {
+        console.error("無法取得報名資料", err);
+      }
+    };
+    fetchRegistrations();
+  }, []);
 
   useEffect(() => {
     if (!ready) return;
@@ -141,9 +161,61 @@ export default function ProfilePage() {
             </Box>
           </Box>
 
-          <Box sx={sidebarCard}>
-            <Typography sx={{ fontFamily: "'Lexend',sans-serif", fontSize: 24, mb: 1 }}>My Calendar</Typography>
-            <Typography sx={{ fontSize: 13, color: "#999" }}>即將到來的活動日曆（開發中）</Typography>
+          <Box sx={{ 
+            flex: 1, 
+            bgcolor: "white", 
+            borderRadius: 4, 
+            p: 2, 
+            boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
+            height: "fit-content"
+          }}>
+            <Typography variant="h6" fontWeight="bold" mb={2}>
+              My Calendar
+            </Typography>
+            
+            {/* 這裡是日曆組件本體 */}
+            <StaticDatePicker
+              displayStaticWrapperAs="desktop"
+              value={selectedDate}
+              onChange={(newValue) => setSelectedDate(newValue)}
+              slots={{
+                day: (props) => {
+                  const { day, outsideCurrentMonth, ...other } = props;
+                  // 判斷這一天是否有活動，有的話就畫紅點
+                  const hasEvent = !outsideCurrentMonth && registrations.some(reg => 
+                    reg.date && isSameDay(parseISO(reg.date), day)
+                  );
+                  return (
+                    <Badge
+                      key={day.toString()}
+                      overlap="circular"
+                      badgeContent={hasEvent ? '•' : undefined}
+                      color="error"
+                    >
+                      <Box {...other}>{day.getDate()}</Box>
+                    </Badge>
+                  );
+                }
+              }}
+              slotProps={{
+                actionBar: { sx: { display: 'none' } }, 
+                toolbar: { hidden: true }
+              }}
+            />
+
+            {/* 下方顯示選取日期的活動清單 */}
+            <Box mt={2}>
+              <Typography variant="subtitle2" color="text.secondary">
+                {selectedDate.toLocaleDateString()} 的活動：
+              </Typography>
+              {registrations
+                .filter(reg => reg.date && isSameDay(parseISO(reg.date), selectedDate))
+                .map((reg, idx) => (
+                  <Typography key={idx} variant="body2" sx={{ mt: 1, color: "#1a237e", fontWeight: "bold" }}>
+                    • {reg.title}
+                  </Typography>
+                ))}
+            </Box>
           </Box>
         </Box>
 
