@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import or_, func
 from sqlalchemy.orm import Session, selectinload
+from app.models.post import EventBookmark
 
 from app.db.session import get_db
 from app.models.event import Event, EventSession
@@ -40,18 +41,19 @@ def list_events(
         .filter(*filters)
     )
     if sort == "hot":
-        # 用 subquery 算每個 event 的最少剩餘名額，避免 GROUP BY 與 SELECT 欄位的可攜性問題
+        # 算每個 event 的收藏總數
         hot_sub = (
             db.query(
-                EventSession.event_id.label("event_id"),
-                func.min(EventSession.remaining_slots).label("min_slots"),
+                EventBookmark.event_id.label("event_id"),
+                func.count(EventBookmark.user_id).label("bookmark_count"),
             )
-            .group_by(EventSession.event_id)
+            .group_by(EventBookmark.event_id)
             .subquery()
         )
         q = (
             q.outerjoin(hot_sub, hot_sub.c.event_id == Event.id)
-            .order_by(hot_sub.c.min_slots.asc().nulls_last(), Event.id)
+            # 按收藏數倒序排，多的在前面；沒人收藏的排最後
+            .order_by(hot_sub.c.bookmark_count.desc().nulls_last(), Event.id.desc())
         )
     else:
         q = q.order_by(Event.id)
