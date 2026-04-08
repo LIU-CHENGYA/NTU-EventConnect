@@ -128,4 +128,19 @@ export const usersApi = {
   myRegistrations: () => api.get("/api/users/me/registrations").then((r) => r.data),
 };
 
+export const uploadsApi = {
+  /**
+   * 上傳圖片並回傳網址
+   * @param {File} file 
+   * @returns {Promise<{url: string}>}
+   */
+  upload: (file) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    return api.post("/api/uploads", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    }).then((r) => r.data);
+  },
+};
+
 export { mapEvent, mapPost };

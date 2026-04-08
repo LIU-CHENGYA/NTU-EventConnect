@@ -39,6 +39,7 @@ app.include_router(uploads_router.router)
 _uploads = Path("uploads")
 _uploads.mkdir(exist_ok=True)
 app.mount("/uploads", StaticFiles(directory=str(_uploads)), name="uploads")
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 
 @app.get("/api/health")

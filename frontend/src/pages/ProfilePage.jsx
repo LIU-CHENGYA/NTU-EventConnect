@@ -7,7 +7,7 @@ import EventCard from "../components/EventCard";
 import PostCard from "../components/PostCard";
 import { useAuth } from "../context/AuthContext";
 import { useData } from "../context/DataContext";
-import { postsApi, usersApi, bookmarksApi } from "../api";
+import { postsApi, usersApi, bookmarksApi, uploadsApi } from "../api";
 import { tokens } from "../theme";
 
 const TAG_COLORS = {
@@ -74,6 +74,20 @@ export default function ProfilePage() {
     boxShadow: tokens.shadow.pill,
     p: 3,
   };
+
+  const handleFileChange = async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  try {
+    const res = await uploadsApi.upload(file);
+    // 取得後端回傳的圖片網址後，更新編輯表單
+    setEditForm({ ...editForm, avatarUrl: res.url });
+  } catch (error) {
+    console.error("上傳失敗:", error);
+    alert("圖片上傳失敗，請檢查檔案格式或大小");
+  }
+};
 
   const upcomingCount = myRegistrations.filter((r) => r.status === "success").length;
   const stats = [
@@ -252,6 +266,26 @@ export default function ProfilePage() {
       <Dialog open={editOpen} onClose={() => setEditOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle sx={{ fontWeight: 700 }}>編輯個人資料</DialogTitle>
         <DialogContent>
+          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mt: 1, mb: 3 }}>
+            <Avatar 
+              src={editForm.avatarUrl} 
+              sx={{ width: 100, height: 100, mb: 1, border: `2px solid ${tokens.color.navy}` }}
+            />
+            <Button 
+              variant="outlined" 
+              size="small"
+              component="label"
+              sx={{ color: tokens.color.navy, borderColor: tokens.color.navy }}
+            >
+              更換照片
+              <input
+                type="file"
+                hidden
+                accept="image/*"
+                onChange={handleFileChange}
+              />
+            </Button>
+          </Box>
           <TextField
             fullWidth label="顯示名稱"
             value={editForm.name}
