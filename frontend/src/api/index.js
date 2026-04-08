@@ -1,13 +1,5 @@
 import api from "./client";
 
-const getAvatarUrl = (userId, avatarPath) => {
-  if (avatarPath && avatarPath.trim() !== "") {
-    return avatarPath.startsWith('http') 
-      ? avatarPath 
-      : `http://localhost:8000${avatarPath}`;
-  }
-  return `https://api.dicebear.com/7.x/adventurer/svg?seed=${userId}`;
-};
 
 // ---------- mappers: backend snake_case -> frontend camelCase ----------
 function mapEvent(e) {
