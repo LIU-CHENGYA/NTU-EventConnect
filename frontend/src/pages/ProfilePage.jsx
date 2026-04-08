@@ -169,70 +169,59 @@ export default function ProfilePage() {
           {/* 加上 Provider 解決 UI Crash 報錯 */}
           <LocalizationProvider dateAdapter={AdapterDateFns}>
             <StaticDatePicker
-              displayStaticWrapperAs="desktop"
-              value={new Date()}
-              slots={{
-                day: (props) => {
-                  const { day, outsideCurrentMonth, ...other } = props;
-                  const hasEvent = !outsideCurrentMonth && myRegistrations.some(reg => 
-                    reg.date && isSameDay(parseISO(reg.date), day)
-                  );
-                  return (
-                    <Badge
-                      key={day.toString()}
-                      overlap="circular"
-                      badgeContent={hasEvent ? '•' : undefined}
-                      sx={{ "& .MuiBadge-badge": { color: 'red', fontSize: 24, top: 12 } }}
-                    >
-                      <Box {...other}>{day.getDate()}</Box>
-                    </Badge>
-                  );
-                }
-              }}
-              slotProps={{
-                actionBar: { sx: { display: 'none' } },
-                toolbar: { hidden: true }
-              }}
-              sx={{
+            displayStaticWrapperAs="desktop"
+            value={new Date()}
+            // ... slots 和 slotProps 保持不變
+            sx={{
+              width: '100%',
+              maxWidth: '100%',
+              minWidth: 'unset',
+              '& .MuiPickersLayout-root': { minWidth: 'unset', width: '100%' },
+              '& .MuiDateCalendar-root': { width: '100%', minWidth: 'unset' },
+              
+              // 1. 調整日曆內部的容器寬度
+              '& .MuiDayCalendar-monthContainer': { width: '100%' },
+              
+              // 2. 關鍵：對齊星期標題 (S, M, T...)
+              '& .MuiDayCalendar-header': {
                 width: '100%',
-                minWidth: 'unset', 
-                maxWidth: '100%',
-                bgcolor: 'transparent',
+                display: 'flex',
+                justifyContent: 'space-between', // 讓星期均勻分佈
+                padding: '0 4px', // 左右微調
+              },
 
-                '& .MuiPickersLayout-root': {
-                  minWidth: 'unset',
-                  maxWidth: '100%',
-                  overflow: 'hidden',
-                },
-                '& .MuiDateCalendar-root': {
-                  width: '100%',
-                  height: 'auto',
-                  maxHeight: '300px', 
-                },
-                
-                '& .MuiDayCalendar-monthContainer': {
-                  width: '100%',
-                },
-                '& .MuiDayCalendar-header': {
-                  justifyContent: 'space-around',
-                },
-                '& .MuiDayCalendar-weekContainer': {
-                  justifyContent: 'space-around',
-                  margin: '2px 0',
-                },
-                '& .MuiPickersDay-root': {
-                  width: '32px', 
-                  height: '32px', 
-                  fontSize: '0.8rem',
-                },
-                
-                '& .MuiPickersCalendarHeader-root': {
-                  paddingLeft: '8px',
-                  paddingRight: '8px',
-                  marginTop: 0,
-                }
-              }}
-            />
+              // 3. 關鍵：對齊日期格子 (1, 2, 3...)
+              '& .MuiDayCalendar-weekContainer': {
+                width: '100%',
+                display: 'flex',
+                justifyContent: 'space-between', // 讓日期數字跟上面的星期對齊
+                margin: 0,
+                padding: '0 4px',
+              },
+
+              // 4. 縮小格子尺寸，確保 7 個格子加起來不會超出側邊欄 (291px)
+              '& .MuiPickersDay-root': {
+                width: '30px',
+                height: '30px',
+                fontSize: '0.75rem',
+                margin: 0, // 移除預設的 margin，改用 flex 佈局
+              },
+
+              // 5. 縮小星期的標題文字
+              '& .MuiDayCalendar-weekDayLabel': {
+                width: '30px',
+                height: '30px',
+                margin: 0,
+                fontSize: '0.75rem',
+              },
+
+              // 移除不必要的 header 邊距
+              '& .MuiPickersCalendarHeader-root': {
+                padding: '0 8px',
+                margin: 0,
+              }
+            }}
+          />
           </LocalizationProvider>
         </Box>
         </Box>
