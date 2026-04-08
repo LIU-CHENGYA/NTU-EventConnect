@@ -1,5 +1,14 @@
 import api from "./client";
 
+const getAvatarUrl = (userId, avatarPath) => {
+  if (avatarPath && avatarPath.trim() !== "") {
+    return avatarPath.startsWith('http') 
+      ? avatarPath 
+      : `http://localhost:8000${avatarPath}`;
+  }
+  return `https://api.dicebear.com/7.x/adventurer/svg?seed=${userId}`;
+};
+
 // ---------- mappers: backend snake_case -> frontend camelCase ----------
 function mapEvent(e) {
   if (!e) return e;
@@ -38,22 +47,11 @@ function mapEvent(e) {
 
 function mapPost(p) {
   if (!p) return null;
-
-  // 定義一個內部的小工具，處理頭貼路徑
-  const getAvatar = (userId, avatarPath) => {
-    if (avatarPath) {
-      // 如果已經是完整網址就直接用，否則加上後端位址
-      return avatarPath.startsWith('http') ? avatarPath : `http://localhost:8000${avatarPath}`;
-    }
-    // 沒頭貼就用 Dicebear 備案
-    return `https://api.dicebear.com/7.x/adventurer/svg?seed=${userId}`;
-  };
-
   return {
     id: p.id,
     userId: p.user_id,
     userName: p.user_name || `User #${p.user_id}`,
-    userAvatar: getAvatar(p.user_id, p.user_avatar), // 使用處理後的頭貼
+    userAvatar: getAvatarUrl(p.user_id, p.user_avatar), // 呼叫外部工具
     eventId: p.event_id,
     rating: p.rating,
     content: p.content,
@@ -66,9 +64,26 @@ function mapPost(p) {
     comments: (p.comments || []).map((c) => ({
       ...c,
       userName: c.user_name || `User #${c.user_id}`,
-      // 留言者的頭貼也一併處理
-      userAvatar: getAvatar(c.user_id, c.user_avatar),
+      userAvatar: getAvatarUrl(c.user_id, c.user_avatar), // 呼叫外部工具
     })),
+  };
+}
+
+function getAvatarUrl(userId, avatarPath) {
+  if (avatarPath) {
+    return avatarPath.startsWith('http') ? avatarPath : `http://localhost:8000${avatarPath}`;
+  }
+  return `https://api.dicebear.com/7.x/adventurer/svg?seed=${userId}`;
+}
+
+function mapUser(u) {
+  if (!u) return null;
+  return {
+    ...u,
+    // 這裡手動建立前端需要的 avatarUrl 欄位
+    avatarUrl: u.avatar_url 
+      ? (u.avatar_url.startsWith('http') ? u.avatar_url : `http://localhost:8000${u.avatar_url}`)
+      : `https://api.dicebear.com/7.x/adventurer/svg?seed=${u.id}`,
   };
 }
 
@@ -132,8 +147,8 @@ export const bookmarksApi = {
 };
 
 export const usersApi = {
-  get: (id) => api.get(`/api/users/${id}`).then((r) => r.data),
-  updateMe: (payload) => api.patch("/api/users/me", payload).then((r) => r.data),
+  get: (id) => api.get(`/api/users/${id}`).then((r) => mapUser(r.data)), 
+  updateMe: (payload) => api.patch("/api/users/me", payload).then((r) => mapUser(r.data)), 
   myDrafts: async () => {
     const { data } = await api.get("/api/users/me/drafts");
     return data.map(mapPost);
