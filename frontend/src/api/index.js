@@ -55,7 +55,7 @@ function mapPost(p) {
       ...c,
       userName: c.user_name || `User #${c.user_id}`,
       // 關鍵修正：留言者的頭貼也要從 c.user_avatar 讀取
-      userAvatar: getAvatar(c.user_id, c.user_avatar), 
+      userAvatar: getAvatar(c.user_id, c.user_avatar || c.avatar_url), 
     })),
   };
 }
@@ -84,7 +84,7 @@ export const authApi = {
     api.post("/api/auth/register", { name, email, password }).then((r) => r.data),
   login: (email, password) =>
     api.post("/api/auth/login", { email, password }).then((r) => r.data),
-  me: () => api.get("/api/auth/me").then((r) => r.data),
+  me: () => api.get("/api/auth/me").then((r) => mapUser(r.data)),
   googleLogin: (credential) =>
     api.post("/api/auth/google", { credential }).then((r) => r.data),
 };
