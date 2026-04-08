@@ -20,6 +20,7 @@ const TAG_COLORS = {
   "求職": "rgba(255,57,159,0.42)",
 };
 
+const [selectedFile, setSelectedFile] = useState(null);
 const TABS = ["我的貼文", "即將到來的活動", "收藏貼文", "收藏活動"];
 const STATUS_FILTERS = ["全部", "報名成功", "等待候補", "已取消"];
 const STATUS_TO_ZH = { success: "報名成功", waitlist: "等待候補", cancelled: "已取消" };
@@ -75,19 +76,16 @@ export default function ProfilePage() {
     p: 3,
   };
 
-  const handleFileChange = async (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
 
-  try {
-    const res = await uploadsApi.upload(file);
-    // 取得後端回傳的圖片網址後，更新編輯表單
-    setEditForm({ ...editForm, avatarUrl: res.url });
-  } catch (error) {
-    console.error("上傳失敗:", error);
-    alert("圖片上傳失敗，請檢查檔案格式或大小");
-  }
-};
+    setSelectedFile(file); // 存下檔案，等一下按儲存才送
+    
+    // 建立本地預覽網址，讓 Avatar 立刻變圖
+    const previewUrl = URL.createObjectURL(file);
+    setEditForm({ ...editForm, avatarUrl: previewUrl });
+  };
 
   const upcomingCount = myRegistrations.filter((r) => r.status === "success").length;
   const stats = [
@@ -96,24 +94,31 @@ export default function ProfilePage() {
     { label: "即將到來的活動", value: upcomingCount },
     { label: "關注的標籤", value: "" },
   ];
-
   const handleSaveEdit = async () => {
     try {
-        // 檢查 editForm.avatarUrl 是否有值 (例如: /uploads/xxx.png)
-        console.log("Saving avatar:", editForm.avatarUrl); 
+      let finalAvatarUrl = editForm.avatarUrl;
 
-        const updatedUser = await usersApi.updateMe({
-          name: editForm.name,
-          bio: editForm.bio,
-          avatar_url: editForm.avatarUrl,
-        });
-
-        console.log("Update response:", updatedUser);
-        setUser(updatedUser);
-        setOpen(false);
-      } catch (error) {
-        console.error("Failed to update profile:", error);
+      // 如果使用者有選新檔案，這時候才執行上傳
+      if (selectedFile) {
+        const uploadRes = await uploadsApi.upload(selectedFile);
+        finalAvatarUrl = uploadRes.url; // 拿到後端真正的 /uploads/xxx.png
       }
+
+      const updatedUser = await usersApi.updateMe({
+        name: editForm.name,
+        bio: editForm.bio,
+        avatar_url: finalAvatarUrl, // 將最終網址傳給後端
+      });
+
+      setUser(updatedUser);      // 更新全站 User 狀態
+      setEditOpen(false);        // 確定更改後，關閉編輯視窗
+      setSelectedFile(null);     // 清空暫存檔案
+      
+      console.log("個人資料更新成功！");
+    } catch (error) {
+      console.error("Failed to update profile:", error);
+      alert("儲存失敗，請檢查檔案大小或網路連線");
+    }
   };
 
   return (
