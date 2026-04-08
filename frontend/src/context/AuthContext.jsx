@@ -9,26 +9,26 @@ export function AuthProvider({ children }) {
 
   // Restore session from localStorage on mount
   useEffect(() => {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        setReady(true);
-        return;
-      }
-      authApi
-        .me()
-        .then((data) => {
-          // 在這裡手動補強 user 物件
-          const userWithAvatar = {
-            ...data,
-            avatarUrl: data.avatar_url 
-              ? (data.avatar_url.startsWith('http') ? data.avatar_url : `http://localhost:8000${data.avatar_url}`)
-              : `https://api.dicebear.com/7.x/adventurer/svg?seed=${data.id}`
-          };
-          setUser(userWithAvatar);
-        })
-        .catch(() => localStorage.removeItem("token"))
-        .finally(() => setReady(true));
-    }, []);
+    const token = localStorage.getItem("token");
+    if (!token) {
+      setReady(true);
+      return;
+    }
+    authApi
+      .me()
+      .then((data) => {
+        // 手動加上轉換邏輯，確保全站 user.avatarUrl 都有值
+        const formattedUser = {
+          ...data,
+          avatarUrl: data.avatar_url 
+            ? (data.avatar_url.startsWith('http') ? data.avatar_url : `http://localhost:8000${data.avatar_url}`)
+            : `https://api.dicebear.com/7.x/adventurer/svg?seed=${data.id}`
+        };
+        setUser(formattedUser);
+      })
+      .catch(() => localStorage.removeItem("token"))
+      .finally(() => setReady(true));
+  }, []);
     const login = async (email, password) => {
     try {
       const { access_token, user: u } = await authApi.login(email, password);

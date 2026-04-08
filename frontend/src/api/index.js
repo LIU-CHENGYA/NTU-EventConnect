@@ -39,24 +39,23 @@ function mapEvent(e) {
 
 function mapPost(p) {
   if (!p) return null;
+
+  // 定義一個內部小工具來處理頭貼路徑
+  const getAvatar = (userId, avatarPath) => {
+    if (avatarPath && avatarPath.trim() !== "") {
+      return avatarPath.startsWith('http') ? avatarPath : `http://localhost:8000${avatarPath}`;
+    }
+    return `https://api.dicebear.com/7.x/adventurer/svg?seed=${userId}`;
+  };
+
   return {
-    id: p.id,
-    userId: p.user_id,
-    userName: p.user_name || `User #${p.user_id}`,
-    userAvatar: getAvatarUrl(p.user_id, p.user_avatar), // 呼叫外部工具
-    eventId: p.event_id,
-    rating: p.rating,
-    content: p.content,
-    images: p.images || [],
-    visibility: p.visibility,
-    createdAt: p.created_at,
-    likeCount: p.like_count ?? 0,
-    isLiked: p.is_liked ?? false,
-    isBookmarked: p.is_bookmarked ?? false,
+    ...p, // 保留原始欄位
+    userAvatar: getAvatar(p.user_id, p.user_avatar), // 貼文者的頭貼
     comments: (p.comments || []).map((c) => ({
       ...c,
       userName: c.user_name || `User #${c.user_id}`,
-      userAvatar: getAvatarUrl(c.user_id, c.user_avatar), // 呼叫外部工具
+      // 關鍵修正：留言者的頭貼也要從 c.user_avatar 讀取
+      userAvatar: getAvatar(c.user_id, c.user_avatar), 
     })),
   };
 }
