@@ -80,6 +80,33 @@ my.ntu.edu.tw → crawl_*.py → csv/events.csv → build_mock.py
 
 ---
 
+### 部署架構
+
+```
+📦 Backend: Docker Image → ECR → ECS
+   └─ 環境變數指向 RDS 資料庫
+   
+📦 Frontend: 靜態網站 → S3 + CloudFront
+
+📦 Database: RDS PostgreSQL （獨立）
+```
+
+| 服務 | 部署方式 | 說明 |
+|------|--------|------|
+| **Backend** | Docker → ECR → ECS | FastAPI 應用容器化，推送至 AWS ECR，由 ECS 編排運行 |
+| **Frontend** | S3 + CloudFront | 靜態網站直接上傳 S3，CDN 加速分發 |
+| **Database** | RDS PostgreSQL | 獨立的託管資料庫，由環境變數 `DATABASE_URL` 配置 |
+
+**構建步驟：**
+
+1. Backend 本地測試完成後，執行 `docker build` 和 `docker push` 推送至 ECR
+2. 在 AWS ECS 中建立任務定義，指向 ECR image URI
+3. Frontend 執行 `npm run build`，輸出的 `dist/` 上傳至 S3
+4. CloudFront 指向 S3 bucket，設定 cache policy
+5. 環境變數在 ECS 任務或 RDS 連接字串中配置
+
+---
+
 ## Quick Start（不耐看版）
 
 開兩個 terminal：
