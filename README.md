@@ -4,6 +4,8 @@
 
 > 軟體工程課期末專案
 
+**🌐 線上網址：** <https://d1p66hfjtmja1e.cloudfront.net/>
+
 ---
 
 ## 目錄
@@ -540,44 +542,285 @@ httpx==0.27.2
 
 ## 部署
 
-### Frontend（Vercel）
+### 雲端基礎設施架構
 
-1. Vercel → Add New Project → Import 此 repo
-2. **Root Directory** 設成 `frontend`
-3. Framework Preset 自動偵測 Vite，Build `npm run build`、Output `dist`
-4. Environment Variable：`VITE_API_URL=https://你的後端網址`
-5. Deploy
+```
 
-每次 push 到 main 會自動 redeploy。
+                              Internet
+                                 │
+                                 ▼
+                    ┌────────────────────────┐
+                    │   CloudFront (CDN)     │
+                    │  d1p66hfjtmja1e..      │
+                    └────────────────────────┘
+                                 │
+                ┌────────────────┴────────────────┐
+                │                                 │
+                ▼                                 ▼
+    ┌──────────────────────┐        ┌──────────────────────┐
+    │   S3 Static Hosting  │        │  Application Load    │
+    │   (Frontend Assets)  │        │   Balancer (ALB)     │
+    │   React SPA Build    │        │   Port 8000          │
+    └──────────────────────┘        └──────────────────────┘
+                                                 │
+                                    ┌────────────┴────────────┐
+                                    │                         │
+                                    ▼                         ▼
+                        ┌─────────────────────┐   ┌─────────────────────┐
+                        │  ECS Fargate Task   │   │  ECS Fargate Task   │
+                        │  (ntu-backend-api)  │   │  (Auto Scaling)     │
+                        │  • Python 3.11      │   │  • Replica          │
+                        │  • FastAPI/Uvicorn  │   │                     │
+                        │  • 1 vCPU, 3GB RAM  │   │                     │
+                        └─────────────────────┘   └─────────────────────┘
+                                    │
+                                    ▼
+                        ┌─────────────────────┐
+                        │   RDS PostgreSQL    │
+                        │   ntu-event-db      │
+                        │   • Multi-AZ        │
+                        │   • Auto Backup     │
+                        └─────────────────────┘
+```
+
+**部署組件說明：**
+
+| 組件 | 服務 | 配置 | 說明 |
+|------|------|------|------|
+| **前端** | S3 + CloudFront | - | Vite build 產生的靜態檔案 |
+| **後端** | ECS Fargate + ECR | 1 vCPU / 3GB RAM | Docker 容器運行 FastAPI |
+| **負載均衡** | ALB | Port 8000 | 分流請求到多個 ECS tasks |
+| **資料庫** | RDS PostgreSQL | - | 獨立資料庫實例 |
+| **容器倉庫** | ECR | - | 存放 Docker images |
+| **日誌** | CloudWatch Logs | `/ecs/ntu-backend-task` | 集中日誌管理 |
+
+### CI/CD 自動化流程
+
+```
+Developer Push → GitHub → Actions Workflow → AWS Deployment
+
+開發流程：
+1. 開發者 commit & push 到 main branch
+2. GitHub Actions 自動觸發
+3. 平行執行前後端構建
+4. 部署到對應的 AWS 服務
+5. 自動更新與健康檢查
+```
+
+**觸發條件：** push 到 `main` branch，或手動執行 workflow_dispatch
+
+---
 
 ### Frontend（AWS S3 + CloudFront）
 
-走 `.github/workflows/deploy.yml`，push 到 `main` 觸發：
+**前端網址：** <https://d1p66hfjtmja1e.cloudfront.net>
 
-1. 跑 ETL 爬蟲產 `events.generated.json`
-2. `npm ci` + `npm run build`
-3. `aws s3 sync dist/ s3://$BUCKET --delete`
-4. `aws cloudfront create-invalidation --paths "/*"`
+#### 自動部署流程（GitHub Actions）
 
-需要設定的 GitHub Secrets：
+```yaml
+1. Checkout 程式碼
+2. 設定 Node.js 環境
+3. 安裝依賴 (npm ci)
+4. 跑 ETL 爬蟲產 events.generated.json
+5. 設定環境變數 (VITE_API_URL)
+6. 構建生產版本 (npm run build)
+7. 同步到 S3 (aws s3 sync dist/ --delete)
+8. 清除 CloudFront 快取 (create-invalidation)
+```
+
+#### 需要的 GitHub Secrets
+
 - `AWS_ACCESS_KEY_ID`
 - `AWS_SECRET_ACCESS_KEY`
 - `AWS_S3_BUCKET`
 - `CLOUDFRONT_DISTRIBUTION_ID`
+---
 
-### Backend
+### Backend（AWS ECS Fargate + ECR）
 
-目前還沒部署 backend。可選的方向：
+**後端 API URL：** `http://ntu-api-alb-1725363642.ap-northeast-1.elb.amazonaws.com`
 
-- **Fly.io / Render / Railway**：直接 deploy uvicorn，配 Postgres addon
-- **AWS Lambda + Mangum**：serverless，但 SQLite 不可用，必須 Postgres
-- **AWS EC2 / Lightsail**：傳統 VM，SSH 進去跑 systemd / docker
+#### 自動部署流程（GitHub Actions）
 
-部署到生產環境前**務必**：
-- 設 `ENV=prod`
-- 設一個夠強的 `JWT_SECRET`：`python -c "import secrets; print(secrets.token_urlsafe(48))"`
-- 用 PostgreSQL（不要用 SQLite）
-- 把 `CORS_ORIGINS` 改成正式的前端 domain
+```yaml
+1. Checkout 程式碼
+2. 配置 AWS 認證
+3. 登入 ECR
+4. 構建 Docker Image (linux/amd64)
+   └─ docker build --platform linux/amd64
+5. 標記 Image (latest + commit SHA)
+6. 推送到 ECR
+7. 觸發 ECS Service 強制部署
+   └─ aws ecs update-service --force-new-deployment
+```
+
+#### ECS 架構資訊
+
+| 項目 | 內容 |
+|------|------|
+| **ECR Repository** | `896160628127.dkr.ecr.ap-northeast-1.amazonaws.com/ntu-backend` |
+| **ECS Cluster** | `gracious-fish-rizeya` |
+| **ECS Service** | `ntu-backend-task-service-5vmose4n` |
+| **Task Definition** | `ntu-backend-task` (Python 3.11, 1 vCPU, 3GB RAM) |
+| **資料庫** | RDS PostgreSQL `ntu-event-db.c386osyooczq.ap-northeast-1.rds.amazonaws.com` |
+| **Log Group** | CloudWatch `/ecs/ntu-backend-task` |
+
+#### 需要的 GitHub Secrets
+
+除了 Frontend 的 Secrets 外，另需：
+- `AWS_ACCOUNT_ID`：`896160628127`
+- `AWS_REGION`：`ap-northeast-1`
+- `ECR_REPOSITORY`：`ntu-backend`
+- `ECS_CLUSTER`：`gracious-fish-rizeya`
+- `ECS_SERVICE`：`ntu-backend-task-service-5vmose4n`
+
+#### 手動部署後端
+
+```bash
+# 1. 構建 Docker Image（指定 x86_64 平台）
+cd backend
+docker build --platform linux/amd64 -t ntu-backend:latest .
+
+# 2. 登入 AWS ECR
+aws ecr get-login-password --region ap-northeast-1 | \
+  docker login --username AWS --password-stdin \
+  896160628127.dkr.ecr.ap-northeast-1.amazonaws.com
+
+# 3. 標記並推送
+docker tag ntu-backend:latest \
+  896160628127.dkr.ecr.ap-northeast-1.amazonaws.com/ntu-backend:latest
+docker push 896160628127.dkr.ecr.ap-northeast-1.amazonaws.com/ntu-backend:latest
+
+# 4. 觸發 ECS 部署
+aws ecs update-service \
+  --cluster gracious-fish-rizeya \
+  --service ntu-backend-task-service-5vmose4n \
+  --force-new-deployment \
+  --region ap-northeast-1
+```
+
+---
+
+### 環境變數配置
+
+#### Backend (ECS Task Definition)
+
+```json
+{
+  "environment": [
+{
+  "name": "ntu-backend-api",
+  "image": "896160628127.dkr.ecr.ap-northeast-1.amazonaws.com/ntu-backend:latest",
+  "cpu": 0,
+  "portMappings": [
+    {
+      "name": "ntu-backend-api-8000-tcp",
+      "containerPort": 8000,
+      "hostPort": 8000,
+      "protocol": "tcp",
+      "appProtocol": "http"
+    }
+  ],
+  "essential": true,
+  "environment": [
+        {
+          "name": "JWT_EXPIRE_MINUTES",
+          "value": "10080"
+        },
+        {
+          "name": "DATABASE_URL",
+          "value": "postgresql+psycopg://postgres:password@ntu-event-db.c386osyooczq.ap-northeast-1.rds.amazonaws.com:5432/postgres"
+        },
+        {
+          "name": "CORS_ORIGINS",
+          "value": "https://d1p66hfjtmja1e.cloudfront.net"
+        },
+        {
+          "name": "JWT_ALGORITHM",
+          "value": "HS256"
+        },
+        {
+          "name": "JWT_SECRET",
+          "value": "438758fa197d29dbc4d98bcaf8a4f865e698017eb5154d10f7134aab20ed9bb2"
+        }
+      ],
+      "environmentFiles": [],
+      "mountPoints": [],
+      "volumesFrom": [],
+      "ulimits": [],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/ntu-backend-task",
+          "awslogs-create-group": "true",
+          "awslogs-region": "ap-northeast-1",
+          "awslogs-stream-prefix": "ecs"
+        },
+        "secretOptions": []
+      },
+      "systemControls": []
+    }
+  ]
+}
+```
+
+#### Frontend (Build Time)
+
+```env
+VITE_API_URL=http://ntu-api-alb-1725363642.ap-northeast-1.elb.amazonaws.com
+```
+
+---
+
+### 監控與日誌
+
+| 監控項目 | 位置 | 說明 |
+|---------|------|------|
+| **應用日誌** | CloudWatch `/ecs/ntu-backend-task` | FastAPI 運行日誌 |
+| **ECS Metrics** | ECS Console | CPU/Memory 使用率 |
+| **Health Check** | ALB Target Groups | `/api/health` 端點檢查 |
+| **前端訪問** | CloudFront Logs | CDN 訪問記錄 |
+
+**查看日誌：**
+
+```bash
+# 查看後端日誌
+aws logs tail /ecs/ntu-backend-task --follow --region ap-northeast-1
+
+# 查看 ECS 服務狀態
+aws ecs describe-services \
+  --cluster gracious-fish-rizeya \
+  --services ntu-backend-task-service-5vmose4n \
+  --region ap-northeast-1
+
+# 測試健康檢查
+curl http://ntu-api-alb-1725363642.ap-northeast-1.elb.amazonaws.com/api/health
+# 預期回應: {"status":"ok"}
+```
+
+---
+
+**部署後驗證：**
+
+```bash
+# 測試後端健康檢查
+curl http://ntu-api-alb-1725363642.ap-northeast-1.elb.amazonaws.com/api/health
+# 預期: {"status":"ok"}
+
+# 測試前端
+curl -I https://d1p66hfjtmja1e.cloudfront.net
+# 預期: HTTP 200
+
+# 測試 API 連接
+curl http://ntu-api-alb-1725363642.ap-northeast-1.elb.amazonaws.com/api/events
+# 預期: JSON 活動列表
+```
+
+**生產環境注意事項：**
+- ✅ 設 `ENV=prod`
+- ✅ 設強密碼 `JWT_SECRET`：`python -c "import secrets; print(secrets.token_urlsafe(48))"`
+- ✅ 使用 PostgreSQL（不要用 SQLite）
+- ✅ `CORS_ORIGINS` 包含正式前端 domain
 
 ---
 
