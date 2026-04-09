@@ -7,8 +7,13 @@ import EventCard from "../components/EventCard";
 import PostCard from "../components/PostCard";
 import { useAuth } from "../context/AuthContext";
 import { useData } from "../context/DataContext";
-import { postsApi, usersApi, bookmarksApi } from "../api";
+import { postsApi, usersApi, bookmarksApi, uploadsApi } from "../api";
 import { tokens } from "../theme";
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { StaticDatePicker } from '@mui/x-date-pickers/StaticDatePicker';
+import { Badge } from '@mui/material';
+import { parseISO, isSameDay } from 'date-fns';
 
 const TAG_COLORS = {
   "運動": "rgba(57,167,255,0.42)",
@@ -25,6 +30,9 @@ const STATUS_FILTERS = ["全部", "報名成功", "等待候補", "已取消"];
 const STATUS_TO_ZH = { success: "報名成功", waitlist: "等待候補", cancelled: "已取消" };
 
 export default function ProfilePage() {
+  const [registrations, setRegistrations] = useState([]); // 存儲報名活動
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [selectedFile, setSelectedFile] = useState(null);
   const { user, ready, setUser } = useAuth();
   const navigate = useNavigate();
   const { drafts, refreshUserData } = useData();
@@ -39,13 +47,26 @@ export default function ProfilePage() {
   const [bookmarkedEvents, setBookmarkedEvents] = useState([]);
   const [bookmarkedPosts, setBookmarkedPosts] = useState([]);
 
+  // 取得報名資料
+  useEffect(() => {
+    const fetchRegistrations = async () => {
+      try {
+        const data = await usersApi.myRegistrations();
+        setRegistrations(data);
+      } catch (err) {
+        console.error("無法取得報名資料", err);
+      }
+    };
+    fetchRegistrations();
+  }, []);
+
   useEffect(() => {
     if (!ready) return;
     if (!user) {
       navigate("/login");
       return;
     }
-    setEditForm({ name: user.name || "", bio: user.bio || "" });
+    setEditForm({ name: user.name || "", bio: user.bio || "", avatarUrl: user.avatarUrl || ""});
     Promise.all([
       postsApi.list({ user_id: user.id }).catch(() => []),
       usersApi.myRegistrations().catch(() => []),
@@ -75,6 +96,16 @@ export default function ProfilePage() {
     p: 3,
   };
 
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setSelectedFile(file); 
+
+    const previewUrl = URL.createObjectURL(file);
+    setEditForm({ ...editForm, avatarUrl: previewUrl });
+  };
+
   const upcomingCount = myRegistrations.filter((r) => r.status === "success").length;
   const stats = [
     { label: "貼文", value: profileStats.post_count },
@@ -82,14 +113,26 @@ export default function ProfilePage() {
     { label: "即將到來的活動", value: upcomingCount },
     { label: "關注的標籤", value: "" },
   ];
-
   const handleSaveEdit = async () => {
     try {
-      const updated = await usersApi.updateMe({ name: editForm.name, bio: editForm.bio });
-      setUser(updated);
-      setEditOpen(false);
+      const payload = {
+        name: editForm.name,
+        bio: editForm.bio,
+        avatar_url: editForm.avatarUrl, 
+      };
+
+      const updated = await usersApi.updateMe(payload);
+      
+      const formattedUser = {
+        ...updated,
+        avatarUrl: updated.avatar_url || updated.avatarUrl
+      };
+
+      setUser(formattedUser); 
+      setEditOpen(false); 
+      console.log("一次存檔成功！");
     } catch (e) {
-      alert("更新失敗: " + (e?.response?.data?.detail || e.message));
+      console.error("更新失敗", e);
     }
   };
 
@@ -116,9 +159,97 @@ export default function ProfilePage() {
           </Box>
 
           <Box sx={sidebarCard}>
-            <Typography sx={{ fontFamily: "'Lexend',sans-serif", fontSize: 24, mb: 1 }}>My Calendar</Typography>
-            <Typography sx={{ fontSize: 13, color: "#999" }}>即將到來的活動日曆（開發中）</Typography>
-          </Box>
+          <Typography sx={{ fontFamily: "'Lexend',sans-serif", fontSize: 24, mb: 1 }}>
+            My Calendar
+          </Typography>
+
+          <LocalizationProvider dateAdapter={AdapterDateFns}>
+            <StaticDatePicker
+              displayStaticWrapperAs="desktop"
+              value={new Date()}
+              slotProps={{
+                actionBar: { 
+                  sx: { display: 'none !important' } 
+                },
+                toolbar: { hidden: true }
+              }}
+              slots={{
+                day: (props) => {
+                  const { day, outsideCurrentMonth, ...other } = props;
+                  const hasEvent = !outsideCurrentMonth && myRegistrations.some(reg => 
+                    reg.date && isSameDay(parseISO(reg.date), day)
+                  );
+
+                  return (
+                    <Box
+                      {...other}
+                      sx={{
+                        ...other.sx,
+                        // 有活動變紅粗體，沒活動維持原樣
+                        color: hasEvent ? "red !important" : "inherit",
+                        fontWeight: hasEvent ? "900 !important" : "normal",
+                        width: '32px !important',
+                        height: '32px !important',
+                        display: 'flex',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        margin: '0 !important',
+                      }}
+                    >
+                      {day.getDate()}
+                    </Box>
+                  );
+                }
+              }}
+              sx={{
+                width: '100% !important',
+                maxWidth: '100% !important',
+                minWidth: 'unset !important',
+                '& .MuiPickersLayout-root': { 
+                  minWidth: 'unset !important', 
+                  width: '100% !important',
+                },
+                '& .MuiDateCalendar-root': { 
+                  width: '100% !important', 
+                  minWidth: 'unset !important',
+                  margin: '0 !important',
+                  padding: '0 !important',
+                },
+                '& .MuiDayCalendar-monthContainer': { 
+                  width: '100% !important' 
+                },
+                '& .MuiDayCalendar-header': {
+                  width: '100% !important',
+                  display: 'flex !important',
+                  justifyContent: 'space-between !important',
+                  padding: '0 !important',
+                },
+                '& .MuiDayCalendar-weekContainer': {
+                  width: '100% !important',
+                  display: 'flex !important',
+                  justifyContent: 'space-between !important',
+                  padding: '0 !important',
+                },
+                '& .MuiPickersDay-root': {
+                  width: '32px !important',
+                  height: '32px !important',
+                  margin: '0 !important',
+                },
+                '& .MuiDayCalendar-weekDayLabel': {
+                  width: '32px !important',
+                  height: '32px !important',
+                  margin: '0 !important',
+                  fontSize: '0.75rem',
+                },
+                '& .MuiPickersCalendarHeader-root': {
+                  padding: '0 !important',
+                  margin: '0 !important',
+                  width: '100% !important',
+                }
+              }}
+            />
+          </LocalizationProvider>
+        </Box>
         </Box>
 
         <Box>
@@ -252,6 +383,26 @@ export default function ProfilePage() {
       <Dialog open={editOpen} onClose={() => setEditOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle sx={{ fontWeight: 700 }}>編輯個人資料</DialogTitle>
         <DialogContent>
+          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mt: 1, mb: 3 }}>
+            <Avatar 
+              src={editForm.avatarUrl} 
+              sx={{ width: 100, height: 100, mb: 1, border: `2px solid ${tokens.color.navy}` }}
+            />
+            <Button 
+              variant="outlined" 
+              size="small"
+              component="label"
+              sx={{ color: tokens.color.navy, borderColor: tokens.color.navy }}
+            >
+              更換照片
+              <input
+                type="file"
+                hidden
+                accept="image/*"
+                onChange={handleFileChange}
+              />
+            </Button>
+          </Box>
           <TextField
             fullWidth label="顯示名稱"
             value={editForm.name}
