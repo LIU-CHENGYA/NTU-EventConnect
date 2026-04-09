@@ -6,14 +6,36 @@ on:
   workflow_dispatch:  # 允許手動觸發
 
 jobs:
-  build-and-deploy:
+  # 檢查哪些檔案變更了
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            backend:
+              - 'backend/**'
+              - '.github/workflows/deploy.yml'
+            frontend:
+              - 'frontend/**'
+              - 'fetch_data/**'
+              - '.github/workflows/deploy.yml'
+
+  # 後端部署 Job
+  deploy-backend:
+    needs: changes
+    if: ${{ needs.changes.outputs.backend == 'true' }}
     runs-on: ubuntu-latest
     
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      # --- 後端 Docker Build & Push 到 ECR 階段 ---
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -44,7 +66,24 @@ jobs:
             --service ntu-backend-task-service-5vmose4n \
             --force-new-deployment \
             --region ap-northeast-1
-      # --- Frontend Build 階段 ---
+
+  # 前端部署 Job
+  deploy-frontend:
+    needs: changes
+    if: ${{ needs.changes.outputs.frontend == 'true' }}
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-northeast-1
+
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
@@ -54,7 +93,7 @@ jobs:
 
       - name: Install Frontend Dependencies
         working-directory: ./frontend
-        run: npm ci # 使用 npm ci 確保完全依照 package-lock.json 安裝
+        run: npm ci
 
       - name: Set Frontend Environment Variables
         working-directory: ./frontend
@@ -67,10 +106,8 @@ jobs:
 
       - name: Sync to S3
         run: |
-          # 將 build 出來的 dist 資料夾同步到 S3
           aws s3 sync ./frontend/dist s3://${{ secrets.AWS_S3_BUCKET }} --delete
 
       - name: CloudFront Cache Invalidation
         run: |
-          # 強制清除 CDN 快取，確保使用者立刻看到新資料
           aws cloudfront create-invalidation --distribution-id ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }} --paths "/*"
