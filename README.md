@@ -634,6 +634,7 @@ Developer Push → GitHub → Actions Workflow → AWS Deployment
 - `AWS_SECRET_ACCESS_KEY`
 - `AWS_S3_BUCKET`
 - `CLOUDFRONT_DISTRIBUTION_ID`
+- `VITE_API_URL`（例如 `https://d1p66hfjtmja1e.cloudfront.net`，前端會呼叫 `${VITE_API_URL}/api/...`）
 ---
 
 ### Backend（AWS ECS Fargate + ECR）
@@ -667,12 +668,8 @@ Developer Push → GitHub → Actions Workflow → AWS Deployment
 
 #### 需要的 GitHub Secrets
 
-除了 Frontend 的 Secrets 外，另需：
-- `AWS_ACCOUNT_ID`：`896160628127`
-- `AWS_REGION`：`ap-northeast-1`
-- `ECR_REPOSITORY`：`ntu-backend`
-- `ECS_CLUSTER`：`gracious-fish-rizeya`
-- `ECS_SERVICE`：`ntu-backend-task-service-5vmose4n`
+後端部署 Job 會共用上面 Frontend 使用的 `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY`，
+ECR repository / ECS cluster / service 名稱是直接寫在 `.github/workflows/deploy.yml` 裡，如果之後改名再一起調整即可，**不需要額外的 GitHub Secrets**。
 
 #### 手動部署後端
 
@@ -767,8 +764,11 @@ aws ecs update-service \
 #### Frontend (Build Time)
 
 ```env
-VITE_API_URL=http://ntu-api-alb-1725363642.ap-northeast-1.elb.amazonaws.com
+VITE_API_URL=https://d1p66hfjtmja1e.cloudfront.net
 ```
+
+前端程式會呼叫 `${VITE_API_URL}/api/...`，CloudFront 再把 `/api/*` 代理到 ALB，
+這樣瀏覽器端全程走 HTTPS，不會出現 mixed content 問題。
 
 ---
 
