@@ -42,7 +42,7 @@ function mapPost(p) {
 
   const getAvatar = (userId, avatarPath) => {
     if (avatarPath && avatarPath.trim() !== "") {
-      return avatarPath.startsWith('http') ? avatarPath : `http://localhost:8000${avatarPath}`;
+      return avatarPath.startsWith('http') ? avatarPath : `http://localhost:8010${avatarPath}`;
     }
     return `https://api.dicebear.com/7.x/adventurer/svg?seed=${userId}`;
   };
@@ -61,7 +61,7 @@ function mapPost(p) {
 
 function getAvatarUrl(userId, avatarPath) {
   if (avatarPath) {
-    return avatarPath.startsWith('http') ? avatarPath : `http://localhost:8000${avatarPath}`;
+    return avatarPath.startsWith('http') ? avatarPath : `http://localhost:8010${avatarPath}`;
   }
   return `https://api.dicebear.com/7.x/adventurer/svg?seed=${userId}`;
 }
@@ -72,7 +72,7 @@ function mapUser(u) {
     ...u,
     // 這裡手動建立前端需要的 avatarUrl 欄位
     avatarUrl: u.avatar_url 
-      ? (u.avatar_url.startsWith('http') ? u.avatar_url : `http://localhost:8000${u.avatar_url}`)
+      ? (u.avatar_url.startsWith('http') ? u.avatar_url : `http://localhost:8010${u.avatar_url}`)
       : `https://api.dicebear.com/7.x/adventurer/svg?seed=${u.id}`,
   };
 }

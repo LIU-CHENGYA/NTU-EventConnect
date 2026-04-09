@@ -11,7 +11,7 @@ class Settings(BaseSettings):
     JWT_SECRET: str = _DEFAULT_SECRET
     JWT_ALGORITHM: str = "HS256"
     JWT_EXPIRE_MINUTES: int = 60 * 24 * 7
-    CORS_ORIGINS: str = "http://localhost:5173"
+    CORS_ORIGINS: str = "http://localhost:5173,http://localhost:5174,http://localhost:5175,http://localhost:5176,http://localhost:5177"
     GOOGLE_CLIENT_ID: str = ""
 
     @property
