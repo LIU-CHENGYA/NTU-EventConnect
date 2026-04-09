@@ -11,7 +11,7 @@ export function AuthProvider({ children }) {
     return {
       ...u,
       avatarUrl: u.avatar_url 
-        ? (u.avatar_url.startsWith('http') ? u.avatar_url : `http://localhost:8000${u.avatar_url}`)
+        ? (u.avatar_url.startsWith('http') ? u.avatar_url : `http://localhost:8010${u.avatar_url}`)
         : `https://api.dicebear.com/7.x/adventurer/svg?seed=${u.id}`
     };
   };
@@ -30,7 +30,7 @@ export function AuthProvider({ children }) {
         const formattedUser = {
           ...data,
           avatarUrl: data.avatar_url 
-            ? (data.avatar_url.startsWith('http') ? data.avatar_url : `http://localhost:8000${data.avatar_url}`)
+            ? (data.avatar_url.startsWith('http') ? data.avatar_url : `http://localhost:8010${data.avatar_url}`)
             : `https://api.dicebear.com/7.x/adventurer/svg?seed=${data.id}`
         };
         setUser(formattedUser);
