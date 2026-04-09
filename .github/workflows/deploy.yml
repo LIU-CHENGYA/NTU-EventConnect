@@ -59,7 +59,7 @@ jobs:
       - name: Set Frontend Environment Variables
         working-directory: ./frontend
         run: |
-          echo "VITE_API_URL=http://ntu-api-alb-1725363642.ap-northeast-1.elb.amazonaws.com" >> .env.production
+          echo "VITE_API_URL=${{ secrets.VITE_API_URL }}" >> .env.production
 
       - name: Build React App
         working-directory: ./frontend
