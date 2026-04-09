@@ -1,38 +1,37 @@
-# Single-stage build for NTU EventConnect Backend
-FROM python:3.12-slim
+FROM python:3.11-slim
 
+# 設定工作目錄
 WORKDIR /app
 
-# Install system dependencies
+# 防止 Python 產生 .pyc 檔案並確保 Log 即時輸出
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+# 安裝系統相依套件（Postgres 需要 libpq）
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
-    postgresql-client \
+    python3-dev \
+    libpq-dev \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements and install Python dependencies
+# 安裝 Python 相依套件
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
 
-# Copy application code
+# 複製應用程式碼
 COPY app/ ./app/
-COPY scripts/ ./scripts/
-COPY pytest.ini ./
 
-# Create uploads directory
+# 建立 uploads 目錄
 RUN mkdir -p uploads
-
-# Set environment variables
-ENV PYTHONUNBUFFERED=1 \
-    PYTHONDONTWRITEBYTECODE=1 \
-    PORT=8000
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
     CMD curl -f http://localhost:8000/api/health || exit 1
 
-# Expose port
+# 開放 FastAPI 預設埠
 EXPOSE 8000
 
-# Run application
-CMD ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# 啟動 Uvicorn
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

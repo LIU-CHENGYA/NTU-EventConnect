@@ -28,7 +28,7 @@ jobs:
       - name: Build Backend Docker Image
         working-directory: ./backend
         run: |
-          docker build -t ntu-backend:latest .
+          docker build --platform linux/amd64 -t ntu-backend:latest .
           docker tag ntu-backend:latest ${{ steps.login-ecr.outputs.registry }}/ntu-backend:latest
           docker tag ntu-backend:latest ${{ steps.login-ecr.outputs.registry }}/ntu-backend:${{ github.sha }}
 
@@ -40,7 +40,7 @@ jobs:
       - name: Force ECS Deployment
         run: |
           aws ecs update-service \
-            --cluster ntu-backend-cluster \
+            --cluster gracious-fish-rizeya \
             --service ntu-backend-task-service-5vmose4n \
             --force-new-deployment \
             --region ap-northeast-1
