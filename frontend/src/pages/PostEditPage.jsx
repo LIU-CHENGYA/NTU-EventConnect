@@ -82,16 +82,16 @@ export default function PostEditPage() {
           <IconButton onClick={() => navigate(-1)} sx={{ color: tokens.color.text }}>
             <ArrowBackIcon />
           </IconButton>
-          <Typography sx={{ fontFamily: tokens.font.logo, fontStyle: "italic", fontSize: 32, color: tokens.color.navy }}>
+          <Typography sx={{ fontFamily: tokens.font.logo, fontStyle: "italic", fontSize: { xs: 24, md: 32 }, color: tokens.color.navy }}>
             編輯文章
           </Typography>
-          <Box sx={{ ml: "auto" }}>
+          <Box sx={{ ml: "auto", display: { xs: "none", sm: "block" } }}>
             <Avatar src={user.avatar} sx={{ width: 52, height: 52 }} />
           </Box>
         </Box>
 
-        <Box sx={{ display: "flex", gap: 2.5, alignItems: "flex-start" }}>
-          <Paper sx={{ ...cardSx, flex: 1 }}>
+        <Box sx={{ display: "flex", flexDirection: { xs: "column", md: "row" }, gap: 2.5, alignItems: "flex-start" }}>
+          <Paper sx={{ ...cardSx, flex: 1, width: "100%" }}>
             {event && (
               <Box sx={{ mb: 2, display: "flex", gap: 0.5 }}>
                 {[1, 2, 3, 4, 5].map((star) => (
@@ -185,7 +185,7 @@ export default function PostEditPage() {
           </Paper>
 
           {event && (
-            <Paper sx={{ ...cardSx, width: 280, flexShrink: 0 }}>
+            <Paper sx={{ ...cardSx, width: { xs: "100%", md: 280 }, flexShrink: 0 }}>
               <Box
                 component="img"
                 src={event.image}

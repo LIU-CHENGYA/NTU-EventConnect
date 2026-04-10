@@ -94,8 +94,8 @@ export default function LoginPage() {
           boxShadow: tokens.shadow.pill,
           width: 597,
           maxWidth: "94vw",
-          px: 8,
-          py: 6,
+          px: { xs: 3, sm: 8 },
+          py: { xs: 4, sm: 6 },
         }}
       >
         <Typography sx={{ fontSize: 28, fontWeight: 700, textAlign: "center", mb: 1, color: tokens.color.text }}>
