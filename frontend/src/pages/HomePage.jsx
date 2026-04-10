@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Box, Typography, IconButton } from "@mui/material";
+import { Box, Typography, IconButton, useMediaQuery, useTheme } from "@mui/material";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
@@ -74,8 +74,8 @@ export default function HomePage() {
   );
 
   return (
-    <Box sx={{ minHeight: "calc(100vh - 76px)", bgcolor: tokens.color.bg, py: 5 }}>
-      <Box sx={{ maxWidth: 1200, mx: "auto", px: 4 }}>
+    <Box sx={{ minHeight: "calc(100vh - 76px)", bgcolor: tokens.color.bg, py: { xs: 2, md: 5 } }}>
+      <Box sx={{ maxWidth: 1200, mx: "auto", px: { xs: 2, md: 4 } }}>
         <Section
           title="活動列表"
           items={listData.items}
@@ -122,16 +122,28 @@ function Section({
   const start = (page - 1) * PAGE_SIZE;
   const canPrev = page > 1;
   const canNext = page < totalPages;
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
   return (
-    <Box sx={{ mb: 6 }}>
-      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 2 }}>
+    <Box sx={{ mb: { xs: 4, md: 6 } }}>
+      {/* Header row */}
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: { xs: "flex-start", sm: "center" },
+          flexDirection: { xs: "column", sm: "row" },
+          justifyContent: "space-between",
+          mb: 2,
+          gap: 1,
+        }}
+      >
         <Box sx={{ display: "flex", alignItems: "baseline", gap: 1.5 }}>
           <Typography
             sx={{
               fontFamily: tokens.font.heading,
               fontWeight: 500,
-              fontSize: 24,
+              fontSize: { xs: 20, md: 24 },
               color: tokens.color.text,
             }}
           >
@@ -145,44 +157,71 @@ function Section({
         </Box>
 
         {showCategories && (
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-            <Typography sx={{ fontSize: 14, color: tokens.color.text, mr: 1 }}>推薦類別</Typography>
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: 1,
+              overflowX: "auto",
+              maxWidth: "100%",
+              pb: 0.5,
+              WebkitOverflowScrolling: "touch",
+              "&::-webkit-scrollbar": { display: "none" },
+              scrollbarWidth: "none",
+            }}
+          >
+            <Typography
+              sx={{ fontSize: 14, color: tokens.color.text, mr: 0.5, whiteSpace: "nowrap", display: { xs: "none", sm: "block" } }}
+            >
+              推薦類別
+            </Typography>
             {["全部", ...categoryOptions.filter((c) => c !== "全部").slice(0, 4)].map((cat) => (
               <Box
                 key={cat}
                 onClick={() => setSelectedCategory(cat)}
                 sx={{
-                  px: 1.2,
-                  py: "3px",
-                  fontSize: 12,
+                  px: 1.5,
+                  py: 0.8,
+                  fontSize: 13,
                   borderRadius: "10px",
                   cursor: "pointer",
+                  whiteSpace: "nowrap",
+                  minHeight: 36,
+                  display: "flex",
+                  alignItems: "center",
+                  userSelect: "none",
+                  WebkitTapHighlightColor: "transparent",
                   bgcolor: selectedCategory === cat ? tokens.color.navy : "#fff",
                   color: selectedCategory === cat ? "#fff" : tokens.color.text,
                   border: `1px solid ${tokens.color.border}`,
+                  transition: "background-color 0.15s",
+                  "&:active": { opacity: 0.7 },
                 }}
               >
                 {cat}
               </Box>
             ))}
-            <ArrowDropDownIcon sx={{ color: tokens.color.text }} />
+            <ArrowDropDownIcon sx={{ color: tokens.color.text, flexShrink: 0 }} />
           </Box>
         )}
       </Box>
 
-      <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-        <IconButton
-          disabled={!canPrev}
-          onClick={() => setPage(page - 1)}
-          sx={{ color: canPrev ? tokens.color.text : tokens.color.border }}
-        >
-          <ChevronLeftIcon sx={{ fontSize: 40 }} />
-        </IconButton>
+      {/* Cards + pagination */}
+      <Box sx={{ display: "flex", alignItems: "center", gap: { xs: 0, md: 1 } }}>
+        {!isMobile && (
+          <IconButton
+            disabled={!canPrev}
+            onClick={() => setPage(page - 1)}
+            sx={{ color: canPrev ? tokens.color.text : tokens.color.border }}
+          >
+            <ChevronLeftIcon sx={{ fontSize: 40 }} />
+          </IconButton>
+        )}
         <Box
           sx={{
             display: "grid",
-            gridTemplateColumns: "repeat(4, 1fr)",
-            gap: 2.5,
+            gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)", md: "repeat(4, 1fr)" },
+            gap: { xs: 2, md: 2.5 },
             flex: 1,
           }}
         >
@@ -200,14 +239,39 @@ function Section({
             </Typography>
           )}
         </Box>
-        <IconButton
-          disabled={!canNext}
-          onClick={() => setPage(page + 1)}
-          sx={{ color: canNext ? tokens.color.text : tokens.color.border }}
-        >
-          <ChevronRightIcon sx={{ fontSize: 40 }} />
-        </IconButton>
+        {!isMobile && (
+          <IconButton
+            disabled={!canNext}
+            onClick={() => setPage(page + 1)}
+            sx={{ color: canNext ? tokens.color.text : tokens.color.border }}
+          >
+            <ChevronRightIcon sx={{ fontSize: 40 }} />
+          </IconButton>
+        )}
       </Box>
+
+      {/* Mobile pagination — bottom buttons */}
+      {isMobile && (
+        <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 2, mt: 2 }}>
+          <IconButton
+            disabled={!canPrev}
+            onClick={() => setPage(page - 1)}
+            sx={{ color: canPrev ? tokens.color.text : tokens.color.border }}
+          >
+            <ChevronLeftIcon />
+          </IconButton>
+          <Typography sx={{ fontSize: 14, color: tokens.color.text }}>
+            {page} / {totalPages}
+          </Typography>
+          <IconButton
+            disabled={!canNext}
+            onClick={() => setPage(page + 1)}
+            sx={{ color: canNext ? tokens.color.text : tokens.color.border }}
+          >
+            <ChevronRightIcon />
+          </IconButton>
+        </Box>
+      )}
     </Box>
   );
 }
