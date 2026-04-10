@@ -29,7 +29,7 @@ export default function EventCard({
       onClick={() => navigate(`/events/${event.id}`)}
       sx={{
         width: "100%",
-        maxWidth: 252,
+        maxWidth: { xs: "100%", md: 252 },
         bgcolor: "white",
         borderRadius: "8px",
         overflow: "hidden",

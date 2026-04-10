@@ -59,12 +59,12 @@ export default function EventCreatePage() {
 
   return (
     <Box sx={{ minHeight: "calc(100vh - 76px)", bgcolor: tokens.color.bg, py: 4 }}>
-      <Box sx={{ maxWidth: 1280, mx: "auto", px: 6 }}>
-        <Typography sx={{ fontFamily: "'Lexend',sans-serif", fontSize: 32, mb: 4 }}>
+      <Box sx={{ maxWidth: 1280, mx: "auto", px: { xs: 2, md: 6 } }}>
+        <Typography sx={{ fontFamily: "'Lexend',sans-serif", fontSize: { xs: 24, md: 32 }, mb: 4 }}>
           發布新的活動
         </Typography>
 
-        <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, alignItems: "start" }}>
+        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: { xs: 3, md: 8 }, alignItems: "start" }}>
           {/* LEFT column */}
           <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
             {LEFT_FIELDS.map((label) => (
@@ -155,7 +155,7 @@ export default function EventCreatePage() {
         {/* Image upload card */}
         <Box sx={{
           mt: 4, bgcolor: "#fffefe", borderRadius: "20px", boxShadow: tokens.shadow.pill,
-          width: "60%", maxWidth: 600, ml: "auto", p: 4,
+          width: { xs: "100%", md: "60%" }, maxWidth: 600, ml: { xs: 0, md: "auto" }, p: { xs: 2, md: 4 },
           display: "flex", alignItems: "center", justifyContent: "center", gap: 2,
           cursor: "pointer",
         }}>

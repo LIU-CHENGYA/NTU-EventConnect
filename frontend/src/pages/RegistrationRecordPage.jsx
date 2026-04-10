@@ -74,10 +74,10 @@ export default function RegistrationRecordPage() {
           <IconButton onClick={() => navigate(-1)} sx={{ color: tokens.color.text }}>
             <ArrowBackIcon />
           </IconButton>
-          <Typography sx={{ fontFamily: tokens.font.logo, fontStyle: "italic", fontSize: 32, color: tokens.color.navy }}>
+          <Typography sx={{ fontFamily: tokens.font.logo, fontStyle: "italic", fontSize: { xs: 24, md: 32 }, color: tokens.color.navy }}>
             報名紀錄
           </Typography>
-          <Box sx={{ ml: "auto" }}>
+          <Box sx={{ ml: "auto", display: { xs: "none", sm: "block" } }}>
             <Avatar src={user.avatar_url || user.avatar} sx={{ width: 52, height: 52 }} />
           </Box>
         </Box>
@@ -143,7 +143,7 @@ export default function RegistrationRecordPage() {
               <Collapse in={isExpanded}>
                 <Divider sx={{ borderColor: tokens.color.bg }} />
                 <Box sx={{ p: 2.5 }}>
-                  <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2 }}>
+                  <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 }}>
                     {[
                       ["報名時間", (reg.registered_at || "").slice(0, 10)],
                       ["活動地點", reg.location || "—"],

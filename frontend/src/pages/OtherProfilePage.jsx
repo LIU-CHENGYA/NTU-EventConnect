@@ -70,17 +70,17 @@ export default function OtherProfilePage() {
           <IconButton onClick={() => navigate(-1)} sx={{ color: tokens.color.text }}>
             <ArrowBackIcon />
           </IconButton>
-          <Typography sx={{ fontFamily: tokens.font.logo, fontStyle: "italic", fontSize: 32, color: tokens.color.navy }}>
+          <Typography sx={{ fontFamily: tokens.font.logo, fontStyle: "italic", fontSize: { xs: 24, md: 32 }, color: tokens.color.navy }}>
             個人主頁
           </Typography>
           {user && (
-            <Box sx={{ ml: "auto" }}>
+            <Box sx={{ ml: "auto", display: { xs: "none", sm: "block" } }}>
               <Avatar src={user.avatar} sx={{ width: 52, height: 52 }} />
             </Box>
           )}
         </Box>
 
-        <Box sx={{ display: "grid", gridTemplateColumns: "291px 1fr", gap: 3 }}>
+        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "291px 1fr" }, gap: 3 }}>
           {/* Sidebar */}
           <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
             <Box sx={sidebarCard}>
@@ -140,7 +140,7 @@ export default function OtherProfilePage() {
               </Box>
             </Box>
 
-            <Box sx={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 2.5 }}>
+            <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2,1fr)", md: "repeat(3,1fr)" }, gap: 2.5 }}>
               {publicPosts.map((p) => <PostCard key={p.id} post={p} />)}
               {publicPosts.length === 0 && (
                 <Typography sx={{ textAlign: "center", color: tokens.color.placeholder, gridColumn: "1/-1", py: 4 }}>
