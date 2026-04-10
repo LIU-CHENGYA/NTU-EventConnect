@@ -138,7 +138,7 @@ export default function ProfilePage() {
 
   return (
     <Box sx={{ minHeight: "calc(100vh - 76px)", bgcolor: tokens.color.bg, py: 4 }}>
-      <Box sx={{ maxWidth: 1280, mx: "auto", px: 4, display: "grid", gridTemplateColumns: "291px 1fr", gap: 3 }}>
+      <Box sx={{ maxWidth: 1280, mx: "auto", px: { xs: 2, md: 4 }, display: "grid", gridTemplateColumns: { xs: "1fr", md: "291px 1fr" }, gap: 3 }}>
         <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
           <Box sx={sidebarCard}>
             <Typography sx={{ fontFamily: "'Lexend',sans-serif", fontSize: 24, mb: 2 }}>Profile</Typography>
@@ -272,16 +272,22 @@ export default function ProfilePage() {
             <Box sx={{ pt: 5, pb: 1, textAlign: "center" }}>
               <Typography sx={{ fontFamily: "'Lemon',sans-serif", fontSize: 20 }}>{user.name}</Typography>
             </Box>
-            <Box sx={{ display: "flex", justifyContent: "center", gap: 4, pb: 1.5 }}>
+            <Box sx={{
+              display: "flex", justifyContent: { xs: "flex-start", sm: "center" },
+              gap: { xs: 2, md: 4 }, pb: 1.5,
+              overflowX: "auto", px: { xs: 1.5, sm: 0 },
+              "&::-webkit-scrollbar": { display: "none" }, scrollbarWidth: "none",
+            }}>
               {TABS.map((t, i) => (
                 <Box
                   key={t}
                   onClick={() => setTab(i)}
                   sx={{
-                    cursor: "pointer", fontSize: 18,
+                    cursor: "pointer", fontSize: { xs: 14, md: 18 },
                     color: tab === i ? tokens.color.navy : "#000",
                     fontFamily: "'Lemon',sans-serif", pb: 0.5,
                     borderBottom: tab === i ? `2px solid ${tokens.color.navy}` : "2px solid transparent",
+                    whiteSpace: "nowrap",
                   }}
                 >
                   {t}
@@ -320,7 +326,7 @@ export default function ProfilePage() {
                   </Box>
                 ))}
               </Box>
-              <Box sx={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 2.5 }}>
+              <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2,1fr)", md: "repeat(3,1fr)" }, gap: 2.5 }}>
                 {filteredRegistrations.map((reg) => {
                   const event = {
                     id: reg.event_id,
@@ -339,7 +345,7 @@ export default function ProfilePage() {
           )}
 
           {tab === 0 && (
-            <Box sx={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 2.5 }}>
+            <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2,1fr)", md: "repeat(3,1fr)" }, gap: 2.5 }}>
               {[...myPosts, ...drafts].map((p) => <PostCard key={p.id} post={p} />)}
               {myPosts.length + drafts.length === 0 && (
                 <Typography sx={{ textAlign: "center", color: "#999", gridColumn: "1/-1", py: 4 }}>尚無貼文</Typography>
@@ -348,7 +354,7 @@ export default function ProfilePage() {
           )}
 
           {tab === 2 && (
-            <Box sx={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 2.5 }}>
+            <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2,1fr)", md: "repeat(3,1fr)" }, gap: 2.5 }}>
               {bookmarkedPosts.map((p) => <PostCard key={p.id} post={p} />)}
               {bookmarkedPosts.length === 0 && (
                 <Typography sx={{ textAlign: "center", color: "#999", gridColumn: "1/-1", py: 4 }}>尚無收藏貼文</Typography>
@@ -357,7 +363,7 @@ export default function ProfilePage() {
           )}
 
           {tab === 3 && (
-            <Box sx={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 2.5 }}>
+            <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2,1fr)", md: "repeat(3,1fr)" }, gap: 2.5 }}>
               {bookmarkedEvents.map((e) => <EventCard key={e.id} event={e} favorited />)}
               {bookmarkedEvents.length === 0 && (
                 <Typography sx={{ textAlign: "center", color: "#999", gridColumn: "1/-1", py: 4 }}>尚無收藏活動</Typography>
