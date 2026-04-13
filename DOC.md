@@ -68,7 +68,6 @@
 | 路由 | react-router-dom | 7.13.2 | SPA routing |
 | HTTP | axios | 1.14.0 | API client |
 | 測試 | vitest + @testing-library | 2.1.9 / 16.1 | 單元測試 |
-| 其他 | swiper | 12.1.3 | 輪播 |
 
 Google SSO 採用瀏覽器端 **Google Identity Services**（透過 `<script>` 載入，**不**裝 npm 套件）。
 
