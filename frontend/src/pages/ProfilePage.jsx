@@ -118,18 +118,18 @@ export default function ProfilePage() {
       const payload = {
         name: editForm.name,
         bio: editForm.bio,
-        avatar_url: editForm.avatarUrl, 
+        avatar_url: editForm.avatarUrl.startsWith("blob:") ? undefined : editForm.avatarUrl,
       };
+
+      if (selectedFile) {
+        const { url } = await uploadsApi.upload(selectedFile);
+        payload.avatar_url = url;
+      }
 
       const updated = await usersApi.updateMe(payload);
-      
-      const formattedUser = {
-        ...updated,
-        avatarUrl: updated.avatar_url || updated.avatarUrl
-      };
-
-      setUser(formattedUser); 
-      setEditOpen(false); 
+      setUser(updated); // updated is already formatted by mapUser in usersApi.updateMe
+      setEditOpen(false);
+      setSelectedFile(null);
       console.log("一次存檔成功！");
     } catch (e) {
       console.error("更新失敗", e);
@@ -262,7 +262,7 @@ export default function ProfilePage() {
               background: "linear-gradient(135deg,#1a237e 0%,#3f51b5 50%,#7e57c2 100%)",
             }} />
             <Avatar
-              src={user.avatar_url || user.avatar}
+              src={user.avatarUrl}
               sx={{
                 width: 76, height: 76,
                 position: "absolute", top: 52, left: "50%", transform: "translateX(-50%)",
@@ -271,6 +271,11 @@ export default function ProfilePage() {
             />
             <Box sx={{ pt: 5, pb: 1, textAlign: "center" }}>
               <Typography sx={{ fontFamily: "'Lemon',sans-serif", fontSize: 20 }}>{user.name}</Typography>
+              {user.bio && (
+                <Typography sx={{ fontSize: 14, color: tokens.color.text, mt: 1, px: 4 }}>
+                  {user.bio}
+                </Typography>
+              )}
             </Box>
             <Box sx={{
               display: "flex", justifyContent: { xs: "flex-start", sm: "center" },

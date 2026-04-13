@@ -42,7 +42,7 @@ function mapPost(p) {
 
   const getAvatar = (userId, avatarPath) => {
     if (avatarPath && avatarPath.trim() !== "") {
-      return avatarPath.startsWith('http') ? avatarPath : `http://localhost:8010${avatarPath}`;
+      return avatarPath.startsWith('http') ? avatarPath : `${getBaseUrl()}${avatarPath}`;
     }
     return `https://api.dicebear.com/7.x/adventurer/svg?seed=${userId}`;
   };
@@ -59,20 +59,26 @@ function mapPost(p) {
   };
 }
 
+const getBaseUrl = () => {
+  const base = api.defaults.baseURL || "";
+  return base.replace(/\/api\/?$/, "");
+};
+
 function getAvatarUrl(userId, avatarPath) {
   if (avatarPath) {
-    return avatarPath.startsWith('http') ? avatarPath : `http://localhost:8010${avatarPath}`;
+    return avatarPath.startsWith('http') ? avatarPath : `${getBaseUrl()}${avatarPath}`;
   }
   return `https://api.dicebear.com/7.x/adventurer/svg?seed=${userId}`;
 }
 
 function mapUser(u) {
   if (!u) return null;
+  // 加入時間戳記避免瀏覽器快取舊圖
+  const timestamp = new Date().getTime();
   return {
     ...u,
-    // 這裡手動建立前端需要的 avatarUrl 欄位
     avatarUrl: u.avatar_url 
-      ? (u.avatar_url.startsWith('http') ? u.avatar_url : `http://localhost:8010${u.avatar_url}`)
+      ? (u.avatar_url.startsWith('http') ? u.avatar_url : `${getBaseUrl()}${u.avatar_url}?t=${timestamp}`)
       : `https://api.dicebear.com/7.x/adventurer/svg?seed=${u.id}`,
   };
 }
