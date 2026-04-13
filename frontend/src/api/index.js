@@ -73,11 +73,12 @@ function getAvatarUrl(userId, avatarPath) {
 
 function mapUser(u) {
   if (!u) return null;
+  // 加入時間戳記避免瀏覽器快取舊圖
+  const timestamp = new Date().getTime();
   return {
     ...u,
-    // 這裡手動建立前端需要的 avatarUrl 欄位
     avatarUrl: u.avatar_url 
-      ? (u.avatar_url.startsWith('http') ? u.avatar_url : `${getBaseUrl()}${u.avatar_url}`)
+      ? (u.avatar_url.startsWith('http') ? u.avatar_url : `${getBaseUrl()}${u.avatar_url}?t=${timestamp}`)
       : `https://api.dicebear.com/7.x/adventurer/svg?seed=${u.id}`,
   };
 }
