@@ -1,20 +1,11 @@
 import { createContext, useContext, useEffect, useState } from "react";
-import { authApi } from "../api";
+import { authApi, mapUser } from "../api";
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [ready, setReady] = useState(false);
-  const formatUser = (u) => {
-    if (!u) return null;
-    return {
-      ...u,
-      avatarUrl: u.avatar_url 
-        ? (u.avatar_url.startsWith('http') ? u.avatar_url : `http://localhost:8010${u.avatar_url}`)
-        : `https://api.dicebear.com/7.x/adventurer/svg?seed=${u.id}`
-    };
-  };
 
   // Restore session from localStorage on mount
   useEffect(() => {
@@ -26,14 +17,8 @@ export function AuthProvider({ children }) {
     authApi
       .me()
       .then((data) => {
-        // 手動加上轉換邏輯，確保全站 user.avatarUrl 都有值
-        const formattedUser = {
-          ...data,
-          avatarUrl: data.avatar_url 
-            ? (data.avatar_url.startsWith('http') ? data.avatar_url : `http://localhost:8010${data.avatar_url}`)
-            : `https://api.dicebear.com/7.x/adventurer/svg?seed=${data.id}`
-        };
-        setUser(formattedUser);
+        // data 已經被 authApi.me() 裡的 mapUser 處理過了
+        setUser(data);
       })
       .catch(() => localStorage.removeItem("token"))
       .finally(() => setReady(true));
@@ -42,8 +27,8 @@ export function AuthProvider({ children }) {
       try {
         const { access_token, user: u } = await authApi.login(email, password);
         localStorage.setItem("token", access_token);
-        // 這裡原本是 setUser(u)，請改成：
-        setUser(formatUser(u)); 
+        // authApi.login 已經回傳 mapUser 處理過的 user
+        setUser(u); 
         return { success: true };
       } catch (e) {
         return { success: false, error: e?.response?.data?.detail || "登入失敗" };
@@ -54,7 +39,7 @@ export function AuthProvider({ children }) {
     try {
       const { access_token, user: u } = await authApi.register(name, email, password);
       localStorage.setItem("token", access_token);
-      setUser(formatUser(u));
+      setUser(u);
       return { success: true };
     } catch (e) {
       return { success: false, error: e?.response?.data?.detail || "註冊失敗" };
@@ -65,7 +50,7 @@ export function AuthProvider({ children }) {
     try {
       const { access_token, user: u, needs_username } = await authApi.googleLogin(credential);
       localStorage.setItem("token", access_token);
-      setUser(formatUser(u));
+      setUser(u);
       return { success: true, needsUsername: needs_username };
     } catch (e) {
       return { success: false, error: e?.response?.data?.detail || "Google 登入失敗" };
