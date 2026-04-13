@@ -4,7 +4,7 @@
 
 > 軟體工程課期末專案
 
-**🌐 線上網址：** <https://d1p66hfjtmja1e.cloudfront.net/>
+**線上網址：** <https://d1p66hfjtmja1e.cloudfront.net/>
 
 ---
 
@@ -21,24 +21,25 @@
   - [ETL（產真實活動資料）](#etl產真實活動資料)
 - [資料庫：SQLite ↔ PostgreSQL](#資料庫sqlite--postgresql)
 - [API 路由總覽](#api-路由總覽)
+- [前端頁面路由](#前端頁面路由)
 - [專案結構](#專案結構)
 - [常見開發任務](#常見開發任務)
 - [套件版本鎖定規則](#套件版本鎖定規則)
 - [部署](#部署)
 - [疑難排解](#疑難排解)
-- [Pixel-perfect 進度](#pixel-perfect-進度)
 
 ---
 
 ## 功能
 
-- 🔍 **活動瀏覽**：分類、關鍵字搜尋、按收藏熱度排序
-- 🗓️ **個人行事曆**：標出有報名的日子
-- ⭐ **收藏 / 報名**：活動 / 貼文都能收藏，報名場次有候補機制
-- 📝 **貼文系統**：評分 + 圖片 + 留言 + 按讚 + 草稿
-- 👤 **個人資料**：頭貼上傳、自介、報名紀錄
-- 🔐 **登入**：本地註冊 + Google OAuth
-- 📅 **資料來源**：每日從台大活動報名網站爬取真實資料
+- **活動瀏覽**：分類、關鍵字搜尋、按收藏熱度排序
+- **個人行事曆**：標出有報名的日子
+- **收藏 / 報名**：活動 / 貼文都能收藏，報名場次有候補機制
+- **貼文系統**：評分 + 圖片 + 留言 + 按讚 + 草稿
+- **個人資料**：頭貼上傳、自介、報名紀錄
+- **登入**：本地註冊 + Google OAuth
+- **RWD**：手機 / 平板 / 桌面自適應排版
+- **資料來源**：從台大活動報名網站爬取 336 場真實活動、1217 個場次
 
 ---
 
@@ -46,11 +47,11 @@
 
 | 層 | 技術 |
 |---|---|
-| **Frontend** | Vite 8 + React 19 + MUI 7 + Tailwind 4 + react-router-dom 7 + axios + @mui/x-date-pickers + date-fns + Swiper |
+| **Frontend** | Vite 8 + React 19 + MUI 7 + react-router-dom 7 + axios + @mui/x-date-pickers + date-fns |
 | **Backend** | FastAPI 0.115 + SQLAlchemy 2.0 + Pydantic 2 + uvicorn + python-jose（JWT）+ passlib（bcrypt） |
 | **資料庫** | SQLite（預設）/ PostgreSQL（透過 `DATABASE_URL` 切換） |
-| **ETL** | requests + BeautifulSoup |
-| **CI/CD** | GitHub Actions → AWS S3 + CloudFront |
+| **ETL** | requests + BeautifulSoup（三層爬蟲） |
+| **CI/CD** | GitHub Actions → AWS ECS（後端）/ S3 + CloudFront（前端） |
 
 ---
 
@@ -60,22 +61,26 @@
 NTU-EventConnect/
 ├── frontend/         # Vite + React 19 + MUI 7
 ├── backend/          # FastAPI + SQLAlchemy
-└── fetch_data/       # 一次性 ETL：把校網爬下的 csv 轉成前端用的 JSON
+└── fetch_data/       # ETL：三層爬蟲 + csv → mock json
     ├── crawl_first/second/third.py   # 三層爬蟲
-    ├── csv/                          # 爬蟲產物（活動列表 / 母活動 / 場次）
-    └── build_mock.py                 # 把 events.csv 轉成 events.generated.json
+    ├── csv/                          # 爬蟲產物（活動列表 / 場次明細）
+    └── build_mock.py                 # csv → events.generated.json（前端 mock 用）
 ```
 
 **資料流：**
 
 ```
-my.ntu.edu.tw → crawl_*.py → csv/events.csv → build_mock.py
-                                                    ↓
-                                  frontend/src/mock/events.generated.json
-                                                    ↓
-                                          backend seed_events.py → DB
-                                                    ↓
-                                       FastAPI /api/* ←→ React frontend
+my.ntu.edu.tw → crawl_*.py → csv/events.csv
+                                    │
+                    ┌───────────────┤
+                    ▼               ▼
+          seed_events.py     build_mock.py
+                │                   │
+                ▼                   ▼
+         Database (API)     events.generated.json (前端 mock 備用)
+                │
+                ▼
+      FastAPI /api/* ←→ React frontend
 ```
 
 後端對外暴露 8 組 router（auth / events / posts / comments / bookmarks / registrations / users / uploads），SQLAlchemy 走 `DATABASE_URL` 自動分派 SQLite 或 Postgres dialect，**程式碼層完全不用改**。
@@ -106,7 +111,7 @@ npm run dev
 
 打開 <http://localhost:5173>，完工。
 
-> ⚠️ 後端跑 `8010` 是因為 Windows 上 8000 經常被 Hyper-V / WSL2 保留住。Linux/Mac 可以用 `--port 8000`。
+> 後端跑 `8010` 是因為 Windows 上 8000 經常被 Hyper-V / WSL2 保留住。Linux/Mac 可以用 `--port 8000`。
 
 ---
 
@@ -172,9 +177,13 @@ source venv/Scripts/activate         # Windows Git Bash
 # 3. 安裝依賴
 pip install -r requirements.txt
 
-# 4. （可選）複製環境變數範本
-cp .env.example .env
-# 編輯 .env 填值
+# 4. （可選）建立 .env 設定環境變數
+# 如果不建，會使用預設值（SQLite + 預設 JWT secret）
+cat > .env << 'EOF'
+DATABASE_URL=sqlite:///./dev.db
+JWT_SECRET=change-me-in-prod
+CORS_ORIGINS=http://localhost:5173,http://localhost:5174,http://localhost:5175,http://localhost:5176,http://localhost:5177
+EOF
 
 # 5. 啟動
 uvicorn app.main:app --reload --port 8010
@@ -191,8 +200,8 @@ uvicorn app.main:app --reload --port 8010
 第一次啟動會自動建表但**不會**有資料。要讓 API 有東西回，跑：
 
 ```bash
-python -m scripts.seed_admin     # 建一個 admin 帳號
-python -m scripts.seed_events    # 灌活動資料（讀 frontend/src/mock/events.generated.json）
+python -m scripts.seed_admin     # 建一個 admin 帳號（admin@ntu.edu.tw / Admin123!）
+python -m scripts.seed_events    # 灌活動資料（讀 fetch_data/csv/events.csv）
 ```
 
 #### 跑測試
@@ -201,7 +210,7 @@ python -m scripts.seed_events    # 灌活動資料（讀 frontend/src/mock/event
 pytest
 ```
 
-> ⚠️ pytest 會用同一個 `DATABASE_URL`。如果你連的是共用 Postgres，跑測試會污染資料。先把 `DATABASE_URL` 切回 SQLite 再跑，或設一個獨立 test DB。
+> pytest 會用同一個 `DATABASE_URL`。如果你連的是共用 Postgres，跑測試會污染資料。先把 `DATABASE_URL` 切回 SQLite 再跑，或設一個獨立 test DB。
 
 ### ETL（產真實活動資料）
 
@@ -210,10 +219,10 @@ pytest
 ```bash
 # 在專案根目錄
 source venv/Scripts/activate
-python fetch_data/build_mock.py    # 產 frontend/src/mock/events.generated.json
+python fetch_data/build_mock.py    # 產 frontend/src/mock/events.generated.json（前端 mock 備用）
 ```
 
-跑完後重啟 backend 並 `python -m scripts.seed_events` 就會吃到新資料。
+`seed_events.py` 直接讀 `fetch_data/csv/events.csv` 灌進資料庫，不需要先跑 `build_mock.py`。
 
 ---
 
@@ -271,13 +280,13 @@ docker run --name eventconnect-pg -d \
 
 #### B-3. 設 `.env`
 
-複製 `backend/.env.example` 成 `backend/.env`，把 `DATABASE_URL` 改成 Postgres：
+在 `backend/` 建（或編輯）`.env`，把 `DATABASE_URL` 改成 Postgres：
 
 ```env
 DATABASE_URL=postgresql+psycopg://postgres:postgres@localhost:5432/eventconnect
 ```
 
-> ⚠️ scheme **一定要是 `postgresql+psycopg://`**（用 v3 driver）。
+> scheme **一定要是 `postgresql+psycopg://`**（用 v3 driver）。
 > - `postgresql://` 會去抓 psycopg2（沒裝會錯）
 > - `postgres://` SQLAlchemy 不認
 
@@ -329,39 +338,93 @@ docker run --rm -v $(pwd)/backend:/data dimitri/pgloader \
 
 完整 schema 看 <http://localhost:8010/docs>（Swagger UI 直接可以打）。
 
-| Method | Path | 用途 |
-|---|---|---|
-| `GET` | `/api/health` | Health check |
-| `POST` | `/api/auth/register` | 註冊 |
-| `POST` | `/api/auth/login` | 登入（回 JWT） |
-| `POST` | `/api/auth/google` | Google OAuth 登入 |
-| `GET` | `/api/auth/me` | 取得目前登入使用者 |
-| `GET` | `/api/events` | 活動列表（支援 `category` / `keyword` / `sort=hot` / 分頁） |
-| `GET` | `/api/events/categories` | 所有分類 + 數量 |
-| `GET` | `/api/events/{event_id}` | 活動詳情 |
-| `GET` | `/api/events/{event_id}/sessions/{session_id}` | 場次詳情 |
-| `POST` | `/api/events/{event_id}/bookmark` | 收藏活動 |
-| `DELETE` | `/api/events/{event_id}/bookmark` | 取消收藏 |
-| `POST` | `/api/sessions/{session_id}/register` | 報名場次 |
-| `DELETE` | `/api/registrations/{reg_id}` | 取消報名 |
-| `GET` | `/api/posts` | 貼文列表 |
-| `POST` | `/api/posts` | 發貼文 |
-| `GET` | `/api/posts/{post_id}` | 貼文詳情 |
-| `PATCH` | `/api/posts/{post_id}` | 編輯貼文 |
-| `DELETE` | `/api/posts/{post_id}` | 刪除貼文 |
-| `POST` | `/api/posts/{post_id}/like` / `DELETE` | 讚 / 取消讚 |
-| `POST` | `/api/posts/{post_id}/bookmark` / `DELETE` | 收藏 / 取消 |
-| `POST` | `/api/posts/{post_id}/comments` | 留言 |
-| `DELETE` | `/api/comments/{comment_id}` | 刪留言 |
-| `GET` | `/api/users/{user_id}` | 使用者公開資料 |
-| `PATCH` | `/api/users/me` | 更新自己的資料 |
-| `GET` | `/api/users/me/drafts` | 我的草稿 |
-| `GET` | `/api/users/me/registrations` | 我的報名 |
-| `GET` | `/api/users/me/bookmarks/events` | 收藏的活動 |
-| `GET` | `/api/users/me/bookmarks/posts` | 收藏的貼文 |
-| `POST` | `/api/uploads` | 上傳檔案（圖片 / 頭貼） |
+### Auth
 
-**熱門排序邏輯**：`GET /api/events?sort=hot` 依「該活動被收藏的次數」由多到少排序，沒人收藏的擺最後。實作在 `backend/app/api/events.py`。
+| Method | Path | 用途 | 需登入 |
+|---|---|---|---|
+| `POST` | `/api/auth/register` | 註冊（name + email + password） | - |
+| `POST` | `/api/auth/login` | 登入（回 JWT） | - |
+| `POST` | `/api/auth/google` | Google OAuth 登入 | - |
+| `GET` | `/api/auth/me` | 取得目前登入使用者 | Yes |
+
+### Events
+
+| Method | Path | 用途 | 需登入 |
+|---|---|---|---|
+| `GET` | `/api/events` | 活動列表（支援 `category` / `keyword` / `sort=hot` / `page` / `size`） | - |
+| `GET` | `/api/events/categories` | 所有分類 + 數量 | - |
+| `GET` | `/api/events/{event_id}` | 活動詳情（含所有場次） | - |
+| `GET` | `/api/events/{event_id}/sessions/{session_id}` | 場次詳情 | - |
+
+**熱門排序邏輯**：`GET /api/events?sort=hot` 依「該活動被收藏的次數」由多到少排序，沒人收藏的擺最後。
+
+### Posts
+
+| Method | Path | 用途 | 需登入 |
+|---|---|---|---|
+| `GET` | `/api/posts` | 貼文列表（支援 `event_id` / `user_id` / `visibility` / 分頁） | - |
+| `POST` | `/api/posts` | 發貼文 | Yes |
+| `GET` | `/api/posts/{post_id}` | 貼文詳情（含留言、讚/收藏狀態） | - |
+| `PATCH` | `/api/posts/{post_id}` | 編輯貼文（僅作者） | Yes |
+| `DELETE` | `/api/posts/{post_id}` | 刪除貼文（僅作者） | Yes |
+| `POST` | `/api/posts/{post_id}/comments` | 留言 | Yes |
+| `POST` | `/api/posts/{post_id}/like` | 按讚（冪等） | Yes |
+| `DELETE` | `/api/posts/{post_id}/like` | 取消讚 | Yes |
+| `POST` | `/api/posts/{post_id}/bookmark` | 收藏貼文（冪等） | Yes |
+| `DELETE` | `/api/posts/{post_id}/bookmark` | 取消收藏貼文 | Yes |
+
+### Comments
+
+| Method | Path | 用途 | 需登入 |
+|---|---|---|---|
+| `DELETE` | `/api/comments/{comment_id}` | 刪留言（僅作者） | Yes |
+
+### Bookmarks & Registrations
+
+| Method | Path | 用途 | 需登入 |
+|---|---|---|---|
+| `POST` | `/api/events/{event_id}/bookmark` | 收藏活動（冪等） | Yes |
+| `DELETE` | `/api/events/{event_id}/bookmark` | 取消收藏活動 | Yes |
+| `POST` | `/api/sessions/{session_id}/register` | 報名場次（額滿進候補） | Yes |
+| `DELETE` | `/api/registrations/{reg_id}` | 取消報名（自動遞補候補） | Yes |
+
+### Users
+
+| Method | Path | 用途 | 需登入 |
+|---|---|---|---|
+| `GET` | `/api/users/{user_id}` | 使用者公開資料（含貼文數、參加活動數） | - |
+| `PATCH` | `/api/users/me` | 更新自己的資料（name / bio / avatar_url / department / student_id） | Yes |
+| `GET` | `/api/users/me/drafts` | 我的草稿（visibility=private 的貼文） | Yes |
+| `GET` | `/api/users/me/registrations` | 我的報名紀錄 | Yes |
+| `GET` | `/api/users/me/bookmarks/events` | 收藏的活動 | Yes |
+| `GET` | `/api/users/me/bookmarks/posts` | 收藏的貼文 | Yes |
+
+### Uploads & Health
+
+| Method | Path | 用途 | 需登入 |
+|---|---|---|---|
+| `POST` | `/api/uploads` | 上傳圖片（jpg/png/gif/webp，最大 5MB） | Yes |
+| `GET` | `/api/health` | Health check | - |
+
+---
+
+## 前端頁面路由
+
+| 路徑 | 頁面 | 需登入 | 說明 |
+|---|---|---|---|
+| `/` | HomePage | - | 活動列表 + 熱門活動，分類篩選、搜尋、分頁 |
+| `/login` | LoginPage | - | Email + 密碼登入、Google OAuth |
+| `/register` | RegisterPage | - | 註冊帳號 |
+| `/forgot-password` | ForgotPasswordPage | - | 忘記密碼 |
+| `/events/:id` | EventDetailPage | - | 活動詳情、場次資訊、評論列表 |
+| `/events/:id/register` | EventRegisterPage | - | 選擇場次報名 |
+| `/events/create` | EventCreatePage | Yes | 新增活動（管理員） |
+| `/profile` | ProfilePage | Yes | 個人資料、日曆、我的貼文/報名/收藏 |
+| `/profile/:userId` | OtherProfilePage | - | 查看其他使用者的公開資料與貼文 |
+| `/posts/create` | PostCreatePage | Yes | 發表貼文或評論（可帶 `?eventId=` 寫活動評論） |
+| `/posts/:id` | PostDetailPage | - | 貼文詳情、留言、按讚/收藏 |
+| `/posts/:id/edit` | PostEditPage | Yes | 編輯自己的貼文 |
+| `/my-registrations` | RegistrationRecordPage | Yes | 報名紀錄列表，可展開查看詳情或取消報名 |
 
 ---
 
@@ -374,72 +437,110 @@ NTU-EventConnect/
 ├── DOC.md                          # 早期設計文件
 ├── DOC_INFRA.md                    # 基礎設施文件
 ├── TEST_PLAN.md                    # 測試計畫
-├── .github/workflows/deploy.yml    # GitHub Actions：build → S3 → CloudFront
+├── .github/workflows/deploy.yml    # GitHub Actions：build → AWS
 │
 ├── frontend/
 │   ├── package.json
 │   ├── vite.config.js
 │   ├── vitest.config.js
+│   ├── postcss.config.js
+│   ├── .env.example                # 環境變數範本
 │   ├── public/
 │   └── src/
 │       ├── main.jsx                # entry
-│       ├── App.jsx                 # routes
-│       ├── theme.js                # MUI theme tokens
-│       ├── index.css               # Tailwind + Google Fonts
+│       ├── App.jsx                 # routes（13 條路由）
+│       ├── theme.js                # MUI theme tokens（顏色/字型/陰影/圓角）
+│       ├── index.css               # Global styles + Google Fonts
 │       ├── api/
-│       │   ├── client.js           # axios instance（吃 VITE_API_URL）
+│       │   ├── client.js           # axios instance（吃 VITE_API_URL，預設 localhost:8010）
 │       │   └── index.js            # endpoint wrappers + snake↔camel mapper
 │       ├── context/
-│       │   ├── AuthContext.jsx     # JWT + 使用者狀態
-│       │   └── DataContext.jsx     # 收藏 / 草稿 cache
+│       │   ├── AuthContext.jsx     # JWT + 使用者狀態 + Google OAuth
+│       │   └── DataContext.jsx     # 收藏 / 草稿 cache + 樂觀更新
 │       ├── components/
-│       │   ├── Navbar.jsx
-│       │   ├── EventCard.jsx
-│       │   ├── PostCard.jsx
-│       │   ├── ProtectedRoute.jsx
-│       │   └── ErrorBoundary.jsx
+│       │   ├── Navbar.jsx          # 導覽列（桌面搜尋列 + 手機漢堡選單 Drawer）
+│       │   ├── EventCard.jsx       # 活動卡片（圖片/日期/地點/名額/收藏）
+│       │   ├── PostCard.jsx        # 貼文卡片（作者/評分/內容預覽）
+│       │   ├── ProtectedRoute.jsx  # 登入保護 wrapper
+│       │   └── ErrorBoundary.jsx   # React error boundary
 │       ├── pages/
-│       │   ├── HomePage.jsx
-│       │   ├── EventDetailPage.jsx
-│       │   ├── EventCreatePage.jsx
-│       │   ├── EventRegisterPage.jsx
-│       │   ├── PostDetailPage.jsx
-│       │   ├── PostCreatePage.jsx / PostEditPage.jsx
-│       │   ├── ProfilePage.jsx     # 含日曆 + 頭貼上傳
-│       │   ├── OtherProfilePage.jsx
-│       │   ├── RegistrationRecordPage.jsx
-│       │   ├── LoginPage.jsx / RegisterPage.jsx / ForgotPasswordPage.jsx
-│       │   └── ...
-│       ├── mock/                   # ETL 產出的 fallback 資料
-│       └── test/                   # vitest tests
+│       │   ├── HomePage.jsx              # 活動列表 + 熱門活動
+│       │   ├── EventDetailPage.jsx       # 活動詳情 + 評論
+│       │   ├── EventCreatePage.jsx       # 新增活動（管理員）
+│       │   ├── EventRegisterPage.jsx     # 場次報名
+│       │   ├── PostDetailPage.jsx        # 貼文詳情 + 留言
+│       │   ├── PostCreatePage.jsx        # 發表貼文/評論
+│       │   ├── PostEditPage.jsx          # 編輯貼文
+│       │   ├── ProfilePage.jsx           # 個人頁面（日曆 + 頭貼上傳 + 4 個 tab）
+│       │   ├── OtherProfilePage.jsx      # 其他使用者主頁
+│       │   ├── RegistrationRecordPage.jsx # 報名紀錄
+│       │   ├── LoginPage.jsx             # 登入
+│       │   ├── RegisterPage.jsx          # 註冊
+│       │   └── ForgotPasswordPage.jsx    # 忘記密碼
+│       ├── mock/                         # ETL 產出的備用資料
+│       │   └── events.generated.json
+│       └── test/                         # vitest tests
+│           ├── setup.js
+│           └── mappers.test.js           # API mapper 單元測試
 │
 ├── backend/
 │   ├── requirements.txt
 │   ├── pytest.ini
-│   ├── .env.example                # 環境變數範本
+│   ├── dockerfile                  # Docker image（Python 3.11-slim）
+│   ├── .env                        # 環境變數（gitignore 排除，但目前誤 commit 了）
 │   ├── dev.db                      # SQLite（gitignore）
 │   ├── uploads/                    # /api/uploads 存的檔案
 │   ├── app/
-│   │   ├── main.py                 # FastAPI app + router 註冊
-│   │   ├── core/config.py          # Pydantic Settings（吃 .env）
+│   │   ├── main.py                 # FastAPI app + router 註冊 + CORS + static mount
+│   │   ├── core/
+│   │   │   ├── config.py           # Pydantic Settings（吃 .env）
+│   │   │   ├── deps.py             # get_current_user / get_current_user_optional
+│   │   │   └── security.py         # bcrypt + JWT (create/decode)
 │   │   ├── db/session.py           # SQLAlchemy engine + session（雙 dialect）
-│   │   ├── models/                 # SQLAlchemy ORM
-│   │   │   ├── user.py / event.py / post.py / registration.py
+│   │   ├── models/                 # SQLAlchemy ORM（8 個 model）
+│   │   │   ├── user.py             # User
+│   │   │   ├── event.py            # Event + EventSession
+│   │   │   ├── post.py             # Post + Comment + PostLike + PostBookmark + EventBookmark
+│   │   │   └── registration.py     # Registration
 │   │   ├── schemas/                # Pydantic request/response
-│   │   └── api/                    # router 們
-│   │       ├── auth.py / events.py / posts.py / comments.py
-│   │       ├── bookmarks.py / registrations.py / users.py / uploads.py
+│   │   │   ├── user.py             # UserRegister / UserLogin / UserOut / TokenResponse / GoogleLoginRequest
+│   │   │   ├── event.py            # EventOut / EventSessionOut / EventDetailOut / EventListResponse
+│   │   │   ├── post.py             # PostCreate / PostUpdate / PostOut / PostDetailOut / CommentCreate / CommentOut
+│   │   │   └── registration.py     # RegistrationOut / RegistrationDetailOut
+│   │   └── api/                    # router 們（8 個）
+│   │       ├── auth.py             # 註冊 / 登入 / Google OAuth / me
+│   │       ├── events.py           # 活動列表 / 分類 / 詳情 / 場次
+│   │       ├── posts.py            # CRUD + 留言 + 讚 + 收藏
+│   │       ├── comments.py         # 刪留言
+│   │       ├── bookmarks.py        # 活動收藏 + 使用者收藏列表 + 草稿
+│   │       ├── registrations.py    # 報名 / 取消（含候補遞補）
+│   │       ├── users.py            # 使用者資料 CRUD
+│   │       └── uploads.py          # 圖片上傳（jpg/png/gif/webp，5MB limit）
 │   ├── scripts/
-│   │   ├── seed_admin.py
-│   │   └── seed_events.py
-│   └── tests/
+│   │   ├── seed_admin.py           # 建 admin 帳號
+│   │   └── seed_events.py          # 從 fetch_data/csv/events.csv 灌活動 + 場次
+│   ├── check.py                    # 簡易爬蟲測試腳本
+│   ├── scrap.py                    # 活動列表解析腳本
+│   └── tests/                      # pytest 測試（7 個檔案）
+│       ├── conftest.py             # in-memory SQLite fixture
+│       ├── test_auth.py            # 註冊 / 登入 / me
+│       ├── test_events.py          # 活動列表 / 篩選 / 分頁 / 詳情
+│       ├── test_posts.py           # CRUD + 留言 + 讚 + 收藏 + 草稿
+│       ├── test_registrations.py   # 報名 / 候補 / 取消遞補 / 權限
+│       ├── test_users_uploads.py   # 使用者資料 + 圖片上傳
+│       ├── test_edge_cases.py      # 邊界：cascade delete / 冪等 / token 竄改
+│       └── test_seed_events.py     # seed_events 整合測試
 │
 └── fetch_data/
-    ├── crawl_first.py              # 第一層：列表頁
+    ├── info.md                     # 爬蟲說明（336 活動、1217 場次）
+    ├── crawl_first.py              # 第一層：活動列表頁
     ├── crawl_second.py             # 第二層：母活動頁
-    ├── crawl_third.py              # 第三層：場次頁
+    ├── crawl_third.py              # 第三層：場次詳情頁
     ├── build_mock.py               # csv → events.generated.json
     └── csv/                        # 爬蟲產物
+        ├── activities.csv          # 活動列表
+        ├── activity_session.csv    # 母活動 + 場次 URL
+        └── events.csv              # 完整場次資料（seed_events.py 的資料來源）
 ```
 
 ---
@@ -501,11 +602,15 @@ uvicorn app.main:app --reload --port 8010 --log-level info
 
 | 套件 | 鎖定版本 | 備註 |
 |---|---|---|
-| **axios** | **`1.14.0`** | ⚠️ **絕對不能加 `^`/`~`**。曾發生攻擊者推 patch 版內含惡意 code 的事件，鎖死才安全 |
 | react | `19.2.4` | |
+| react-dom | `19.2.4` | |
 | react-router-dom | `7.13.2` | |
 | @mui/material | `7.3.9` | |
+| @mui/icons-material | `7.3.9` | |
 | @mui/x-date-pickers | `8.27.2` | v9 太新（< 7 天）暫時鎖在 v8 |
+| @emotion/react | `11.14.0` | MUI 底層依賴 |
+| @emotion/styled | `11.14.1` | MUI 底層依賴 |
+| axios | `1.14.0` | |
 | date-fns | `4.1.0` | |
 | vite | `8.0.1` | |
 
@@ -621,11 +726,10 @@ Developer Push → GitHub → Actions Workflow → AWS Deployment
 1. Checkout 程式碼
 2. 設定 Node.js 環境
 3. 安裝依賴 (npm ci)
-4. 跑 ETL 爬蟲產 events.generated.json
-5. 設定環境變數 (VITE_API_URL)
-6. 構建生產版本 (npm run build)
-7. 同步到 S3 (aws s3 sync dist/ --delete)
-8. 清除 CloudFront 快取 (create-invalidation)
+4. 設定環境變數 (VITE_API_URL)
+5. 構建生產版本 (npm run build)
+6. 同步到 S3 (aws s3 sync dist/ --delete)
+7. 清除 CloudFront 快取 (create-invalidation)
 ```
 
 #### 需要的 GitHub Secrets
@@ -702,64 +806,15 @@ aws ecs update-service \
 
 #### Backend (ECS Task Definition)
 
-```json
-{
-  "environment": [
-{
-  "name": "ntu-backend-api",
-  "image": "896160628127.dkr.ecr.ap-northeast-1.amazonaws.com/ntu-backend:latest",
-  "cpu": 0,
-  "portMappings": [
-    {
-      "name": "ntu-backend-api-8000-tcp",
-      "containerPort": 8000,
-      "hostPort": 8000,
-      "protocol": "tcp",
-      "appProtocol": "http"
-    }
-  ],
-  "essential": true,
-  "environment": [
-        {
-          "name": "JWT_EXPIRE_MINUTES",
-          "value": "10080"
-        },
-        {
-          "name": "DATABASE_URL",
-          "value": "postgresql+psycopg://postgres:password@ntu-event-db.c386osyooczq.ap-northeast-1.rds.amazonaws.com:5432/postgres"
-        },
-        {
-          "name": "CORS_ORIGINS",
-          "value": "https://d1p66hfjtmja1e.cloudfront.net"
-        },
-        {
-          "name": "JWT_ALGORITHM",
-          "value": "HS256"
-        },
-        {
-          "name": "JWT_SECRET",
-          "value": "438758fa197d29dbc4d98bcaf8a4f865e698017eb5154d10f7134aab20ed9bb2"
-        }
-      ],
-      "environmentFiles": [],
-      "mountPoints": [],
-      "volumesFrom": [],
-      "ulimits": [],
-      "logConfiguration": {
-        "logDriver": "awslogs",
-        "options": {
-          "awslogs-group": "/ecs/ntu-backend-task",
-          "awslogs-create-group": "true",
-          "awslogs-region": "ap-northeast-1",
-          "awslogs-stream-prefix": "ecs"
-        },
-        "secretOptions": []
-      },
-      "systemControls": []
-    }
-  ]
-}
-```
+ECS Task Definition 裡需要設定以下環境變數：
+
+| 變數 | 說明 |
+|------|------|
+| `DATABASE_URL` | PostgreSQL 連線字串（`postgresql+psycopg://...`） |
+| `JWT_SECRET` | JWT 簽名密鑰（用 `python -c "import secrets; print(secrets.token_urlsafe(48))"` 產生） |
+| `JWT_ALGORITHM` | `HS256` |
+| `JWT_EXPIRE_MINUTES` | `10080`（7 天） |
+| `CORS_ORIGINS` | 前端 domain（如 `https://d1p66hfjtmja1e.cloudfront.net`） |
 
 #### Frontend (Build Time)
 
@@ -817,10 +872,10 @@ curl http://ntu-api-alb-1725363642.ap-northeast-1.elb.amazonaws.com/api/events
 ```
 
 **生產環境注意事項：**
-- ✅ 設 `ENV=prod`
-- ✅ 設強密碼 `JWT_SECRET`：`python -c "import secrets; print(secrets.token_urlsafe(48))"`
-- ✅ 使用 PostgreSQL（不要用 SQLite）
-- ✅ `CORS_ORIGINS` 包含正式前端 domain
+- 設 `ENV=prod`
+- 設強密碼 `JWT_SECRET`：`python -c "import secrets; print(secrets.token_urlsafe(48))"`
+- 使用 PostgreSQL（不要用 SQLite）
+- `CORS_ORIGINS` 包含正式前端 domain
 
 ---
 
@@ -852,6 +907,12 @@ uvicorn app.main:app --reload --port 8010
 > 為什麼 backend log 看起來 200 OK 但前端拿不到？
 > CORS 是純粹瀏覽器端的安全機制。伺服器照常處理請求並回應，是瀏覽器收到 response 後**主動把它丟掉**。所以後端 log 看不出來，**一定要看瀏覽器 DevTools**。
 
+### 部署後活動列表異常（太多排 / 篩選沒反應）
+
+CloudFront 預設會**吃掉 query string**。`?size=4&category=講座` 被 CloudFront 移除後，後端用預設 `size=20` 回傳所有資料。
+
+修法：在 CloudFront Distribution → Behaviors → `/api/*` 的 Cache policy 改成 `CachingDisabled`，Origin request policy 改成 `AllViewer`。
+
 ### `npm` 不是內部或外部命令（Windows）
 
 Node.js 沒裝好或沒重開 terminal。重開 PowerShell 再試。
@@ -874,6 +935,10 @@ Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
 ### `ModuleNotFoundError: No module named 'app'`
 
 你不在 `backend/` 目錄下跑 uvicorn。`cd backend` 後再執行。
+
+### `ModuleNotFoundError: No module named 'psycopg2'`
+
+`DATABASE_URL` 的 scheme 寫成 `postgresql://` 了。改成 `postgresql+psycopg://`（用 v3 driver）。
 
 ### `ModuleNotFoundError: No module named 'psycopg'`
 
@@ -910,9 +975,3 @@ rm backend/dev.db
 ### 路徑出現中文 / 空格亂碼
 
 把專案放在純英文路徑（例：`C:\workspace\` 而不是 `C:\Users\使用者\桌面\`），可以避開很多 Python / Node 的怪 bug。
-
----
-
-## Pixel-perfect 進度
-
-詳見 [`frontend/PIXEL_PERFECT_LOG.md`](frontend/PIXEL_PERFECT_LOG.md)。所有頁面已對齊 Figma 設計稿（[活動平台 design](https://www.figma.com/design/GgNiPSWQf4i99rKFdsDC3c)）。
