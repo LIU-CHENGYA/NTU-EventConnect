@@ -75,7 +75,7 @@ export default function OtherProfilePage() {
           </Typography>
           {user && (
             <Box sx={{ ml: "auto", display: { xs: "none", sm: "block" } }}>
-              <Avatar src={user.avatar} sx={{ width: 52, height: 52 }} />
+              <Avatar src={user.avatarUrl} sx={{ width: 52, height: 52 }} />
             </Box>
           )}
         </Box>
@@ -116,7 +116,7 @@ export default function OtherProfilePage() {
                 background: "linear-gradient(135deg,#1a237e 0%,#3f51b5 50%,#7e57c2 100%)",
               }} />
               <Avatar
-                src={profileUser.avatar_url || profileUser.avatar}
+                src={profileUser.avatarUrl}
                 sx={{
                   width: 76, height: 76,
                   position: "absolute", top: 52, left: "50%", transform: "translateX(-50%)",
@@ -127,6 +127,11 @@ export default function OtherProfilePage() {
                 <Typography sx={{ fontFamily: "'Lemon',sans-serif", fontSize: 20 }}>{profileUser.name}</Typography>
                 {profileUser.department && (
                   <Typography sx={{ fontSize: 13, color: tokens.color.placeholder }}>{profileUser.department}</Typography>
+                )}
+                {profileUser.bio && (
+                  <Typography sx={{ fontSize: 14, color: tokens.color.text, mt: 1, px: 4 }}>
+                    {profileUser.bio}
+                  </Typography>
                 )}
               </Box>
               <Box sx={{ display: "flex", justifyContent: "center", pb: 2 }}>

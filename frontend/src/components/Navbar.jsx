@@ -188,7 +188,7 @@ export default function Navbar() {
                     sx={{ display: "flex", alignItems: "center", cursor: "pointer" }}
                   >
                     <Avatar
-                      src={user.avatar}
+                      src={user.avatarUrl}
                       sx={{ width: 52, height: 52 }}
                     />
                     <ArrowDropDownIcon sx={{ color: "#333" }} />
@@ -285,7 +285,7 @@ export default function Navbar() {
         {user ? (
           <>
             <Box sx={{ p: 2, display: "flex", alignItems: "center", gap: 1.5 }}>
-              <Avatar src={user.avatar} sx={{ width: 40, height: 40 }} />
+              <Avatar src={user.avatarUrl} sx={{ width: 40, height: 40 }} />
               <Box>
                 <Box sx={{ fontWeight: 600, fontSize: 14 }}>{user.name || "使用者"}</Box>
                 <Box sx={{ fontSize: 12, color: tokens.color.placeholder }}>{user.email}</Box>

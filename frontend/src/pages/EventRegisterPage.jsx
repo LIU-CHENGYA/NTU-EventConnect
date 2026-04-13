@@ -88,7 +88,7 @@ export default function EventRegisterPage() {
             活動報名
           </Typography>
           <Box sx={{ ml: "auto" }}>
-            <Avatar src={user.avatar} sx={{ width: 52, height: 52 }} />
+            <Avatar src={user.avatarUrl} sx={{ width: 52, height: 52 }} />
           </Box>
         </Box>
 
