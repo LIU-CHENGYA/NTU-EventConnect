@@ -85,7 +85,7 @@ export default function EventDetailPage() {
           </Typography>
         </Box>
 
-        <Box sx={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 3 }}>
+        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1.4fr 1fr" }, gap: 3 }}>
           {/* LEFT column */}
           <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
             {/* Main image */}

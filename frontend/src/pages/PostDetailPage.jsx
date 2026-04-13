@@ -68,18 +68,18 @@ export default function PostDetailPage() {
           <IconButton onClick={() => navigate(-1)} sx={{ color: tokens.color.text }}>
             <ArrowBackIcon />
           </IconButton>
-          <Typography sx={{ fontFamily: tokens.font.logo, fontStyle: "italic", fontSize: 32, color: tokens.color.navy }}>
+          <Typography sx={{ fontFamily: tokens.font.logo, fontStyle: "italic", fontSize: { xs: 24, md: 32 }, color: tokens.color.navy }}>
             文章詳細
           </Typography>
           {user && (
-            <Box sx={{ ml: "auto" }}>
+            <Box sx={{ ml: "auto", display: { xs: "none", sm: "block" } }}>
               <Avatar src={user.avatar} sx={{ width: 52, height: 52 }} />
             </Box>
           )}
         </Box>
 
-        <Box sx={{ display: "flex", gap: 2.5, alignItems: "flex-start" }}>
-          <Paper sx={{ ...cardSx, flex: 1 }}>
+        <Box sx={{ display: "flex", flexDirection: { xs: "column", md: "row" }, gap: 2.5, alignItems: "flex-start" }}>
+          <Paper sx={{ ...cardSx, flex: 1, width: "100%" }}>
             <Box sx={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 1, mb: 1 }}>
               {user && (
                 <IconButton
@@ -159,7 +159,7 @@ export default function PostDetailPage() {
           {/* Event info sidebar */}
           {event && (
             <Paper
-              sx={{ ...cardSx, width: 280, flexShrink: 0, cursor: "pointer" }}
+              sx={{ ...cardSx, width: { xs: "100%", md: 280 }, flexShrink: 0, cursor: "pointer" }}
               onClick={() => navigate(`/events/${event.id}`)}
             >
               <Box
