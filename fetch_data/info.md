@@ -1,4 +1,19 @@
+### Changelog
+
+#### 2026-05-06
+- 新增 `events_processed.csv`：修正內容欄位換行格式 \n、新增 7 個 tag 欄位
+- 新增 `events_tags.csv`：長格式 tag 對應表（event_url, tag）
+- 新增 `process_data.py`：後處理腳本
+- 新增 `build_tags_table.py`：tag 對應表產生腳本
+
+---
+
 ### 大概介紹
+
+重要事項：
+- 我 events_processed.csv 中也有包含了上層的資料（詳細可以看下面的），所以基本上可以只看這個 csv 就好
+- 內文應該是抓 `session_content` 欄位
+- 上次提到的大類別是 `activity_name_activity_session` 欄位
 
 搜集了 336 個活動，1217 活動場次，時間包含了 2025 2026
 
@@ -15,8 +30,7 @@
 	- 這裡應該就算是最後的活動
 
 csv file
-- 我根據上面三層生出了三個 csv 檔案，第三個 event.csv 就是最後的活動場次資料。
-- 我 event.csv 中也有包含了上層的資料（詳細可以看下面的），所以基本上可以只看這個 csv 就好
+- events_tags 放的是每筆資料有哪些 tag，這個 events_processed.csv 也有這些資訊，不過是 column + boolean 顯示
 
 ### 欄位整理
 
@@ -94,6 +108,55 @@ csv file
 | city                           | 活動縣市         | 活動所在縣市。                          |
 | attachment                     | 附件           | 附件資訊或連結（若有）。                     |
 | note                           | 備註           | 其他備註欄位。                          |
+
+---
+
+#### 4) events_processed.csv
+
+來源：`process_data.py`（輸入為 `events.csv`）
+
+在 `events.csv` 基礎上做兩項處理：
+
+**換行格式修正**：`activity_content`、`session_content`、`note` 欄位中的真實換行字元統一轉為文字 `\n`，方便前端解析顯示。
+
+**新增 tag 欄位**（boolean，`True` / `False`）：
+
+| 欄位 | 含義 | 判斷條件 |
+| ---- | ---- | -------- |
+| `tag_food` | 有提供餐點 | `meal` 為「提供用餐」、「葷食」或「素食(植物性餐食)」 |
+| `tag_remote` | 可遠距參與 | `learning_category == "數位學習"` |
+| `tag_audience_student` | 開放學生報名 | `target_audience` 含「學生」 |
+| `tag_audience_outsider` | 開放校外人士報名 | `target_audience` 含「校外人士」 |
+| `tag_audience_alumni` | 開放校友報名 | `target_audience` 含「校友」 |
+| `tag_audience_faculty` | 開放教師報名 | `target_audience` 含「教師」 |
+| `tag_free` | 免費報名 | `registration_fee == "免費"` |
+
+---
+
+#### 5) events_tags.csv
+
+來源：`build_tags_table.py`（輸入為 `events_processed.csv`）
+
+長格式 tag 對應表，每筆為一個 `(event_url, tag)` 組合，方便直接寫入關聯式資料庫的 tag 關聯表。
+
+| 欄位 | 說明 |
+| ---- | ---- |
+| `event_url` | 場次網址（對應 `events.csv` 的主鍵） |
+| `tag` | tag 文字標籤 |
+
+Tag 文字與 boolean 欄位對應：
+
+| tag 文字 | 對應欄位 |
+| -------- | -------- |
+| 免費餐點 | `tag_food` |
+| 遠距參加 | `tag_remote` |
+| 學生 | `tag_audience_student` |
+| 校外人士 | `tag_audience_outsider` |
+| 校友 | `tag_audience_alumni` |
+| 教師 | `tag_audience_faculty` |
+| 免報名費 | `tag_free` |
+
+---
 
 ### 筆記
 有分活動場次總表 和 週期活動總表 
