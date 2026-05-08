@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import or_, func
+from sqlalchemy import exists, or_, func, select
 from sqlalchemy.orm import Session, selectinload
 from app.models.post import EventBookmark
 
@@ -19,6 +19,7 @@ router = APIRouter(prefix="/api/events", tags=["events"])
 def list_events(
     category: str | None = Query(None),
     keyword: str | None = Query(None),
+    tab: str | None = Query(None),
     sort: str = Query("id", pattern="^(id|hot)$"),
     page: int = Query(1, ge=1),
     size: int = Query(20, ge=1, le=100),
@@ -30,6 +31,53 @@ def list_events(
     if keyword:
         like = f"%{keyword}%"
         filters.append(or_(Event.title.like(like), Event.content.like(like)))
+    if tab:
+        if tab == "free":
+            filters.append(Event.registration_fee.in_(["免費", "Free"]))
+        elif tab == "food":
+            filters.append(
+                exists(
+                    select(EventSession.id)
+                    .where(
+                        EventSession.event_id == Event.id,
+                        EventSession.meal.in_(
+                            [
+                                "提供用餐",
+                                "Meal Provided",
+                                "葷食",
+                                "Non-Vegetarian Meal",
+                                "素食(植物性餐食)",
+                                "Vegetarian Meal",
+                            ]
+                        ),
+                    )
+                )
+            )
+        elif tab == "job":
+            job_like = "%徵才%"
+            job_like_en = "%job%"
+            filters.append(
+                or_(
+                    Event.title.ilike(job_like),
+                    Event.content.ilike(job_like),
+                    Event.title.ilike(job_like_en),
+                    Event.content.ilike(job_like_en),
+                    Event.title.ilike("%career%"),
+                    Event.content.ilike("%career%"),
+                    Event.title.ilike("%recruit%"),
+                    Event.content.ilike("%recruit%"),
+                )
+            )
+        elif tab == "english":
+            filters.append(
+                or_(
+                    Event.title.ilike("%英文%"),
+                    Event.content.ilike("%英文%"),
+                    Event.title.ilike("%English%"),
+                    Event.content.ilike("%English%"),
+                    Event.learning_category.ilike("%English%"),
+                )
+            )
 
     total = (
         db.query(func.count(Event.id)).filter(*filters).scalar() or 0

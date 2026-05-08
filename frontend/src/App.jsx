@@ -1,4 +1,4 @@
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, useSearchParams } from "react-router-dom";
 import Navbar from "./components/Navbar";
 import ProtectedRoute from "./components/ProtectedRoute";
 import HomePage from "./pages/HomePage";
@@ -16,9 +16,22 @@ import PostEditPage from "./pages/PostEditPage";
 import RegistrationRecordPage from "./pages/RegistrationRecordPage";
 
 function App() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = searchParams.get("tab") || "all";
+
+  const handleTabChange = (tab) => {
+    const params = Object.fromEntries(searchParams.entries());
+    if (tab === "all") {
+      delete params.tab;
+    } else {
+      params.tab = tab;
+    }
+    setSearchParams(params);
+  };
+
   return (
     <>
-      <Navbar />
+      <Navbar activeTab={activeTab} onTabChange={handleTabChange} />
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/login" element={<LoginPage />} />

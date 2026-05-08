@@ -77,6 +77,38 @@ def test_list_filter_category_all(client):
     assert r.json()["total"] == 2
 
 
+def test_list_filter_by_tab_free(client):
+    db = client.db_factory()
+    try:
+        e1 = Event(
+            source_url="https://example.com/parent/3",
+            title="免費講座",
+            content="免費入場",
+            category="講座",
+            image_url="https://img/3",
+            registration_fee="免費",
+        )
+        e2 = Event(
+            source_url="https://example.com/parent/4",
+            title="付費課程",
+            content="收費",
+            category="工作坊",
+            image_url="https://img/4",
+            registration_fee="300 元",
+        )
+        db.add_all([e1, e2])
+        db.flush()
+        db.commit()
+    finally:
+        db.close()
+
+    r = client.get("/api/events", params={"tab": "free"})
+    assert r.status_code == 200
+    body = r.json()
+    assert body["total"] == 1
+    assert body["items"][0]["registration_fee"] == "免費"
+
+
 def test_list_filter_by_keyword(client):
     _seed(client)
     r = client.get("/api/events", params={"keyword": "人工智慧"})
