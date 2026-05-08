@@ -177,4 +177,4 @@ export const uploadsApi = {
   },
 };
 
-export { mapEvent, mapPost };
+export { mapEvent, mapPost,mapUser };
