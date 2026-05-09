@@ -6,6 +6,8 @@
 
 **線上網址：** <https://d1p66hfjtmja1e.cloudfront.net/>
 
+> **第二階段程式碼位置**：第一階段保留在 `frontend/` 與 `backend/`，第二階段新功能（留言板、群組、SSO、取消確認、i18n、標籤篩選等）放在 `frontend-v2/` 與 `backend-v2/`。CI/CD 目前仍指向第一階段。
+
 ---
 
 ## 目錄

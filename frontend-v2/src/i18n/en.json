@@ -1,0 +1,145 @@
+{
+  "nav": {
+    "board": "Board",
+    "search": "Search activities...",
+    "login": "Sign in",
+    "register": "Sign up",
+    "logout": "Sign out",
+    "profile": "Profile",
+    "myRegistrations": "My Registrations",
+    "language": "English"
+  },
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "publish": "Publish",
+    "saveDraft": "Save Draft",
+    "edit": "Edit",
+    "delete": "Delete",
+    "create": "Create",
+    "loading": "Loading...",
+    "search": "Search",
+    "back": "Back",
+    "more": "More",
+    "all": "All"
+  },
+  "filter": {
+    "tabs": {
+      "all": "All",
+      "official": "NTU Categories",
+      "tags": "#Tags",
+      "free": "Free",
+      "meal": "Meal Provided",
+      "career": "Career Fair",
+      "english": "English",
+      "more": "More"
+    },
+    "keyword": "Search by name / organizer",
+    "keywordLabel": "Keyword",
+    "dateRange": "Pick a date",
+    "dateRangeLabel": "Date range",
+    "location": "Location",
+    "anyLocation": "Any location",
+    "anyCategory": "All categories",
+    "anyTag": "All tags"
+  },
+  "event": {
+    "list": "Activities",
+    "hot": "Hot",
+    "new": "Latest",
+    "details": "Activity details",
+    "register": "Register",
+    "registered": "Registered",
+    "registerSuccess": "Confirmed",
+    "waitlist": "Waitlist",
+    "cancelled": "Cancelled",
+    "cancelRegistration": "Cancel registration",
+    "viewDetails": "View details",
+    "capacity": "{{remaining}} / {{total}} slots left",
+    "mealProvided": "Meal provided",
+    "ended": "Ended",
+    "lineBreaks": "Activity content"
+  },
+  "cancelDialog": {
+    "title": "Cancel this registration?",
+    "subtitle": "This action cannot be undone — please confirm carefully.",
+    "bullet1": "Your slot will be released to the next waitlisted user immediately.",
+    "bullet2": "If the activity is near its deadline, you may not be able to re-register.",
+    "keep": "Keep registration",
+    "confirm": "Cancel registration"
+  },
+  "auth": {
+    "loginTitle": "Sign in",
+    "registerTitle": "Create account",
+    "registerSubtitle": "Fill in the details below to create your account",
+    "googleContinue": "Continue with Google",
+    "orEmail": "or sign up with Email",
+    "orEmailLogin": "or sign in with Email",
+    "username": "Username",
+    "usernamePlaceholder": "Enter your username",
+    "email": "Email",
+    "emailPlaceholder": "example@ntu.edu.tw",
+    "password": "Password",
+    "passwordPlaceholder": "Enter your password",
+    "passwordHint": "Password must contain at least 8 characters, mixed case, and numbers",
+    "confirmPassword": "Confirm password",
+    "confirmPasswordPlaceholder": "Re-enter your password",
+    "haveAccount": "Already have an account?",
+    "backToLogin": "Back to sign in",
+    "noAccount": "No account yet?",
+    "goRegister": "Sign up",
+    "forgotPassword": "Forgot password?",
+    "createAccount": "Create account"
+  },
+  "board": {
+    "pageTitle": "Board",
+    "newPost": "New post",
+    "category": {
+      "title": "Category",
+      "all": "All posts",
+      "hot": "Hot",
+      "new": "Latest"
+    },
+    "mine": {
+      "title": "Mine",
+      "myPosts": "My posts",
+      "bookmarked": "Bookmarked",
+      "private": "Private"
+    },
+    "groups": {
+      "title": "Groups",
+      "create": "Create group"
+    },
+    "weeklyHot": "Hot this week",
+    "modal": {
+      "title": "New post",
+      "selectEvent": "Select activity",
+      "change": "Change",
+      "endedHint": "You can only post after the activity has ended.",
+      "rating": "Rating",
+      "titleField": "Title",
+      "content": "Content",
+      "addImage": "Add image",
+      "imageHint": "PNG/JPG, up to 4 images",
+      "visibility": "Visibility",
+      "visPublic": "Public",
+      "visPrivate": "Private",
+      "visGroup": "Group only",
+      "selectGroup": "Select group",
+      "search": "Search activities...",
+      "endedOnly": "Show ended activities only",
+      "searchGroup": "Search groups...",
+      "ended": "Ended"
+    }
+  },
+  "groupDialog": {
+    "title": "Create / edit group",
+    "name": "Group name",
+    "nameValue": "CS Class of 2022",
+    "invite": "Invite members",
+    "invitePlaceholder": "Enter Gmail address...",
+    "inviteAdd": "Add",
+    "inviteHint": "Members will receive an invitation and can join after accepting.",
+    "invited": "Invited members ({{count}})"
+  }
+}

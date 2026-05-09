@@ -1,0 +1,145 @@
+{
+  "nav": {
+    "board": "留言板",
+    "search": "搜尋活動...",
+    "login": "登入",
+    "register": "註冊",
+    "logout": "登出",
+    "profile": "個人頁",
+    "myRegistrations": "我的報名",
+    "language": "繁體中文"
+  },
+  "common": {
+    "save": "儲存",
+    "cancel": "取消",
+    "publish": "發佈",
+    "saveDraft": "儲存草稿",
+    "edit": "編輯",
+    "delete": "刪除",
+    "create": "建立",
+    "loading": "載入中...",
+    "search": "搜尋",
+    "back": "返回",
+    "more": "更多",
+    "all": "全部"
+  },
+  "filter": {
+    "tabs": {
+      "all": "全部活動",
+      "official": "台大官方分類",
+      "tags": "#標籤分類",
+      "free": "免費活動",
+      "meal": "有提供餐點",
+      "career": "企業徵才",
+      "english": "英文相關",
+      "more": "更多"
+    },
+    "keyword": "搜尋活動名稱／主辦單位",
+    "keywordLabel": "關鍵字",
+    "dateRange": "選擇日期",
+    "dateRangeLabel": "日期範圍",
+    "location": "地點",
+    "anyLocation": "任何地點",
+    "anyCategory": "全部分類",
+    "anyTag": "全部標籤"
+  },
+  "event": {
+    "list": "活動列表",
+    "hot": "熱門活動",
+    "new": "最新活動",
+    "details": "活動詳情",
+    "register": "立即報名",
+    "registered": "已報名",
+    "registerSuccess": "報名成功",
+    "waitlist": "候補中",
+    "cancelled": "已取消",
+    "cancelRegistration": "取消報名",
+    "viewDetails": "查看詳情",
+    "capacity": "尚餘 {{remaining}} / {{total}} 名額",
+    "mealProvided": "提供餐點",
+    "ended": "已結束",
+    "lineBreaks": "活動內容"
+  },
+  "cancelDialog": {
+    "title": "確定要取消報名嗎？",
+    "subtitle": "此操作無法復原，請謹慎確認",
+    "bullet1": "取消後，您的名額將立即釋出給其他候補者。",
+    "bullet2": "若活動已接近截止日期，您可能無法重新報名。",
+    "keep": "暫不取消",
+    "confirm": "確定取消報名"
+  },
+  "auth": {
+    "loginTitle": "登入",
+    "registerTitle": "建立帳號",
+    "registerSubtitle": "填寫以下資料以建立您的帳號",
+    "googleContinue": "使用 Google 帳號繼續",
+    "orEmail": "或使用 Email 註冊",
+    "orEmailLogin": "或使用 Email 登入",
+    "username": "使用者名稱",
+    "usernamePlaceholder": "請輸入使用者名稱",
+    "email": "Email",
+    "emailPlaceholder": "example@ntu.edu.tw",
+    "password": "密碼",
+    "passwordPlaceholder": "請輸入密碼",
+    "passwordHint": "密碼需包含至少 8 個字元、大小寫字母及數字",
+    "confirmPassword": "確認密碼",
+    "confirmPasswordPlaceholder": "請再次輸入密碼",
+    "haveAccount": "已有帳號？",
+    "backToLogin": "返回登入",
+    "noAccount": "還沒有帳號？",
+    "goRegister": "前往註冊",
+    "forgotPassword": "忘記密碼？",
+    "createAccount": "建立帳號"
+  },
+  "board": {
+    "pageTitle": "留言板",
+    "newPost": "新增留言",
+    "category": {
+      "title": "分類",
+      "all": "全部留言",
+      "hot": "熱門",
+      "new": "最新"
+    },
+    "mine": {
+      "title": "我的",
+      "myPosts": "我的留言",
+      "bookmarked": "收藏",
+      "private": "私人"
+    },
+    "groups": {
+      "title": "群組",
+      "create": "建立群組"
+    },
+    "weeklyHot": "本週熱門留言",
+    "modal": {
+      "title": "新增留言",
+      "selectEvent": "選擇活動",
+      "change": "更換",
+      "endedHint": "只有活動結束後才可以留言分享",
+      "rating": "評分",
+      "titleField": "標題",
+      "content": "文字敘述",
+      "addImage": "新增圖片",
+      "imageHint": "PNG、JPG，最多 4 張",
+      "visibility": "權限",
+      "visPublic": "公開",
+      "visPrivate": "私人",
+      "visGroup": "僅限群組",
+      "selectGroup": "選擇群組",
+      "search": "搜尋活動名稱...",
+      "endedOnly": "僅顯示已結束的活動",
+      "searchGroup": "搜尋群組...",
+      "ended": "已結束"
+    }
+  },
+  "groupDialog": {
+    "title": "建立／編輯群組",
+    "name": "群組名稱",
+    "nameValue": "資工系 2022",
+    "invite": "邀請成員",
+    "invitePlaceholder": "輸入 Gmail 帳號...",
+    "inviteAdd": "新增",
+    "inviteHint": "輸入對方 Gmail，對方收到邀請後可加入群組",
+    "invited": "已邀請成員 ({{count}} 人)"
+  }
+}

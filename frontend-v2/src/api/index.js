@@ -1,0 +1,239 @@
+import api from "./client";
+
+
+// ---------- mappers: backend snake_case -> frontend camelCase ----------
+function mapEvent(e) {
+  if (!e) return e;
+  const firstSession = (e.sessions && e.sessions[0]) || {};
+  const mealText = (firstSession.meal || "").trim();
+  const mealProvided = !!mealText && !/不提供|無|沒有|none|no meal/i.test(mealText);
+  return {
+    id: e.id,
+    title: e.title,
+    content: e.content || "",
+    activityContent: e.content || "",
+    category: e.category || "活動",
+    image: e.image_url,
+    organizer: e.organizer || "",
+    organizerContact: e.organizer_contact || "",
+    contactPhone: e.contact_phone || "",
+    contactEmail: e.contact_email || "",
+    registrationType: e.registration_type || "",
+    registrationFee: e.registration_fee || "",
+    targetAudience: e.target_audience || "",
+    learningCategory: e.learning_category || "",
+    tags: e.tags || [],
+    // session-derived for backwards compat with existing UI
+    date: firstSession.date || "",
+    time: firstSession.time_range || "",
+    location: firstSession.location || "",
+    instructor: firstSession.instructor || "",
+    capacity: firstSession.capacity ?? 0,
+    remainingSlots: firstSession.remaining_slots ?? 0,
+    registrationStart: firstSession.registration_start || "",
+    registrationEnd: firstSession.registration_end || "",
+    sessionName: firstSession.session_name || "",
+    meal: mealText,
+    mealProvided,
+    sessions: e.sessions || [],
+    rating: 0,
+    reviewCount: 0,
+  };
+}
+
+const getBaseUrl = () => {
+  const base = api.defaults.baseURL || "";
+  return base.replace(/\/api\/?$/, "");
+};
+
+function avatarFor(userId, avatarPath) {
+  if (avatarPath && String(avatarPath).trim() !== "") {
+    return avatarPath.startsWith("http") ? avatarPath : `${getBaseUrl()}${avatarPath}`;
+  }
+  return `https://api.dicebear.com/7.x/adventurer/svg?seed=${userId}`;
+}
+
+function mapPost(p) {
+  if (!p) return null;
+  return {
+    ...p,
+    title: p.title || "",
+    eventTitle: p.event_title || "",
+    groupId: p.group_id || null,
+    groupName: p.group_name || null,
+    isBoardPost: !!p.is_board_post,
+    likeCount: p.like_count ?? 0,
+    bookmarkCount: p.bookmark_count ?? 0,
+    commentCount: p.comment_count ?? 0,
+    isLiked: !!p.is_liked,
+    isBookmarked: !!p.is_bookmarked,
+    userName: p.user_name || `User #${p.user_id}`,
+    userAvatar: avatarFor(p.user_id, p.user_avatar),
+    comments: (p.comments || []).map((c) => ({
+      ...c,
+      userName: c.user_name || `User #${c.user_id}`,
+      userAvatar: avatarFor(c.user_id, c.user_avatar),
+    })),
+  };
+}
+
+function mapUser(u) {
+  if (!u) return null;
+  const timestamp = new Date().getTime();
+  return {
+    ...u,
+    isAdmin: !!u.is_admin,
+    studentId: u.student_id,
+    avatarUrl: u.avatar_url
+      ? (u.avatar_url.startsWith("http") ? u.avatar_url : `${getBaseUrl()}${u.avatar_url}?t=${timestamp}`)
+      : `https://api.dicebear.com/7.x/adventurer/svg?seed=${u.id}`,
+  };
+}
+
+function mapGroup(g) {
+  if (!g) return null;
+  return {
+    id: g.id,
+    name: g.name,
+    ownerId: g.owner_id,
+    memberCount: g.member_count ?? 0,
+    postCount: g.post_count ?? 0,
+    createdAt: g.created_at,
+    members: (g.members || []).map((m) => ({
+      userId: m.user_id,
+      userName: m.user_name,
+      userEmail: m.user_email,
+      userAvatar: avatarFor(m.user_id, m.user_avatar),
+      joinedAt: m.joined_at,
+    })),
+    invitations: (g.invitations || []).map((i) => ({
+      id: i.id,
+      email: i.email,
+      status: i.status,
+      createdAt: i.created_at,
+    })),
+  };
+}
+
+
+// ---------- endpoints ----------
+export const authApi = {
+  register: (name, email, password) =>
+    api.post("/api/auth/register", { name, email, password }).then((r) => {
+      const data = r.data;
+      if (data.user) data.user = mapUser(data.user);
+      return data;
+    }),
+  login: (email, password) =>
+    api.post("/api/auth/login", { email, password }).then((r) => {
+      const data = r.data;
+      if (data.user) data.user = mapUser(data.user);
+      return data;
+    }),
+  me: () => api.get("/api/auth/me").then((r) => mapUser(r.data)),
+  googleLogin: (credential) =>
+    api.post("/api/auth/google", { credential }).then((r) => {
+      const data = r.data;
+      if (data.user) data.user = mapUser(data.user);
+      return data;
+    }),
+};
+
+export const eventsApi = {
+  list: async (params = {}) => {
+    const { data } = await api.get("/api/events", { params });
+    return { ...data, items: data.items.map(mapEvent) };
+  },
+  get: async (id) => {
+    const { data } = await api.get(`/api/events/${id}`);
+    return mapEvent(data);
+  },
+  categories: async () => {
+    const { data } = await api.get("/api/events/categories");
+    return data;
+  },
+  tags: async () => {
+    const { data } = await api.get("/api/events/tags");
+    return data; // [{name, count}]
+  },
+};
+
+export const postsApi = {
+  list: async (params = {}) => {
+    const { data } = await api.get("/api/posts", { params });
+    return data.map(mapPost);
+  },
+  get: async (id) => {
+    const { data } = await api.get(`/api/posts/${id}`);
+    return mapPost(data);
+  },
+  create: (payload) => api.post("/api/posts", payload).then((r) => mapPost(r.data)),
+  update: (id, payload) => api.patch(`/api/posts/${id}`, payload).then((r) => mapPost(r.data)),
+  remove: (id) => api.delete(`/api/posts/${id}`),
+  addComment: (postId, content) =>
+    api.post(`/api/posts/${postId}/comments`, { content }).then((r) => r.data),
+  like: (id) => api.post(`/api/posts/${id}/like`),
+  unlike: (id) => api.delete(`/api/posts/${id}/like`),
+  bookmark: (id) => api.post(`/api/posts/${id}/bookmark`),
+  unbookmark: (id) => api.delete(`/api/posts/${id}/bookmark`),
+};
+
+// Board API: thin sugar over postsApi for the 留言板 surfaces.
+export const boardApi = {
+  list: (params = {}) => postsApi.list({ is_board_post: true, ...params }),
+  hot: (params = {}) => postsApi.list({ is_board_post: true, tab: "hot", ...params }),
+  new: (params = {}) => postsApi.list({ is_board_post: true, tab: "new", ...params }),
+  mine: (params = {}) => postsApi.list({ is_board_post: true, tab: "mine", ...params }),
+  bookmarked: (params = {}) => postsApi.list({ is_board_post: true, tab: "bookmarked", ...params }),
+  privateOnly: (params = {}) => postsApi.list({ is_board_post: true, tab: "private", ...params }),
+  byGroup: (groupId, params = {}) => postsApi.list({ is_board_post: true, group_id: groupId, ...params }),
+};
+
+export const bookmarksApi = {
+  myEvents: async () => {
+    const { data } = await api.get("/api/users/me/bookmarks/events");
+    return data.map(mapEvent);
+  },
+  myPosts: async () => {
+    const { data } = await api.get("/api/users/me/bookmarks/posts");
+    return data.map(mapPost);
+  },
+  bookmarkEvent: (id) => api.post(`/api/events/${id}/bookmark`),
+  unbookmarkEvent: (id) => api.delete(`/api/events/${id}/bookmark`),
+};
+
+export const usersApi = {
+  get: (id) => api.get(`/api/users/${id}`).then((r) => mapUser(r.data)),
+  updateMe: (payload) => api.patch("/api/users/me", payload).then((r) => mapUser(r.data)),
+  myDrafts: async () => {
+    const { data } = await api.get("/api/users/me/drafts");
+    return data.map(mapPost);
+  },
+  myRegistrations: () => api.get("/api/users/me/registrations").then((r) => r.data),
+};
+
+export const uploadsApi = {
+  upload: (file) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    return api.post("/api/uploads", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    }).then((r) => r.data);
+  },
+};
+
+export const groupsApi = {
+  listMine: async () => {
+    const { data } = await api.get("/api/groups");
+    return data.map(mapGroup);
+  },
+  get: (id) => api.get(`/api/groups/${id}`).then((r) => mapGroup(r.data)),
+  create: (payload) => api.post("/api/groups", payload).then((r) => mapGroup(r.data)),
+  update: (id, payload) => api.patch(`/api/groups/${id}`, payload).then((r) => mapGroup(r.data)),
+  remove: (id) => api.delete(`/api/groups/${id}`),
+  invite: (id, email) => api.post(`/api/groups/${id}/invite`, { email }).then((r) => r.data),
+  removeMember: (id, userId) => api.delete(`/api/groups/${id}/members/${userId}`),
+  revokeInvite: (id, inviteId) => api.delete(`/api/groups/${id}/invitations/${inviteId}`),
+};
+
+export { mapEvent, mapPost, mapUser, mapGroup };

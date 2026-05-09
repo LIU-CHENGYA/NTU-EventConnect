@@ -1,0 +1,250 @@
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import {
+  Box, Typography, Paper, Button, Collapse, Divider, IconButton, Avatar,
+} from "@mui/material";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import ExpandLessIcon from "@mui/icons-material/ExpandLess";
+import { usersApi } from "../api";
+import api from "../api/client";
+import { useAuth } from "../context/AuthContext";
+import { tokens } from "../theme";
+import CancelConfirmDialog from "../components/CancelConfirmDialog";
+
+const STATUS_FILTERS = ["全部", "報名成功", "等待候補", "已取消"];
+const STATUS_TO_ZH = { success: "報名成功", waitlist: "等待候補", cancelled: "已取消" };
+const FALLBACK_IMG = "https://images.unsplash.com/photo-1511795409834-ef04bbd61622?w=400";
+
+export default function RegistrationRecordPage() {
+  const { user, ready } = useAuth();
+  const navigate = useNavigate();
+  const [filter, setFilter] = useState("全部");
+  const [expandedId, setExpandedId] = useState(null);
+  const [registrations, setRegistrations] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [pendingCancel, setPendingCancel] = useState(null); // registration object pending confirm
+  const [cancelLoading, setCancelLoading] = useState(false);
+  const [cancelError, setCancelError] = useState("");
+
+  const reload = () => {
+    setLoading(true);
+    usersApi.myRegistrations()
+      .then(setRegistrations)
+      .catch(() => setRegistrations([]))
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    if (!ready) return;
+    if (!user) { navigate("/login"); return; }
+    reload();
+  }, [user, ready, navigate]);
+
+  if (!ready) return null;
+  if (!user) return null;
+
+  const filtered = filter === "全部"
+    ? registrations
+    : registrations.filter((r) => STATUS_TO_ZH[r.status] === filter);
+
+  const statusColors = {
+    "報名成功": { bg: tokens.color.success.bg, color: tokens.color.success.fg },
+    "等待候補": { bg: tokens.color.warning.bg, color: tokens.color.warning.fg },
+    "已取消":   { bg: tokens.color.danger.bg,  color: tokens.color.danger.fg  },
+  };
+
+  const cardSx = {
+    borderRadius: "20px",
+    mb: 2,
+    overflow: "hidden",
+    boxShadow: tokens.shadow.pill,
+    bgcolor: "#fffefe",
+  };
+
+  const handleConfirmCancel = async () => {
+    if (!pendingCancel) return;
+    setCancelLoading(true);
+    setCancelError("");
+    try {
+      await api.delete(`/api/registrations/${pendingCancel.id}`);
+      setPendingCancel(null);
+      reload();
+    } catch (e) {
+      setCancelError(e?.response?.data?.detail || e.message || "取消失敗");
+    } finally {
+      setCancelLoading(false);
+    }
+  };
+
+  return (
+    <Box sx={{ minHeight: "calc(100vh - 76px)", bgcolor: tokens.color.bg, py: 4 }}>
+      <Box sx={{ maxWidth: 900, mx: "auto", px: 3 }}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 3 }}>
+          <IconButton onClick={() => navigate(-1)} sx={{ color: tokens.color.text }}>
+            <ArrowBackIcon />
+          </IconButton>
+          <Typography sx={{ fontFamily: tokens.font.logo, fontStyle: "italic", fontSize: { xs: 24, md: 32 }, color: tokens.color.navy }}>
+            報名紀錄
+          </Typography>
+          <Box sx={{ ml: "auto", display: { xs: "none", sm: "block" } }}>
+            <Avatar src={user.avatar_url || user.avatar} sx={{ width: 52, height: 52 }} />
+          </Box>
+        </Box>
+
+        <Box sx={{ display: "flex", gap: 1, mb: 3, flexWrap: "wrap" }}>
+          {STATUS_FILTERS.map((s) => (
+            <Box
+              key={s}
+              onClick={() => setFilter(s)}
+              sx={{
+                px: 1.8, py: "6px", fontSize: 14, borderRadius: "8px",
+                border: "1px solid #cac4d0",
+                bgcolor: filter === s ? "rgba(57,167,255,0.42)" : "#fff",
+                color: tokens.color.text, cursor: "pointer",
+                fontFamily: "'Roboto',sans-serif", fontWeight: 500,
+              }}
+            >
+              {s}
+            </Box>
+          ))}
+        </Box>
+
+        {loading && <Typography sx={{ textAlign: "center", py: 4 }}>載入中...</Typography>}
+
+        {!loading && filtered.map((reg) => {
+          const isExpanded = expandedId === reg.id;
+          const zhStatus = STATUS_TO_ZH[reg.status];
+          return (
+            <Paper key={reg.id} sx={cardSx}>
+              <Box
+                sx={{
+                  display: "flex", alignItems: "center", p: 2.2,
+                  cursor: "pointer", "&:hover": { bgcolor: tokens.color.bg },
+                }}
+                onClick={() => setExpandedId(isExpanded ? null : reg.id)}
+              >
+                <Box
+                  component="img"
+                  src={FALLBACK_IMG}
+                  sx={{ width: 72, height: 72, borderRadius: "12px", objectFit: "cover", mr: 2 }}
+                />
+                <Box sx={{ flex: 1 }}>
+                  <Typography sx={{ fontSize: 15, fontWeight: 700, color: tokens.color.text }}>
+                    {reg.event_title}
+                  </Typography>
+                  <Typography sx={{ fontSize: 12, color: tokens.color.textSecondary, mt: 0.3 }}>
+                    {reg.session_name} · {reg.date}
+                  </Typography>
+                </Box>
+                <Box
+                  sx={{
+                    px: 1.5, py: "5px", borderRadius: "20px",
+                    bgcolor: statusColors[zhStatus]?.bg,
+                    color: statusColors[zhStatus]?.color,
+                    fontSize: 12, fontWeight: 700, mr: 1,
+                  }}
+                >
+                  {zhStatus}
+                </Box>
+                {isExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+              </Box>
+
+              <Collapse in={isExpanded}>
+                <Divider sx={{ borderColor: tokens.color.bg }} />
+                <Box sx={{ p: 2.5 }}>
+                  <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 }}>
+                    {[
+                      ["報名時間", (reg.registered_at || "").slice(0, 10)],
+                      ["活動地點", reg.location || "—"],
+                      ["活動日期", reg.date || "—"],
+                      ["場次", reg.session_name || "—"],
+                    ].map(([k, v]) => (
+                      <Box key={k}>
+                        <Typography sx={{ fontSize: 12, color: tokens.color.placeholder }}>{k}</Typography>
+                        <Typography sx={{ fontSize: 14, color: tokens.color.text, fontWeight: 500 }}>{v}</Typography>
+                      </Box>
+                    ))}
+                  </Box>
+
+                  <Box sx={{ display: "flex", gap: 1.5, mt: 2.5 }}>
+                    <Button
+                      variant="outlined"
+                      onClick={() => navigate(`/events/${reg.event_id}`)}
+                      sx={{
+                        textTransform: "none", borderRadius: "22px", height: 44, px: 2.5,
+                        borderColor: tokens.color.border, color: tokens.color.text, fontSize: 14,
+                      }}
+                    >
+                      查看活動
+                    </Button>
+                    {reg.status !== "cancelled" && (() => {
+                      // FE 側の事前ガード: 活動が既に過去ならボタンを非活性。
+                      // BE も /api/registrations DELETE で 409 を返すが UX のため先回り。
+                      const isPast = (() => {
+                        if (!reg.date) return false;
+                        const d = new Date(reg.date);
+                        if (Number.isNaN(d.getTime())) return false;
+                        // 終わった日の翌日 0 時を超えたら過去とみなす（時刻精度はBEで再判定）
+                        const endOfDay = new Date(d);
+                        endOfDay.setHours(23, 59, 59, 999);
+                        return Date.now() > endOfDay.getTime();
+                      })();
+                      return (
+                        <Button
+                          variant="contained"
+                          disabled={isPast}
+                          onClick={() => setPendingCancel(reg)}
+                          sx={{
+                            textTransform: "none", borderRadius: "22px", height: 44, px: 2.5,
+                            bgcolor: isPast ? "#D9DEE7" : tokens.color.black,
+                            color: "#fff", fontSize: 14, fontWeight: 600,
+                            "&:hover": { bgcolor: isPast ? "#D9DEE7" : tokens.color.navyDark },
+                          }}
+                          title={isPast ? "活動已結束，無法取消報名" : ""}
+                        >
+                          {isPast ? "已結束" : "取消報名"}
+                        </Button>
+                      );
+                    })()}
+                  </Box>
+                </Box>
+              </Collapse>
+            </Paper>
+          );
+        })}
+
+        {!loading && filtered.length === 0 && (
+          <Typography sx={{ textAlign: "center", py: 6, color: tokens.color.placeholder }}>
+            沒有符合條件的報名紀錄
+          </Typography>
+        )}
+      </Box>
+
+      <CancelConfirmDialog
+        open={!!pendingCancel}
+        loading={cancelLoading}
+        onClose={() => { if (!cancelLoading) { setPendingCancel(null); setCancelError(""); } }}
+        onConfirm={handleConfirmCancel}
+        event={pendingCancel ? {
+          title: pendingCancel.event_title,
+          sessionName: pendingCancel.session_name,
+          image: pendingCancel.event_image || FALLBACK_IMG,
+          date: pendingCancel.date,
+          location: pendingCancel.location,
+        } : null}
+      />
+      {cancelError && (
+        <Box
+          sx={{
+            position: "fixed", bottom: 24, left: "50%", transform: "translateX(-50%)",
+            bgcolor: "#FF4D4F", color: "#fff", px: 2.5, py: 1, borderRadius: 2,
+            fontSize: 14, zIndex: 1500, boxShadow: 4,
+          }}
+        >
+          {cancelError}
+        </Box>
+      )}
+    </Box>
+  );
+}
