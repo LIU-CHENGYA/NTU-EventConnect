@@ -99,6 +99,7 @@ jobs:
         working-directory: ./frontend
         run: |
           echo "VITE_API_URL=${{ secrets.VITE_API_URL }}" >> .env.production
+          echo "VITE_GOOGLE_CLIENT_ID=${{ secrets.VITE_GOOGLE_CLIENT_ID }}" >> .env.production
 
       - name: Build React App
         working-directory: ./frontend
