@@ -18,7 +18,6 @@ from app.db.migrate import run_startup_migrations
 from app import models  # noqa: F401  ensure models are imported before create_all
 
 app = FastAPI(title="NTU EventConnect API", version="0.1.0")
-
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins_list,

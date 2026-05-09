@@ -1,4 +1,4 @@
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict ,field_validator
 
 
 class EventSessionOut(BaseModel):
@@ -20,6 +20,7 @@ class EventSessionOut(BaseModel):
     civil_servant_hours: str | None = None
     study_hours: str | None = None
 
+    
 
 class EventOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -38,6 +39,13 @@ class EventOut(BaseModel):
     learning_category: str | None = None
     tags: list[str] = []
 
+    @field_validator("tags", mode="before")
+    @classmethod
+    def extract_tag_names(cls, v):
+        if not v:
+            return []
+        # ORM 物件就取 .tag 屬性，已經是字串就直接回傳
+        return [t.tag if hasattr(t, "tag") else t for t in v]
 
 class EventDetailOut(EventOut):
     sessions: list[EventSessionOut] = []

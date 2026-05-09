@@ -18,10 +18,9 @@ router = APIRouter(prefix="/api/events", tags=["events"])
 
 def _to_detail(e: Event) -> EventDetailOut:
     base = EventOut.model_validate(e).model_dump()
-    base["tags"] = [t.tag for t in (e.tags or [])]
     return EventDetailOut(
         **base,
-        sessions=[EventSessionOut.model_validate(s) for s in e.sessions],
+        sessions=[EventSessionOut.model_validate(s) for s in (e.sessions or [])],
     )
 
 
