@@ -53,14 +53,14 @@ jobs:
             docker image prune -f
 
             echo "Waiting for health check..."
-            sleep 15
+            sleep 20
             for i in 1 2 3 4 5; do
-              if curl -sf http://localhost/api/health | grep -q '"status":"ok"'; then
+              if curl -sf "${{ secrets.VITE_API_URL }}/api/health" | grep -q '"status":"ok"'; then
                 echo "Backend deployed successfully"
                 exit 0
               fi
               echo "Retry $i/5..."
-              sleep 5
+              sleep 10
             done
             echo "Health check failed"
             docker compose logs backend --tail 50
