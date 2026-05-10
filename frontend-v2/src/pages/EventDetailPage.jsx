@@ -55,7 +55,7 @@ export default function EventDetailPage() {
     return () => {
       live = false;
     };
-  }, [id]);
+  }, [id, i18n.language]);
 
   if (loading) {
     return <Box sx={{ p: 4, textAlign: "center" }}><Typography>載入中...</Typography></Box>;

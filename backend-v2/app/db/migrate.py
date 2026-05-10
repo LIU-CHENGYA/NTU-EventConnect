@@ -18,6 +18,23 @@ EXPECTED_COLUMNS = [
     ("posts",  "group_id",          "INTEGER"),
     ("posts",  "is_board_post",     "BOOLEAN NOT NULL DEFAULT 0"),
     ("events", "official_category", "VARCHAR(100)"),
+    # English variants seeded from fetch_data/csv/events_en.csv. Nullable; API
+    # falls back to ZH when absent.
+    ("events",         "title_en",              "VARCHAR(500)"),
+    ("events",         "content_en",            "TEXT"),
+    ("events",         "category_en",           "VARCHAR(100)"),
+    ("events",         "official_category_en",  "VARCHAR(100)"),
+    ("events",         "organizer_en",          "VARCHAR(200)"),
+    ("events",         "registration_type_en",  "VARCHAR(100)"),
+    ("events",         "registration_fee_en",   "VARCHAR(100)"),
+    ("events",         "target_audience_en",    "VARCHAR(500)"),
+    ("events",         "restrictions_en",       "VARCHAR(500)"),
+    ("events",         "learning_category_en",  "VARCHAR(100)"),
+    ("event_sessions", "session_name_en",       "VARCHAR(500)"),
+    ("event_sessions", "session_content_en",    "TEXT"),
+    ("event_sessions", "instructor_en",         "VARCHAR(200)"),
+    ("event_sessions", "location_en",           "VARCHAR(300)"),
+    ("event_sessions", "meal_en",               "VARCHAR(100)"),
 ]
 
 

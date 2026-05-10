@@ -41,7 +41,38 @@ def _csv_dir() -> Path:
 
 
 CSV_PATH = _csv_dir() / "events.csv"
+EN_CSV_PATH = _csv_dir() / "events_en.csv"
 TAGS_CSV_PATH = _csv_dir() / "events_tags.csv"
+
+# Boolean-flag columns in events_en.csv → canonical Chinese tag value used by
+# event_tags / EN_MAP in frontend i18n/tagLabels.js. Order is the 7 canonical
+# tags reverted to on 2026-05-11 (see PHASE2.md).
+EN_TAG_FLAGS = {
+    "tag_food":             "免費餐點",
+    "tag_remote":           "遠距參加",
+    "tag_audience_student": "學生",
+    "tag_audience_outsider": "校外人士",
+    "tag_audience_alumni":  "校友",
+    "tag_audience_faculty": "教師",
+    "tag_free":             "免報名費",
+}
+
+
+def _is_truthy(s: str | None) -> bool:
+    return (s or "").strip().lower() in ("true", "1", "yes", "y", "t")
+
+
+def _load_en_rows(en_csv_path: Path) -> dict[str, dict]:
+    """Read events_en.csv → {event_url: row}. Empty dict when file missing."""
+    if not en_csv_path.exists():
+        return {}
+    out: dict[str, dict] = {}
+    with open(en_csv_path, encoding="utf-8-sig", newline="") as f:
+        for row in csv.DictReader(f):
+            url = (row.get("event_url") or "").strip()
+            if url:
+                out[url] = row
+    return out
 
 DEFAULT_IMAGES = {
     "講座": "https://images.unsplash.com/photo-1505373877841-8d25f7d46678?w=800",
@@ -141,9 +172,23 @@ def extract_official_category(activity_name_activity_session: str | None) -> str
     return v or None
 
 
-def seed(db, csv_path: Path = CSV_PATH, limit: int | None = None) -> tuple[int, int]:
+def seed(
+    db,
+    csv_path: Path = CSV_PATH,
+    en_csv_path: Path = EN_CSV_PATH,
+    limit: int | None = None,
+) -> tuple[int, int]:
+    """Seed events + sessions from ZH/EN CSVs. Returns (events, sessions)."""
     with open(csv_path, encoding="utf-8-sig", newline="") as f:
         rows = list(csv.DictReader(f))
+
+    en_rows = _load_en_rows(en_csv_path)
+    en_tag_links = 0
+    # (event_id, tag) tuples already added in this transaction. EventTag has a
+    # composite PK so without this set, two sessions of the same parent event
+    # would both queue identical inserts (db.query can't see uncommitted rows
+    # in the same session) and raise UNIQUE violations on commit.
+    en_tag_seen: set[tuple[int, str]] = set()
 
     events_by_url: dict[str, Event] = {}
     sessions_created = 0
@@ -153,6 +198,8 @@ def seed(db, csv_path: Path = CSV_PATH, limit: int | None = None) -> tuple[int, 
         event_url = (row.get("event_url") or "").strip()
         if not parent_url or not event_url:
             continue
+
+        en_row = en_rows.get(event_url) or {}
 
         if parent_url not in events_by_url:
             existing = db.query(Event).filter(Event.source_url == parent_url).first()
@@ -169,6 +216,19 @@ def seed(db, csv_path: Path = CSV_PATH, limit: int | None = None) -> tuple[int, 
                 or (row.get("activity_name_event_page") or "").strip()
                 or "(無標題)"
             )
+            # English variants from events_en.csv. Same precedence as ZH:
+            # parent activity name → event-page name → null (frontend falls
+            # back to ZH title).
+            parent_name_en = extract_official_category(
+                en_row.get("activity_name_activity_session", "")
+            )
+            title_en = (
+                parent_name_en
+                or (en_row.get("activity_name_event_page") or "").strip()
+                or None
+            )
+            category_en_raw = (en_row.get("activity_type") or "").strip()
+            category_en = re.sub(r"\s*\([^)]*\)\s*$", "", category_en_raw) or None
             if existing:
                 # Idempotent backfill: 旧 seed (life_learning_type 由来) で
                 # official_category が入っているケースを上書きする。Event.title も
@@ -177,6 +237,21 @@ def seed(db, csv_path: Path = CSV_PATH, limit: int | None = None) -> tuple[int, 
                     existing.official_category = parent_name
                 if title and existing.title != title:
                     existing.title = title
+                # When an EN row is present, sync EN columns to its current
+                # values — including clearing fields the team blanked out so
+                # stale translations don't linger. When no EN row exists at
+                # all, leave existing _en values untouched.
+                if en_row:
+                    en_content = norm(en_row.get("activity_content", ""))
+                    if existing.title_en != title_en:
+                        existing.title_en = title_en
+                    if existing.content_en != en_content:
+                        existing.content_en = en_content
+                    if existing.official_category_en != parent_name_en:
+                        existing.official_category_en = parent_name_en
+                    if existing.category_en != category_en:
+                        existing.category_en = category_en
+                    _backfill_en_simple(existing, en_row)
                 events_by_url[parent_url] = existing
             else:
                 name, phone, email = parse_contact(row.get("organizer_contact", ""))
@@ -198,13 +273,32 @@ def seed(db, csv_path: Path = CSV_PATH, limit: int | None = None) -> tuple[int, 
                                  or norm(row.get("activity_limit", "")),
                     learning_category=norm(row.get("learning_category", ""))
                                       or norm(row.get("life_learning_type", "")),
+                    title_en=title_en,
+                    content_en=norm(en_row.get("activity_content", "")),
+                    category_en=category_en,
+                    official_category_en=parent_name_en,
+                    organizer_en=norm(en_row.get("organizer_unit", "")),
+                    registration_type_en=norm(en_row.get("registration_type", "")),
+                    registration_fee_en=norm(en_row.get("registration_fee", "")),
+                    target_audience_en=norm(en_row.get("target_audience", "")),
+                    restrictions_en=norm(en_row.get("other_restrictions", ""))
+                                    or norm(en_row.get("activity_limit", "")),
+                    learning_category_en=norm(en_row.get("learning_category", ""))
+                                         or norm(en_row.get("life_learning_type", "")),
                 )
                 db.add(ev)
                 db.flush()
                 events_by_url[parent_url] = ev
 
         event = events_by_url[parent_url]
-        if db.query(EventSession).filter(EventSession.source_url == event_url).first():
+        existing_sess = (
+            db.query(EventSession).filter(EventSession.source_url == event_url).first()
+        )
+        if existing_sess:
+            # Backfill session-level EN fields on re-runs.
+            if en_row:
+                _backfill_session_en(existing_sess, en_row)
+            en_tag_links += _attach_en_tags(db, event.id, en_row, en_tag_seen)
             continue
 
         date, time_range = parse_session_time(row.get("session_time", ""))
@@ -227,15 +321,104 @@ def seed(db, csv_path: Path = CSV_PATH, limit: int | None = None) -> tuple[int, 
             meal=norm(row.get("meal", "")),
             civil_servant_hours=norm(row.get("civil_servant_hours", "")),
             study_hours=norm(row.get("study_hours", "")),
+            session_name_en=norm(en_row.get("session_name", "")),
+            session_content_en=norm(en_row.get("session_content", "")),
+            instructor_en=norm(en_row.get("instructor", "")),
+            location_en=norm(en_row.get("location", "")),
+            meal_en=norm(en_row.get("meal", "")),
         )
         db.add(sess)
         sessions_created += 1
+        en_tag_links += _attach_en_tags(db, event.id, en_row, en_tag_seen)
 
         if limit and sessions_created >= limit:
             break
 
     db.commit()
+    if en_tag_links:
+        print(f"[seed_events] EN tag links inserted: {en_tag_links}")
     return (len(events_by_url), sessions_created)
+
+
+def _backfill_en_simple(ev: Event, en_row: dict) -> None:
+    """Sync simple EN text fields on an existing Event to the EN CSV row.
+
+    Caller must guarantee `en_row` is non-empty (= a CSV row was matched);
+    when the team blanks a field in the CSV we clear the column accordingly
+    so stale translations don't linger. When no row matches at all, the
+    caller skips this helper entirely and prior EN values are preserved.
+    """
+    if not en_row:
+        return
+    pairs = [
+        ("organizer_en",          norm(en_row.get("organizer_unit", ""))),
+        ("registration_type_en",  norm(en_row.get("registration_type", ""))),
+        ("registration_fee_en",   norm(en_row.get("registration_fee", ""))),
+        ("target_audience_en",    norm(en_row.get("target_audience", ""))),
+        ("restrictions_en",       norm(en_row.get("other_restrictions", ""))
+                                  or norm(en_row.get("activity_limit", ""))),
+        ("learning_category_en",  norm(en_row.get("learning_category", ""))
+                                  or norm(en_row.get("life_learning_type", ""))),
+    ]
+    for attr, val in pairs:
+        if getattr(ev, attr) != val:
+            setattr(ev, attr, val)
+
+
+def _backfill_session_en(sess: EventSession, en_row: dict) -> None:
+    """Sync EN text fields on an existing EventSession to the EN CSV row.
+
+    Same caller contract as `_backfill_en_simple`: empty `en_row` → no-op.
+    """
+    if not en_row:
+        return
+    pairs = [
+        ("session_name_en",    norm(en_row.get("session_name", ""))),
+        ("session_content_en", norm(en_row.get("session_content", ""))),
+        ("instructor_en",      norm(en_row.get("instructor", ""))),
+        ("location_en",        norm(en_row.get("location", ""))),
+        ("meal_en",            norm(en_row.get("meal", ""))),
+    ]
+    for attr, val in pairs:
+        if getattr(sess, attr) != val:
+            setattr(sess, attr, val)
+
+
+def _attach_en_tags(
+    db,
+    event_id: int,
+    en_row: dict,
+    seen: set[tuple[int, str]],
+) -> int:
+    """Convert events_en.csv boolean tag columns → EventTag rows. Idempotent.
+
+    Each True flag emits one EventTag with the canonical ZH tag value (so that
+    existing translateTag() in frontend i18n/tagLabels.js continues to map it).
+    `seen` accumulates (event_id, tag) pairs added in this transaction so that
+    multiple sessions of the same parent event don't queue duplicate inserts.
+    Returns how many new EventTag rows were queued for insert.
+    """
+    if not en_row:
+        return 0
+    inserted = 0
+    for col, tag_value in EN_TAG_FLAGS.items():
+        if not _is_truthy(en_row.get(col)):
+            continue
+        key = (event_id, tag_value)
+        if key in seen:
+            continue
+        existing = (
+            db.query(EventTag)
+            .filter(EventTag.event_id == event_id, EventTag.tag == tag_value)
+            .first()
+        )
+        if existing:
+            seen.add(key)
+            continue
+        db.add(EventTag(event_id=event_id, tag=tag_value))
+        seen.add(key)
+        inserted += 1
+    return inserted
 
 
 def seed_tags(db, csv_path: Path = TAGS_CSV_PATH) -> int:

@@ -16,11 +16,59 @@ from app.schemas.event import (
 router = APIRouter(prefix="/api/events", tags=["events"])
 
 
-def _to_detail(e: Event) -> EventDetailOut:
-    base = EventOut.model_validate(e).model_dump()
+def _pick(en_value, zh_value):
+    """Return EN value when truthy, else fall back to ZH."""
+    return en_value if en_value else zh_value
+
+
+def _event_payload(e: Event, lang: str) -> dict:
+    """Build dict for EventOut respecting `lang`. EN falls back to ZH."""
+    if lang == "en":
+        return {
+            "id": e.id,
+            "title": _pick(e.title_en, e.title),
+            "content": _pick(e.content_en, e.content),
+            "category": _pick(e.category_en, e.category),
+            "official_category": _pick(e.official_category_en, e.official_category),
+            "image_url": e.image_url,
+            "organizer": _pick(e.organizer_en, e.organizer),
+            "contact_phone": e.contact_phone,
+            "contact_email": e.contact_email,
+            "registration_type": _pick(e.registration_type_en, e.registration_type),
+            "registration_fee": _pick(e.registration_fee_en, e.registration_fee),
+            "target_audience": _pick(e.target_audience_en, e.target_audience),
+            "learning_category": _pick(e.learning_category_en, e.learning_category),
+            "tags": e.tags or [],
+        }
+    return EventOut.model_validate(e).model_dump()
+
+
+def _session_payload(s: EventSession, lang: str) -> dict:
+    if lang == "en":
+        return {
+            "id": s.id,
+            "event_id": s.event_id,
+            "session_name": _pick(s.session_name_en, s.session_name),
+            "session_content": _pick(s.session_content_en, s.session_content),
+            "instructor": _pick(s.instructor_en, s.instructor),
+            "location": _pick(s.location_en, s.location),
+            "date": s.date,
+            "time_range": s.time_range,
+            "registration_start": s.registration_start,
+            "registration_end": s.registration_end,
+            "capacity": s.capacity,
+            "remaining_slots": s.remaining_slots,
+            "meal": _pick(s.meal_en, s.meal),
+            "civil_servant_hours": s.civil_servant_hours,
+            "study_hours": s.study_hours,
+        }
+    return EventSessionOut.model_validate(s).model_dump()
+
+
+def _to_detail(e: Event, lang: str = "zh") -> EventDetailOut:
     return EventDetailOut(
-        **base,
-        sessions=[EventSessionOut.model_validate(s) for s in (e.sessions or [])],
+        **_event_payload(e, lang),
+        sessions=[EventSessionOut(**_session_payload(s, lang)) for s in (e.sessions or [])],
     )
 
 
@@ -33,6 +81,7 @@ def list_events(
     sort: str = Query("id", pattern="^(id|hot)$"),
     page: int = Query(1, ge=1),
     size: int = Query(20, ge=1, le=100),
+    lang: str = Query("zh", pattern="^(zh|en)$"),
     db: Session = Depends(get_db),
 ):
     filters = []
@@ -42,20 +91,33 @@ def list_events(
         # may not have the column populated yet; both store the parent name.
         # Event.category (= activity_type 講座/工作坊...) is kept in the OR for
         # backward compatibility with legacy seed/test fixtures.
-        filters.append(or_(
+        # In EN mode also match against the EN counterparts so users can pick
+        # localized chips.
+        cat_filters = [
             Event.official_category == category,
             Event.title == category,
             Event.category == category,
-        ))
+        ]
+        if lang == "en":
+            cat_filters.extend([
+                Event.official_category_en == category,
+                Event.title_en == category,
+                Event.category_en == category,
+            ])
+        filters.append(or_(*cat_filters))
     if keyword:
         # 模糊比對且不限大小寫 — works for ASCII (English keywords) and
         # passes through for CJK where case is moot.
         kw = keyword.lower()
         like = f"%{kw}%"
+        # Always search both ZH and EN content so EN-mode users can find ZH
+        # events typed in either language and vice versa.
         filters.append(
             or_(
                 func.lower(Event.title).like(like),
                 func.lower(func.coalesce(Event.content, "")).like(like),
+                func.lower(func.coalesce(Event.title_en, "")).like(like),
+                func.lower(func.coalesce(Event.content_en, "")).like(like),
             )
         )
     if tag:
@@ -100,7 +162,7 @@ def list_events(
 
     items = q.offset((page - 1) * size).limit(size).all()
     return EventListResponse(
-        items=[_to_detail(e) for e in items],
+        items=[_to_detail(e, lang) for e in items],
         total=total,
         page=page,
         size=size,
@@ -108,7 +170,10 @@ def list_events(
 
 
 @router.get("/categories")
-def list_categories(db: Session = Depends(get_db)):
+def list_categories(
+    lang: str = Query("zh", pattern="^(zh|en)$"),
+    db: Session = Depends(get_db),
+):
     """「台大官方分類」 = 母活動名 (activity_name_activity_session).
 
     Per info.md L30 + Figma, this groups sessions by parent activity. Each row
@@ -119,8 +184,18 @@ def list_categories(db: Session = Depends(get_db)):
     Falls back per-row to `Event.title` so legacy DBs without the
     `official_category` column still render something useful — both store the
     parent activity name post-seed.
+
+    When lang=en, prefer EN columns and fall back through the same chain.
     """
-    name_expr = func.coalesce(Event.official_category, Event.title).label("name")
+    if lang == "en":
+        name_expr = func.coalesce(
+            Event.official_category_en,
+            Event.title_en,
+            Event.official_category,
+            Event.title,
+        ).label("name")
+    else:
+        name_expr = func.coalesce(Event.official_category, Event.title).label("name")
     rows = (
         db.query(name_expr, func.count(EventSession.id).label("count"))
         .outerjoin(EventSession, EventSession.event_id == Event.id)
@@ -144,7 +219,11 @@ def list_tags(db: Session = Depends(get_db)):
 
 
 @router.get("/{event_id}", response_model=EventDetailOut)
-def get_event(event_id: int, db: Session = Depends(get_db)):
+def get_event(
+    event_id: int,
+    lang: str = Query("zh", pattern="^(zh|en)$"),
+    db: Session = Depends(get_db),
+):
     event = (
         db.query(Event)
         .options(selectinload(Event.sessions), selectinload(Event.tags))
@@ -153,11 +232,16 @@ def get_event(event_id: int, db: Session = Depends(get_db)):
     )
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
-    return _to_detail(event)
+    return _to_detail(event, lang)
 
 
 @router.get("/{event_id}/sessions/{session_id}", response_model=EventSessionOut)
-def get_session(event_id: int, session_id: int, db: Session = Depends(get_db)):
+def get_session(
+    event_id: int,
+    session_id: int,
+    lang: str = Query("zh", pattern="^(zh|en)$"),
+    db: Session = Depends(get_db),
+):
     sess = (
         db.query(EventSession)
         .filter(EventSession.id == session_id, EventSession.event_id == event_id)
@@ -165,4 +249,4 @@ def get_session(event_id: int, session_id: int, db: Session = Depends(get_db)):
     )
     if not sess:
         raise HTTPException(status_code=404, detail="Session not found")
-    return sess
+    return EventSessionOut(**_session_payload(sess, lang))

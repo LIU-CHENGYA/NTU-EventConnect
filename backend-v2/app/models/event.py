@@ -27,6 +27,18 @@ class Event(Base):
     # info.md L30 + Figma 準拠。複数場次を 1 個の母活動チップにまとめる軸。
     # legacy `category` (= activity_type 講座/工作坊...) はタグとしても event_tags に書く。
     official_category: Mapped[str | None] = mapped_column(String(100), index=True, nullable=True)
+    # English variants seeded from fetch_data/csv/events_en.csv (manual translation).
+    # Null when no EN row exists for this parent_url; API falls back to ZH.
+    title_en: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    content_en: Mapped[str | None] = mapped_column(Text, nullable=True)
+    category_en: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    official_category_en: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    organizer_en: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    registration_type_en: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    registration_fee_en: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    target_audience_en: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    restrictions_en: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    learning_category_en: Mapped[str | None] = mapped_column(String(100), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),
@@ -77,5 +89,11 @@ class EventSession(Base):
     meal: Mapped[str | None] = mapped_column(String(100), nullable=True)
     civil_servant_hours: Mapped[str | None] = mapped_column(String(50), nullable=True)
     study_hours: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    # English variants seeded from fetch_data/csv/events_en.csv (manual translation).
+    session_name_en: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    session_content_en: Mapped[str | None] = mapped_column(Text, nullable=True)
+    instructor_en: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    location_en: Mapped[str | None] = mapped_column(String(300), nullable=True)
+    meal_en: Mapped[str | None] = mapped_column(String(100), nullable=True)
 
     event: Mapped["Event"] = relationship(back_populates="sessions")

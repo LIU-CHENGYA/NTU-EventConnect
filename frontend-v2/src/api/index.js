@@ -1,4 +1,13 @@
 import api from "./client";
+import i18n from "../i18n";
+
+
+// Map i18next language code (zh-TW / en / en-US ...) to the 2-char `lang`
+// query the backend events API expects.
+function currentLang() {
+  const code = (i18n.language || "").toLowerCase();
+  return code.startsWith("en") ? "en" : "zh";
+}
 
 
 // ---------- mappers: backend snake_case -> frontend camelCase ----------
@@ -158,15 +167,21 @@ export const authApi = {
 
 export const eventsApi = {
   list: async (params = {}) => {
-    const { data } = await api.get("/api/events", { params });
+    const { data } = await api.get("/api/events", {
+      params: { lang: currentLang(), ...params },
+    });
     return { ...data, items: data.items.map(mapEvent) };
   },
   get: async (id) => {
-    const { data } = await api.get(`/api/events/${id}`);
+    const { data } = await api.get(`/api/events/${id}`, {
+      params: { lang: currentLang() },
+    });
     return mapEvent(data);
   },
   categories: async () => {
-    const { data } = await api.get("/api/events/categories");
+    const { data } = await api.get("/api/events/categories", {
+      params: { lang: currentLang() },
+    });
     return data;
   },
   tags: async () => {

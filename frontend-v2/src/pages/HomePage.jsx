@@ -69,6 +69,14 @@ export default function HomePage() {
     return params;
   };
 
+  // Clear list/hot data on language toggle so users don't briefly see ZH
+  // titles & content under EN filter chips while the next request is in
+  // flight. Filter changes keep prior items visible (felt smoother in v1).
+  useEffect(() => {
+    setListData({ items: [], total: 0 });
+    setHotData({ items: [], total: 0 });
+  }, [i18n.language]);
+
   // List
   useEffect(() => {
     let live = true;
@@ -77,7 +85,7 @@ export default function HomePage() {
       .catch(() => { if (live) setListData({ items: [], total: 0 }); });
     return () => { live = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab, selectedCategory, selectedTag, keyword, date, listPage]);
+  }, [activeTab, selectedCategory, selectedTag, keyword, date, listPage, i18n.language]);
 
   // Hot
   useEffect(() => {
@@ -86,15 +94,16 @@ export default function HomePage() {
       .then((d) => { if (live) setHotData({ items: d.items, total: d.total }); })
       .catch(() => { if (live) setHotData({ items: [], total: 0 }); });
     return () => { live = false; };
-  }, [hotPage]);
+  }, [hotPage, i18n.language]);
 
-  // Categories + tags
+  // Categories + tags. Categories localizes via lang; tag values are raw ZH
+  // (translateTag handles UI display) so don't depend on language.
   useEffect(() => {
     let live = true;
     eventsApi.categories().then((rows) => { if (live) setCategoryOptions(rows.map((r) => r.name)); }).catch(() => {});
     eventsApi.tags().then((rows) => { if (live) setTagOptions(rows.map((r) => r.name)); }).catch(() => {});
     return () => { live = false; };
-  }, []);
+  }, [i18n.language]);
 
   const totalListPages = useMemo(
     () => Math.max(1, Math.ceil(listData.total / PAGE_SIZE)),
