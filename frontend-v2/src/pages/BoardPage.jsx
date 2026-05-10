@@ -26,8 +26,6 @@ const SHORTCUT_TABS = [
   { id: "tags",     labelKey: "filter.tabs.tags",     query: null }, // secondary chip row → tag=
   { id: "free",     labelKey: "filter.tabs.free",     query: { tag: "免報名費" } },
   { id: "meal",     labelKey: "filter.tabs.meal",     query: { tag: "免費餐點" } },
-  { id: "career",   labelKey: "filter.tabs.career",   query: { tag: "職涯分享" } },
-  { id: "english",  labelKey: "filter.tabs.english",  query: { tag: "英文學習" } },
 ];
 
 const VIS_LABELS = { public: "公開", private: "私人", group: "僅限群組" };

@@ -30,12 +30,10 @@
       "official": "NTU Categories",
       "tags": "#Tags",
       "free": "Free",
-      "meal": "Meal Provided",
-      "career": "Career Fair",
-      "english": "English"
+      "meal": "Meal Provided"
     },
     "officialHint": "Filter by parent activity (e.g. VISION Career Fair series)",
-    "tagsHint": "Filter by topic tag (Workshop, Competition, Recruitment, etc.)",
+    "tagsHint": "Filter by topic tag (Free Registration, Free Meal, Remote, etc.)",
     "keyword": "Search by name / organizer",
     "keywordLabel": "Keyword",
     "dateRange": "Pick a date",

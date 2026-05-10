@@ -25,8 +25,6 @@ const SHORTCUT_TABS = [
   { id: "tags",     labelKey: "filter.tabs.tags",     kind: "tags" },
   { id: "free",     labelKey: "filter.tabs.free",     kind: "shortcut", query: { tag: "免報名費" } },
   { id: "meal",     labelKey: "filter.tabs.meal",     kind: "shortcut", query: { tag: "免費餐點" } },
-  { id: "career",   labelKey: "filter.tabs.career",   kind: "shortcut", query: { keyword: "徵才" } },
-  { id: "english",  labelKey: "filter.tabs.english",  kind: "shortcut", query: { keyword: "英文" } },
 ];
 
 export default function HomePage() {

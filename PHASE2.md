@@ -165,10 +165,6 @@ npm run dev
 - `POST/DELETE /api/posts/{id}/like` / `bookmark` / `events/{id}/bookmark`：回傳 200 + JSON body（替代舊 204）
 
 ### Pipeline
-- `fetch_data/process_data.py` 新增 9 個 boolean tag column：
-  - `tag_english`（英文學習）/ `tag_career`（職涯分享）— 關鍵字掃描
-  - `tag_workshop` / `tag_competition` / `tag_recruitment` / `tag_lecture` / `tag_course` / `tag_seminar` / `tag_growth_group` — `activity_type` 主部分類
-- `fetch_data/build_tags_table.py` 對應更新 `TAG_LABELS`，產出的 `events_tags.csv` 同時包含舊 7 種 + 新 9 種
 - `backend-v2/scripts/seed_events.py` 新增 `extract_official_category()` 提取母活動名；`Event.title` 來源從 `activity_name_event_page` 改為 `activity_name_activity_session` 優先；既有 row 啟動時 backfill
 
 ### Frontend

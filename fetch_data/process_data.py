@@ -7,20 +7,6 @@ CONTENT_FIELDS = ["activity_content", "session_content", "note"]
 
 MEAL_HAS_FOOD = {"提供用餐", "葷食", "素食(植物性餐食)"}
 
-ENGLISH_KEYWORDS = ("英文", "英語", "English")
-CAREER_KEYWORDS = ("職涯", "生涯", "就業", "求職", "工作職場", "career")
-KEYWORD_SCAN_FIELDS = (
-    "activity_content",
-    "activity_name_event_page",
-    "activity_name_activity_session",
-    "session_content",
-    "life_learning_type",
-)
-
-
-def _row_text(row) -> str:
-    return " ".join(str(row.get(c) or "") for c in KEYWORD_SCAN_FIELDS)
-
 
 def fix_newlines(df: pd.DataFrame) -> pd.DataFrame:
     for col in CONTENT_FIELDS:
@@ -44,22 +30,6 @@ def add_tag_columns(df: pd.DataFrame) -> pd.DataFrame:
 
     # tag_free: 免費報名
     df["tag_free"] = df["registration_fee"] == "免費"
-
-    # tag_english / tag_career: keyword scan across content + title + learning type
-    text = df.apply(_row_text, axis=1)
-    df["tag_english"] = text.apply(lambda t: any(k in t for k in ENGLISH_KEYWORDS))
-    df["tag_career"] = text.apply(lambda t: any(k in t for k in CAREER_KEYWORDS))
-
-    # activity_type を tag 化（Phase 2.1）。NTU 「官方分類」は life_learning_type
-    # 由来で別管理 (Event.official_category)、こちらは横断 filter 用のタグ。
-    activity_main = df["activity_type"].fillna("").str.replace(r"\s*\([^)]*\)\s*$", "", regex=True).str.strip()
-    df["tag_workshop"]      = activity_main.str.contains("工作坊", na=False)
-    df["tag_competition"]   = activity_main.str.contains("競賽", na=False)
-    df["tag_recruitment"]   = activity_main.str.contains("徵才", na=False)
-    df["tag_lecture"]       = activity_main.str.contains("講座", na=False)
-    df["tag_course"]        = activity_main.str.contains("課程", na=False)
-    df["tag_seminar"]       = activity_main.str.contains("研習", na=False)  # 研習/研討
-    df["tag_growth_group"]  = activity_main.str.contains("成長團體", na=False)
 
     return df
 

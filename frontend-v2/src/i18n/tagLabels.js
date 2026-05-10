@@ -17,8 +17,6 @@ const EN_MAP = {
   "校友": "Alumni",
   "教師": "Faculty",
   "免報名費": "Free Registration",
-  "英文學習": "English Learning",
-  "職涯分享": "Career Sharing",
   "工作坊": "Workshop",
   "競賽": "Competition",
   "徵才": "Recruitment",
