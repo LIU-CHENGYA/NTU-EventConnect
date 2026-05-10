@@ -1,0 +1,58 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: ntu-pg
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: eventconnect
+      POSTGRES_USER: eventconnect
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U eventconnect -d eventconnect"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./${BACKEND_DIR:-backend}
+      dockerfile: dockerfile
+    container_name: ntu-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+psycopg://eventconnect:${POSTGRES_PASSWORD}@postgres:5432/eventconnect
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_ALGORITHM: HS256
+      JWT_EXPIRE_MINUTES: 10080
+      CORS_ORIGINS: ${CORS_ORIGINS}
+      ENV: prod
+    volumes:
+      - backend_uploads:/app/uploads
+      - ./${BACKEND_DIR:-backend}/scripts:/app/scripts:ro
+      - ./fetch_data:/app/fetch_data:ro
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: ntu-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - backend
+
+volumes:
+  pg_data:
+  backend_uploads:
+  caddy_data:
+  caddy_config:
