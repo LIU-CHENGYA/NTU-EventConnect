@@ -1,5 +1,13 @@
 ### Changelog
 
+#### 2026-05-11
+- `process_data.py` 新增 9 個 boolean tag 欄位：
+  - `tag_english` / `tag_career`：關鍵字掃描
+  - `tag_workshop` / `tag_competition` / `tag_recruitment` / `tag_lecture` / `tag_course` / `tag_seminar` / `tag_growth_group`：活動類型分類
+- `build_tags_table.py` 對應更新 `TAG_LABELS`，產出的 `events_tags.csv` 同時包含舊 7 種 + 新 9 種
+- ⚠ 新欄位需要重新跑 `process_data.py` → `build_tags_table.py` → `seed_events.py` 才會反映到 DB
+- backend 現在透過 APScheduler 每日 02:00 自動執行 `seed_events`（須先跑 ETL 產生最新 CSV）
+
 #### 2026-05-06
 - 新增 `events_processed.csv`：修正內容欄位換行格式 \n、新增 7 個 tag 欄位
 - 新增 `events_tags.csv`：長格式 tag 對應表（event_url, tag）
@@ -106,6 +114,15 @@ csv file
 | `tag_audience_alumni` | 開放校友 | Boolean；`target_audience` 含「校友」 |
 | `tag_audience_faculty` | 開放教師 | Boolean；`target_audience` 含「教師」 |
 | `tag_free` | 免費報名 | Boolean；`registration_fee == "免費"` |
+| `tag_english` | 英文學習 | Boolean；`activity_content` / 標題 / `life_learning_type` 含「英文/英語/English」（2026-05 新增） |
+| `tag_career` | 職涯分享 | Boolean；同上掃描「職涯/生涯/就業/求職/工作職場/career」（2026-05 新增） |
+| `tag_workshop` | 工作坊 | Boolean；`activity_type` 主部含「工作坊」（2026-05 新增） |
+| `tag_competition` | 競賽 | Boolean；`activity_type` 主部含「競賽」（2026-05 新增） |
+| `tag_recruitment` | 徵才 | Boolean；`activity_type` 主部含「徵才」（2026-05 新增） |
+| `tag_lecture` | 講座 | Boolean；`activity_type` 主部含「講座」（2026-05 新增） |
+| `tag_course` | 課程 | Boolean；`activity_type` 主部含「課程」（2026-05 新增） |
+| `tag_seminar` | 研習/研討 | Boolean；`activity_type` 主部含「研習」（2026-05 新增） |
+| `tag_growth_group` | 成長團體 | Boolean；`activity_type` 主部含「成長團體」（2026-05 新增） |
 
 ---
 
@@ -188,6 +205,15 @@ Tag 對應關係：
 | `校友` | `tag_audience_alumni` | 開放校友 |
 | `教師` | `tag_audience_faculty` | 開放教師 |
 | `免報名費` | `tag_free` | 免費報名 |
+| `英文學習` | `tag_english` | 內容/標題/分類含英文相關（2026-05 新增） |
+| `職涯分享` | `tag_career` | 內容/標題/分類含職涯/求職相關（2026-05 新增） |
+| `工作坊` | `tag_workshop` | 活動類型為工作坊（2026-05 新增） |
+| `競賽` | `tag_competition` | 活動類型為競賽（2026-05 新增） |
+| `徵才` | `tag_recruitment` | 活動類型為徵才（2026-05 新增） |
+| `講座` | `tag_lecture` | 活動類型為講座（2026-05 新增） |
+| `課程` | `tag_course` | 活動類型為課程（2026-05 新增） |
+| `研習/研討` | `tag_seminar` | 活動類型為研習/研討（2026-05 新增） |
+| `成長團體` | `tag_growth_group` | 活動類型為成長團體（2026-05 新增） |
 
 ---
 

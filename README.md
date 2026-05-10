@@ -6,7 +6,7 @@
 
 **線上網址：** <https://d1tz6syfib05nx.cloudfront.net/>
 
-> **第二階段程式碼位置**：第一階段保留在 `frontend/` 與 `backend/`，第二階段新功能（留言板、群組、SSO、取消確認、i18n、標籤篩選等）放在 `frontend-v2/` 與 `backend-v2/`。CI/CD 目前仍指向第一階段。
+> **第二階段程式碼位置**：第一階段保留在 `frontend/` 與 `backend/`，第二階段新功能（留言板、群組、SSO、取消確認、i18n、官方分類 + 標籤篩選、APScheduler 每日資料更新等）放在 `frontend-v2/` 與 `backend-v2/`。**生產環境目前指向 v2** —`.github/workflows/deploy.yml` 透過 GitHub Actions Variables `BACKEND_DIR` / `FRONTEND_DIR` 切換，目前兩者皆設為 `backend-v2` / `frontend-v2`。
 
 ---
 
@@ -649,45 +649,41 @@ httpx==0.27.2
 
 ## 部署
 
-### 雲端基礎設施架構
+### 雲端基礎設施架構（v2 起，2026-05-10 切換）
 
 ```
 
                               Internet
                                  │
                                  ▼
-                    ┌────────────────────────┐
-                    │   CloudFront (CDN)     │
-                    │  d1p66hfjtmja1e..      │
-                    └────────────────────────┘
-                                 │
-                ┌────────────────┴────────────────┐
-                │                                 │
-                ▼                                 ▼
-    ┌──────────────────────┐        ┌──────────────────────┐
-    │   S3 Static Hosting  │        │  Application Load    │
-    │   (Frontend Assets)  │        │   Balancer (ALB)     │
-    │   React SPA Build    │        │   Port 8000          │
-    └──────────────────────┘        └──────────────────────┘
-                                                 │
-                                    ┌────────────┴────────────┐
-                                    │                         │
-                                    ▼                         ▼
-                        ┌─────────────────────┐   ┌─────────────────────┐
-                        │  ECS Fargate Task   │   │  ECS Fargate Task   │
-                        │  (ntu-backend-api)  │   │  (Auto Scaling)     │
-                        │  • Python 3.11      │   │  • Replica          │
-                        │  • FastAPI/Uvicorn  │   │                     │
-                        │  • 1 vCPU, 3GB RAM  │   │                     │
-                        └─────────────────────┘   └─────────────────────┘
-                                    │
-                                    ▼
-                        ┌─────────────────────┐
-                        │   RDS PostgreSQL    │
-                        │   ntu-event-db      │
-                        │   • Multi-AZ        │
-                        │   • Auto Backup     │
-                        └─────────────────────┘
+                  ┌──────────────────────────────┐
+                  │     CloudFront (CDN)         │
+                  │  ${VITE_API_URL}             │
+                  │  ─ /          → S3           │
+                  │  ─ /api/*     → EC2 backend  │
+                  │  ─ /uploads/* → EC2 backend  │
+                  └──────────────────────────────┘
+                       │                      │
+                       ▼                      ▼
+          ┌────────────────────────┐ ┌──────────────────────────────┐
+          │  S3 Static Hosting     │ │  EC2 Instance                │
+          │  (Frontend Assets)     │ │  docker-compose.yml          │
+          │  React Vite build      │ │  ┌────────────────────────┐  │
+          └────────────────────────┘ │  │ backend (FastAPI)      │  │
+                                     │  │  build: ${BACKEND_DIR} │  │
+                                     │  │  + APScheduler 02:00   │  │
+                                     │  └────────────────────────┘  │
+                                     │  ┌────────────────────────┐  │
+                                     │  │ postgres:16-alpine     │  │
+                                     │  │  pg_data volume         │  │
+                                     │  └────────────────────────┘  │
+                                     │  ┌────────────────────────┐  │
+                                     │  │ caddy (reverse proxy)  │  │
+                                     │  └────────────────────────┘  │
+                                     │  volumes (read-only):        │
+                                     │   - ./fetch_data → /app/...  │
+                                     │   - ./${BACKEND_DIR}/scripts │
+                                     └──────────────────────────────┘
 ```
 
 **部署組件說明：**
@@ -695,11 +691,12 @@ httpx==0.27.2
 | 組件 | 服務 | 配置 | 說明 |
 |------|------|------|------|
 | **前端** | S3 + CloudFront | - | Vite build 產生的靜態檔案 |
-| **後端** | ECS Fargate + ECR | 1 vCPU / 3GB RAM | Docker 容器運行 FastAPI |
-| **負載均衡** | ALB | Port 8000 | 分流請求到多個 ECS tasks |
-| **資料庫** | RDS PostgreSQL | - | 獨立資料庫實例 |
-| **容器倉庫** | ECR | - | 存放 Docker images |
-| **日誌** | CloudWatch Logs | `/ecs/ntu-backend-task` | 集中日誌管理 |
+| **後端** | EC2 + docker-compose | container 內 1 vCPU 共用 | Docker 容器運行 FastAPI（image 在 EC2 上 build，不經過 ECR） |
+| **資料庫** | docker-compose `postgres:16-alpine` 同機 | volume `pg_data` | 與 backend 同一台 EC2 |
+| **反向代理** | docker-compose `caddy` | - | 在 EC2 上把 https/http 轉到 backend container |
+| **CSV 資料** | host volume `./fetch_data` | read-only mount | EC2 主機檔案，由 ETL 流程更新 |
+| **Scheduler** | APScheduler（backend container 內） | 02:00 Asia/Taipei | 每日呼叫 `scripts.seed_events`，CSV → DB |
+| **日誌** | `docker compose logs backend` | EC2 在地 | 沒有 CloudWatch 集中收集，需 SSH 進機器看 |
 
 ### CI/CD 自動化流程
 
@@ -743,64 +740,96 @@ Developer Push → GitHub → Actions Workflow → AWS Deployment
 - `VITE_API_URL`（例如 `https://d1tz6syfib05nx.cloudfront.net`，前端會呼叫 `${VITE_API_URL}/api/...`）
 ---
 
-### Backend（AWS ECS Fargate + ECR）
+### Backend（AWS EC2 + docker-compose）
 
-**後端 API URL：** `http://ntu-api-alb-1725363642.ap-northeast-1.elb.amazonaws.com`
+> v2 切換時（YOLIN, 2026-05-10）已從 ECS Fargate 改為 EC2 自架 docker-compose。理由：v1/v2 切換僅需更動環境變數 `BACKEND_DIR`，不必為了切版本另開 ECS task definition；`fetch_data/csv` 也能透過 volume 直接掛載而不必塞進 image。
+
+**後端 API URL：** 透過 CloudFront 同 domain（前端與後端共用 `${VITE_API_URL}`，CloudFront 把 `/api/*` proxy 至 EC2 ALB / 直連）。
 
 #### 自動部署流程（GitHub Actions）
 
 ```yaml
-1. Checkout 程式碼
-2. 配置 AWS 認證
-3. 登入 ECR
-4. 構建 Docker Image (linux/amd64)
-   └─ docker build --platform linux/amd64
-5. 標記 Image (latest + commit SHA)
-6. 推送到 ECR
-7. 觸發 ECS Service 強制部署
-   └─ aws ecs update-service --force-new-deployment
+1. dorny/paths-filter 判斷 backend / backend-v2 / fetch_data 是否變更
+2. appleboy/ssh-action 連線到 EC2（使用 EC2_HOST / EC2_USER / EC2_SSH_KEY）
+3. 在 EC2 執行：
+   - cd ~/NTU-EventConnect && git fetch && git reset --hard origin/main
+   - 把 BACKEND_DIR (vars) 寫入 ~/.env
+   - docker compose up -d --build backend
+   - docker image prune -f
+4. 健康檢查：curl ${VITE_API_URL}/api/health 重試 5 次
 ```
 
-#### ECS 架構資訊
+`docker-compose.yml`（repo 根目錄）使用 `${BACKEND_DIR:-backend}` 動態決定 build context，並把 `${BACKEND_DIR}/scripts` 與 `fetch_data` 以 read-only volume 掛入容器；切換 v1/v2 不需修改 compose 本身，只需要改 GitHub Variable。
 
-| 項目 | 內容 |
-|------|------|
-| **ECR Repository** | `896160628127.dkr.ecr.ap-northeast-1.amazonaws.com/ntu-backend` |
-| **ECS Cluster** | `gracious-fish-rizeya` |
-| **ECS Service** | `ntu-backend-task-service-5vmose4n` |
-| **Task Definition** | `ntu-backend-task` (Python 3.11, 1 vCPU, 3GB RAM) |
-| **資料庫** | RDS PostgreSQL `ntu-event-db.c386osyooczq.ap-northeast-1.rds.amazonaws.com` |
-| **Log Group** | CloudWatch `/ecs/ntu-backend-task` |
+#### EC2 SSH 連線方式（新成員加入時）
 
-#### 需要的 GitHub Secrets
+EC2 的連線資訊存在 GitHub Repository Secrets（**值不公開，無法用 CLI 讀取**）：
 
-後端部署 Job 會共用上面 Frontend 使用的 `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY`，
-ECR repository / ECS cluster / service 名稱是直接寫在 `.github/workflows/deploy.yml` 裡，如果之後改名再一起調整即可，**不需要額外的 GitHub Secrets**。
+| Secret | 內容 |
+|---|---|
+| `EC2_HOST` | EC2 instance 的 public DNS / IP |
+| `EC2_USER` | SSH 使用者（通常為 `ubuntu` 或 `ec2-user`） |
+| `EC2_SSH_KEY` | 連線用的 OpenSSH private key（PEM 格式） |
 
-#### 手動部署後端
+新成員需要 SSH 進機器除錯時，請：
+
+1. 跟 repo 管理員（@LIU-CHENGYA / @yolin-tsai）拿 PEM private key
+2. 拿到 `EC2_HOST` / `EC2_USER`
+3. 本機儲存 PEM 並設權限：
+   ```bash
+   chmod 600 ~/.ssh/ntu-eventconnect.pem
+   ssh -i ~/.ssh/ntu-eventconnect.pem <EC2_USER>@<EC2_HOST>
+   ```
+4. 進入機器後，專案位於 `~/NTU-EventConnect`：
+   ```bash
+   cd ~/NTU-EventConnect
+   docker compose ps                                    # 確認 services
+   docker compose logs backend --tail 100               # 看後端 log
+   docker compose exec backend python -m scripts.seed_events   # 手動 reseed
+   ```
+
+> ⚠️ PEM key 與連線資訊請走私密管道（1Password / Bitwarden / 私訊），**不要 commit 進 repo / 不要貼到 PR / 不要傳到公開 Slack**。
+
+#### 需要的 GitHub Secrets / Variables
+
+| 類型 | 名稱 | 用途 |
+|---|---|---|
+| Secret | `EC2_HOST` / `EC2_USER` / `EC2_SSH_KEY` | EC2 SSH 連線 |
+| Secret | `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` | 前端 S3 + CloudFront 部署 |
+| Secret | `AWS_S3_BUCKET` / `CLOUDFRONT_DISTRIBUTION_ID` | 前端目標 |
+| Secret | `VITE_API_URL` | 前端 build 時注入；同時被後端 health check 引用 |
+| Secret | `VITE_GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_ID` | Google SSO |
+| Variable | `BACKEND_DIR` | `backend` 或 `backend-v2`（目前 = `backend-v2`） |
+| Variable | `FRONTEND_DIR` | `frontend` 或 `frontend-v2`（目前 = `frontend-v2`） |
+
+切換 v1 ↔ v2 只需在 GitHub Repo → Settings → Secrets and variables → Actions → Variables 修改 `BACKEND_DIR` / `FRONTEND_DIR`，下次 push / 手動 dispatch 即會用新值部署。
+
+#### 手動觸發部署
+
+GitHub UI → Actions → "Deploy NTU EventConnect to AWS" → Run workflow，或本機透過 `gh workflow run`：
 
 ```bash
-# 1. 構建 Docker Image（指定 x86_64 平台）
-cd backend
-docker build --platform linux/amd64 -t ntu-backend:latest .
-
-# 2. 登入 AWS ECR
-aws ecr get-login-password --region ap-northeast-1 | \
-  docker login --username AWS --password-stdin \
-  896160628127.dkr.ecr.ap-northeast-1.amazonaws.com
-
-# 3. 標記並推送
-docker tag ntu-backend:latest \
-  896160628127.dkr.ecr.ap-northeast-1.amazonaws.com/ntu-backend:latest
-docker push 896160628127.dkr.ecr.ap-northeast-1.amazonaws.com/ntu-backend:latest
-
-# 4. 觸發 ECS 部署
-aws ecs update-service \
-  --cluster gracious-fish-rizeya \
-  --service ntu-backend-task-service-5vmose4n \
-  --force-new-deployment \
-  --region ap-northeast-1
+gh workflow run "Deploy NTU EventConnect to AWS" --ref main
 ```
+
+#### EC2 上的每日資料更新（v2 起內建）
+
+`backend-v2/app/main.py` 的 lifespan 啟動 APScheduler，每日 02:00 Asia/Taipei 自動執行 `python -m scripts.seed_events`。
+若想立即手動跑（push 後立刻反映新 tag / 母活動名變更）：
+
+```bash
+ssh -i ~/.ssh/ntu-eventconnect.pem <EC2_USER>@<EC2_HOST>
+cd ~/NTU-EventConnect
+
+# 1. 重新生成 tag CSV（若 fetch_data/process_data.py 或 build_tags_table.py 有改）
+python -m fetch_data.process_data
+python -m fetch_data.build_tags_table
+
+# 2. 套進 DB（idempotent，重複跑沒副作用）
+docker compose exec backend python -m scripts.seed_events
+```
+
+CSV 自身的爬蟲更新（`crawl_*.py`）仍需另行 cron / 手動觸發；APScheduler 只負責 CSV → DB 的最後 ingest 步驟。
 
 ---
 
@@ -833,26 +862,32 @@ VITE_API_URL=https://d1tz6syfib05nx.cloudfront.net
 
 | 監控項目 | 位置 | 說明 |
 |---------|------|------|
-| **應用日誌** | CloudWatch `/ecs/ntu-backend-task` | FastAPI 運行日誌 |
-| **ECS Metrics** | ECS Console | CPU/Memory 使用率 |
-| **Health Check** | ALB Target Groups | `/api/health` 端點檢查 |
+| **應用日誌** | EC2 內 `docker compose logs backend` | FastAPI / APScheduler 運行日誌（在地、無集中收集） |
+| **容器狀態** | `docker compose ps` | backend / postgres / caddy 是否 healthy |
+| **Health Check** | GitHub Actions deploy job | 部署後 `curl ${VITE_API_URL}/api/health` ×5 retry |
 | **前端訪問** | CloudFront Logs | CDN 訪問記錄 |
 
-**查看日誌：**
+**查看日誌（先 SSH 進 EC2，連線方式見上方「EC2 SSH 連線方式」）：**
 
 ```bash
-# 查看後端日誌
-aws logs tail /ecs/ntu-backend-task --follow --region ap-northeast-1
+ssh -i ~/.ssh/ntu-eventconnect.pem <EC2_USER>@<EC2_HOST>
+cd ~/NTU-EventConnect
 
-# 查看 ECS 服務狀態
-aws ecs describe-services \
-  --cluster gracious-fish-rizeya \
-  --services ntu-backend-task-service-5vmose4n \
-  --region ap-northeast-1
+# 即時 tail backend 日誌
+docker compose logs backend --tail 100 --follow
 
-# 測試健康檢查
-curl http://ntu-api-alb-1725363642.ap-northeast-1.elb.amazonaws.com/api/health
-# 預期回應: {"status":"ok"}
+# 確認所有 services 健康
+docker compose ps
+
+# 進入 backend container 除錯
+docker compose exec backend bash
+
+# 確認 APScheduler 排程是否註冊
+docker compose logs backend | grep "daily_data_refresh"
+# 預期看到: APScheduler started: daily_data_refresh @ 02:00 Asia/Taipei
+
+# 重新啟動 backend（不影響 postgres）
+docker compose restart backend
 ```
 
 ---
@@ -860,17 +895,21 @@ curl http://ntu-api-alb-1725363642.ap-northeast-1.elb.amazonaws.com/api/health
 **部署後驗證：**
 
 ```bash
-# 測試後端健康檢查
-curl http://ntu-api-alb-1725363642.ap-northeast-1.elb.amazonaws.com/api/health
+# 測試後端健康檢查（從本機，透過 CloudFront / VITE_API_URL）
+curl ${VITE_API_URL}/api/health
 # 預期: {"status":"ok"}
 
 # 測試前端
-curl -I https://d1tz6syfib05nx.cloudfront.net
+curl -I ${VITE_API_URL}/
 # 預期: HTTP 200
 
 # 測試 API 連接
-curl http://ntu-api-alb-1725363642.ap-northeast-1.elb.amazonaws.com/api/events
-# 預期: JSON 活動列表
+curl "${VITE_API_URL}/api/events?size=3"
+# 預期: JSON 活動列表（items + total）
+
+# 測試 v2 新端點（標籤列表）
+curl ${VITE_API_URL}/api/events/tags
+# 預期: 至少包含 免費餐點 / 遠距參加 / 工作坊 / 競賽 / 徵才 / 講座 / 課程 等
 ```
 
 **生產環境注意事項：**
