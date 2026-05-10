@@ -84,14 +84,12 @@ export default function PostDetailPage() {
               {user && (
                 <IconButton
                   onClick={async () => {
-                    const next = !post.isBookmarked;
-                    setPost({ ...post, isBookmarked: next });
                     try {
-                      if (next) await postsApi.bookmark(post.id);
-                      else await postsApi.unbookmark(post.id);
-                    } catch {
-                      setPost({ ...post, isBookmarked: !next });
-                    }
+                      const r = post.isBookmarked
+                        ? await postsApi.unbookmark(post.id)
+                        : await postsApi.bookmark(post.id);
+                      setPost({ ...post, isBookmarked: r.bookmarked, bookmarkCount: r.bookmark_count });
+                    } catch { /* ignore */ }
                   }}
                   sx={{ color: post.isBookmarked ? "#e91e63" : tokens.color.text }}
                 >

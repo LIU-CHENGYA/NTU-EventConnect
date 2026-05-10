@@ -7,14 +7,17 @@ import PlaceIcon from "@mui/icons-material/Place";
 import PersonIcon from "@mui/icons-material/Person";
 import PhoneIcon from "@mui/icons-material/Phone";
 import StarIcon from "@mui/icons-material/Star";
+import { useTranslation } from "react-i18next";
 import { eventsApi, postsApi } from "../api";
 import { useAuth } from "../context/AuthContext";
 import { tokens } from "../theme";
+import { translateTag } from "../i18n/tagLabels";
 
 export default function EventDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { i18n } = useTranslation();
   const REVIEW_PAGE_SIZE = 10;
   const [event, setEvent] = useState(null);
   const [reviews, setReviews] = useState([]);
@@ -196,7 +199,7 @@ export default function EventDetailPage() {
                 {event.title}
               </Typography>
               <Box sx={{ bgcolor: "#1e1e1e", color: "#fffefe", px: 1.5, py: 0.5, borderRadius: "20px", fontSize: 12, ml: 1 }}>
-                {event.category}
+                {translateTag(event.officialCategory || event.category, i18n.language)}
               </Box>
             </Card>
 

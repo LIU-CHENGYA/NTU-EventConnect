@@ -5,8 +5,6 @@ import {
   Box, Typography, IconButton, InputBase, Avatar, Button,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
-import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
-import PlaceIcon from "@mui/icons-material/Place";
 import AddIcon from "@mui/icons-material/Add";
 import FavoriteIcon from "@mui/icons-material/Favorite";
 import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
@@ -16,6 +14,7 @@ import { boardApi, postsApi, groupsApi, eventsApi } from "../api";
 import { useAuth } from "../context/AuthContext";
 import { tokens } from "../theme";
 import { formatDate } from "../utils/format";
+import { translateTag } from "../i18n/tagLabels";
 import BoardPostCreateDialog from "../components/BoardPostCreateDialog";
 import GroupEditDialog from "../components/GroupEditDialog";
 
@@ -34,7 +33,7 @@ const SHORTCUT_TABS = [
 const VIS_LABELS = { public: "公開", private: "私人", group: "僅限群組" };
 
 export default function BoardPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const { user } = useAuth();
 
@@ -49,8 +48,6 @@ export default function BoardPage() {
   const [editingGroupId, setEditingGroupId] = useState(null);
 
   const [keyword, setKeyword] = useState("");
-  const [date, setDate] = useState("");
-  const [location, setLocation] = useState("");
 
   const [selectedCategory, setSelectedCategory] = useState("");
   const [selectedTag, setSelectedTag] = useState("");
@@ -72,11 +69,9 @@ export default function BoardPage() {
     if (activeTab === "official" && selectedCategory) params.category = selectedCategory;
     if (activeTab === "tags" && selectedTag) params.tag = selectedTag;
 
-    // The /api/posts endpoint accepts only `keyword`. Date and location have no
-    // dedicated columns, so we fold them into keyword (same pattern as HomePage).
-    const tokens = [keyword.trim(), date.trim(), location.trim()].filter(Boolean);
-    if (tokens.length) {
-      params.keyword = params.keyword ? `${params.keyword} ${tokens.join(" ")}` : tokens.join(" ");
+    const kw = keyword.trim();
+    if (kw) {
+      params.keyword = params.keyword ? `${params.keyword} ${kw}` : kw;
     }
 
     if (activeGroupId) {
@@ -96,7 +91,7 @@ export default function BoardPage() {
   };
 
   useEffect(() => { reload(); /* eslint-disable-next-line */ },
-    [sidebarTab, activeGroupId, activeTab, keyword, date, location, selectedCategory, selectedTag]);
+    [sidebarTab, activeGroupId, activeTab, keyword, selectedCategory, selectedTag]);
 
   useEffect(() => {
     boardApi.hot({ size: 5 }).then(setHotWeekly).catch(() => setHotWeekly([]));
@@ -110,22 +105,22 @@ export default function BoardPage() {
 
   const onToggleLike = async (post) => {
     try {
-      if (post.isLiked) await postsApi.unlike(post.id);
-      else await postsApi.like(post.id);
+      const r = post.isLiked
+        ? await postsApi.unlike(post.id)
+        : await postsApi.like(post.id);
       setPosts(posts.map((p) => p.id === post.id ? {
-        ...p, isLiked: !p.isLiked,
-        likeCount: p.likeCount + (p.isLiked ? -1 : 1),
+        ...p, isLiked: r.liked, likeCount: r.like_count,
       } : p));
     } catch { /* ignore */ }
   };
 
   const onToggleBookmark = async (post) => {
     try {
-      if (post.isBookmarked) await postsApi.unbookmark(post.id);
-      else await postsApi.bookmark(post.id);
+      const r = post.isBookmarked
+        ? await postsApi.unbookmark(post.id)
+        : await postsApi.bookmark(post.id);
       setPosts(posts.map((p) => p.id === post.id ? {
-        ...p, isBookmarked: !p.isBookmarked,
-        bookmarkCount: p.bookmarkCount + (p.isBookmarked ? -1 : 1),
+        ...p, isBookmarked: r.bookmarked, bookmarkCount: r.bookmark_count,
       } : p));
     } catch { /* ignore */ }
   };
@@ -158,9 +153,6 @@ export default function BoardPage() {
               </Box>
             );
           })}
-          <Box sx={{ px: 1.6, py: 1.2, fontSize: 14, color: tokens.color.placeholder }}>
-            {t("filter.tabs.more")}
-          </Box>
         </Box>
 
         {(activeTab === "official" || activeTab === "tags") && (
@@ -178,9 +170,10 @@ export default function BoardPage() {
             {(activeTab === "official" ? categoryOptions : tagOptions).map((opt) => {
               const cur = activeTab === "official" ? selectedCategory : selectedTag;
               const setCur = activeTab === "official" ? setSelectedCategory : setSelectedTag;
+              const label = translateTag(opt, i18n.language);
               return (
                 <ChipBtn key={opt} active={cur === opt} onClick={() => setCur(opt)}>
-                  {activeTab === "tags" ? `#${opt}` : opt}
+                  {activeTab === "tags" ? `#${label}` : label}
                 </ChipBtn>
               );
             })}
@@ -194,11 +187,7 @@ export default function BoardPage() {
           }}
         >
           <FilterField label={t("filter.keywordLabel")} placeholder={t("filter.keyword")}
-            value={keyword} onChange={setKeyword} flex={2} />
-          <FilterField label={t("filter.dateRangeLabel")} placeholder={t("filter.dateRange")}
-            value={date} onChange={setDate} icon={<CalendarTodayIcon sx={{ fontSize: 16, color: tokens.color.placeholder }} />} flex={1} />
-          <FilterField label={t("filter.location")} placeholder={t("filter.anyLocation")}
-            value={location} onChange={setLocation} icon={<PlaceIcon sx={{ fontSize: 16, color: tokens.color.placeholder }} />} flex={1} />
+            value={keyword} onChange={setKeyword} flex={3} />
           <IconButton sx={{
             bgcolor: NAVY, color: "#fff", borderRadius: 1.5, width: 50, height: 50,
             alignSelf: "flex-end", "&:hover": { bgcolor: tokens.color.navyDark },

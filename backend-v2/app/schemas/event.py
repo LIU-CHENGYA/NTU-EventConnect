@@ -29,6 +29,7 @@ class EventOut(BaseModel):
     title: str
     content: str | None = None
     category: str | None = None
+    official_category: str | None = None
     image_url: str | None = None
     organizer: str | None = None
     contact_phone: str | None = None

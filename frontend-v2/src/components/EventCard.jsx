@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { translateTag } from "../i18n/tagLabels";
 import { Box, Typography, IconButton } from "@mui/material";
 import StarIcon from "@mui/icons-material/Star";
 import FavoriteIcon from "@mui/icons-material/Favorite";
@@ -20,7 +21,7 @@ export default function EventCard({
   onToggleFavorite,
 }) {
   const navigate = useNavigate();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   const statusColors = {
     "報名成功": { bg: "#c8e6c9", color: "#1b5e20" },
@@ -86,14 +87,14 @@ export default function EventCard({
               {t("event.mealProvided")}
             </Box>
           )}
-          {event.category && (
+          {(event.officialCategory || event.category) && (
             <Box
               sx={{
                 bgcolor: "rgba(0,0,0,0.65)", color: "white",
                 fontSize: 11, px: 1, py: "2px", borderRadius: "4px",
               }}
             >
-              {event.category}
+              {translateTag(event.officialCategory || event.category, i18n.language)}
             </Box>
           )}
         </Box>
@@ -130,7 +131,7 @@ export default function EventCard({
                   px: 0.7, py: "1px", borderRadius: "3px",
                 }}
               >
-                #{tag}
+                #{translateTag(tag, i18n.language)}
               </Box>
             ))}
           </Box>

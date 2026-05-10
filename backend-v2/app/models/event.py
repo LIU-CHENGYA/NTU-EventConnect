@@ -23,6 +23,9 @@ class Event(Base):
     target_audience: Mapped[str | None] = mapped_column(String(500), nullable=True)
     restrictions: Mapped[str | None] = mapped_column(String(500), nullable=True)
     learning_category: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    # Phase 2.1: NTU 「官方分類」の大分類 (life_learning_type 先頭セグメント由来)。
+    # legacy `category` (= activity_type 講座/工作坊...) はタグとしても event_tags に書く。
+    official_category: Mapped[str | None] = mapped_column(String(100), index=True, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),

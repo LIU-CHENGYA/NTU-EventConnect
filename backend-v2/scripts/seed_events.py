@@ -131,6 +131,21 @@ def norm(s: str) -> str | None:
     return v
 
 
+# 公式分類 = life_learning_type の `/` 先頭セグメント。NTU actionList.aspx
+# の大項目に対応。「活動總表」「過期活動總表」は集計用バケットで意味の無い
+# ノイズなので NULL に倒す。
+_OFFICIAL_NOISE = {"活動總表", "過期活動總表"}
+
+
+def extract_official_category(life_learning_type: str | None) -> str | None:
+    if not life_learning_type:
+        return None
+    head = life_learning_type.split("/")[0].strip()
+    if not head or head in _OFFICIAL_NOISE:
+        return None
+    return head
+
+
 def seed(db, csv_path: Path = CSV_PATH, limit: int | None = None) -> tuple[int, int]:
     with open(csv_path, encoding="utf-8-sig", newline="") as f:
         rows = list(csv.DictReader(f))
@@ -146,11 +161,16 @@ def seed(db, csv_path: Path = CSV_PATH, limit: int | None = None) -> tuple[int, 
 
         if parent_url not in events_by_url:
             existing = db.query(Event).filter(Event.source_url == parent_url).first()
+            category = (row.get("activity_type") or "").strip()
+            category_clean = re.sub(r"\s*\([^)]*\)\s*$", "", category) or "活動"
+            official = extract_official_category(row.get("life_learning_type", ""))
             if existing:
+                # Idempotent backfill: existing rows seeded before official_category
+                # was introduced will have official_category=NULL; populate it.
+                if official and existing.official_category != official:
+                    existing.official_category = official
                 events_by_url[parent_url] = existing
             else:
-                category = (row.get("activity_type") or "").strip()
-                category_clean = re.sub(r"\s*\([^)]*\)\s*$", "", category) or "活動"
                 name, phone, email = parse_contact(row.get("organizer_contact", ""))
                 ev = Event(
                     source_url=parent_url,
@@ -159,6 +179,7 @@ def seed(db, csv_path: Path = CSV_PATH, limit: int | None = None) -> tuple[int, 
                            or "(無標題)").strip(),
                     content=norm(row.get("activity_content", "")),
                     category=category_clean,
+                    official_category=official,
                     image_url=pick_image(category),
                     organizer=norm(row.get("organizer_unit", "")),
                     organizer_contact=name or None,

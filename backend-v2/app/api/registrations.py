@@ -25,6 +25,8 @@ def register_session(
     sess = db.get(EventSession, session_id)
     if not sess:
         raise HTTPException(404, "Session not found")
+    if session_has_ended(sess):
+        raise HTTPException(409, "Activity already ended; registration not allowed")
 
     existing = db.query(Registration).filter(
         Registration.user_id == current.id,
@@ -141,6 +143,8 @@ def my_registrations(
             event_id=ev.id if ev else None,
             event_title=ev.title if ev else None,
             event_image=ev.image_url if ev else None,
+            category=ev.category if ev else None,
+            official_category=ev.official_category if ev else None,
             session_name=sess.session_name,
             date=sess.date,
             location=sess.location,

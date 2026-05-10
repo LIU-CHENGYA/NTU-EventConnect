@@ -13,6 +13,14 @@ TAG_LABELS = {
     "tag_free":             "免報名費",
     "tag_english":          "英文學習",
     "tag_career":           "職涯分享",
+    # Phase 2.1: activity_type 由来のタグ（公式分類 official_category と並列）
+    "tag_workshop":         "工作坊",
+    "tag_competition":      "競賽",
+    "tag_recruitment":      "徵才",
+    "tag_lecture":          "講座",
+    "tag_course":           "課程",
+    "tag_seminar":          "研習/研討",
+    "tag_growth_group":     "成長團體",
 }
 
 

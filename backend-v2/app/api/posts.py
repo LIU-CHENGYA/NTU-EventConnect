@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func, or_, and_
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
 from app.core.deps import get_current_user, get_current_user_optional
@@ -26,6 +27,12 @@ def _user_avatar(user: User | None) -> str | None:
 def _is_group_member(db: Session, user: User | None, group_id: int) -> bool:
     if not user:
         return False
+    # Owner is implicitly a member: groups.create_group does not insert the owner
+    # into GroupMember, and groups.get returns owner as a synthetic member in the
+    # detail view — so this is the canonical place to keep the two surfaces aligned.
+    g = db.get(Group, group_id)
+    if g and g.owner_id == user.id:
+        return True
     return (
         db.query(GroupMember.user_id)
         .filter(GroupMember.group_id == group_id, GroupMember.user_id == user.id)
@@ -144,18 +151,24 @@ def list_posts(
 ):
     q = db.query(Post).options(selectinload(Post.user))
 
-    # Visibility gating: anonymous viewers see only public; authed see public + own private + group posts where they're a member
+    # Visibility gating: anonymous viewers see only public; authed see public + own private + group posts where they're a member or owner
     if not current:
         q = q.filter(Post.visibility == "public")
     else:
         member_groups = (
             db.query(GroupMember.group_id).filter(GroupMember.user_id == current.id).subquery()
         )
+        owned_groups = (
+            db.query(Group.id).filter(Group.owner_id == current.id).subquery()
+        )
         q = q.filter(
             or_(
                 Post.visibility == "public",
                 and_(Post.visibility == "private", Post.user_id == current.id),
-                and_(Post.visibility == "group", Post.group_id.in_(member_groups)),
+                and_(
+                    Post.visibility == "group",
+                    or_(Post.group_id.in_(member_groups), Post.group_id.in_(owned_groups)),
+                ),
             )
         )
 
@@ -170,8 +183,11 @@ def list_posts(
     if is_board_post is not None:
         q = q.filter(Post.is_board_post == is_board_post)
     if category:
-        # Filter by the linked event's category — used by board page tabs
-        cat_events = db.query(Event.id).filter(Event.category == category).subquery()
+        # Filter by the linked event's category — match official_category (NTU
+        # 大分類) OR legacy category, mirroring /api/events filter semantics.
+        cat_events = db.query(Event.id).filter(
+            or_(Event.official_category == category, Event.category == category)
+        ).subquery()
         q = q.filter(Post.event_id.in_(cat_events))
     if tag:
         tag_events = db.query(EventTag.event_id).filter(EventTag.tag == tag).subquery()
@@ -342,26 +358,35 @@ def add_comment(
 
 
 # ---- likes ----
-@router.post("/{post_id}/like", status_code=204)
+def _post_like_count(db: Session, post_id: int) -> int:
+    return db.query(func.count(PostLike.post_id)).filter(PostLike.post_id == post_id).scalar() or 0
+
+
+def _post_bookmark_count(db: Session, post_id: int) -> int:
+    return db.query(func.count(PostBookmark.post_id)).filter(PostBookmark.post_id == post_id).scalar() or 0
+
+
+@router.post("/{post_id}/like")
 def like_post(
     post_id: int,
     db: Session = Depends(get_db),
     current: User = Depends(get_current_user),
 ):
+    """Like is idempotent. Returns the authoritative count so optimistic UI can reconcile."""
     post = db.get(Post, post_id)
     if not post:
         raise HTTPException(404, "Post not found")
     if not _can_view(db, post, current):
         raise HTTPException(404, "Post not found")
-    existing = db.query(PostLike).filter(
-        PostLike.post_id == post_id, PostLike.user_id == current.id
-    ).first()
-    if not existing:
+    try:
         db.add(PostLike(post_id=post_id, user_id=current.id))
         db.commit()
+    except IntegrityError:
+        db.rollback()  # already liked; treat as success
+    return {"liked": True, "like_count": _post_like_count(db, post_id)}
 
 
-@router.delete("/{post_id}/like", status_code=204)
+@router.delete("/{post_id}/like")
 def unlike_post(
     post_id: int,
     db: Session = Depends(get_db),
@@ -371,10 +396,11 @@ def unlike_post(
         PostLike.post_id == post_id, PostLike.user_id == current.id
     ).delete()
     db.commit()
+    return {"liked": False, "like_count": _post_like_count(db, post_id)}
 
 
 # ---- bookmarks ----
-@router.post("/{post_id}/bookmark", status_code=204)
+@router.post("/{post_id}/bookmark")
 def bookmark_post(
     post_id: int,
     db: Session = Depends(get_db),
@@ -385,15 +411,15 @@ def bookmark_post(
         raise HTTPException(404, "Post not found")
     if not _can_view(db, post, current):
         raise HTTPException(404, "Post not found")
-    existing = db.query(PostBookmark).filter(
-        PostBookmark.post_id == post_id, PostBookmark.user_id == current.id
-    ).first()
-    if not existing:
+    try:
         db.add(PostBookmark(post_id=post_id, user_id=current.id))
         db.commit()
+    except IntegrityError:
+        db.rollback()
+    return {"bookmarked": True, "bookmark_count": _post_bookmark_count(db, post_id)}
 
 
-@router.delete("/{post_id}/bookmark", status_code=204)
+@router.delete("/{post_id}/bookmark")
 def unbookmark_post(
     post_id: int,
     db: Session = Depends(get_db),
@@ -403,3 +429,4 @@ def unbookmark_post(
         PostBookmark.post_id == post_id, PostBookmark.user_id == current.id
     ).delete()
     db.commit()
+    return {"bookmarked": False, "bookmark_count": _post_bookmark_count(db, post_id)}

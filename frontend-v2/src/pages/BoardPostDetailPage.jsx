@@ -29,9 +29,10 @@ export default function BoardPostDetailPage() {
   const onToggleLike = async () => {
     if (!post) return;
     try {
-      if (post.isLiked) await postsApi.unlike(post.id);
-      else await postsApi.like(post.id);
-      setPost({ ...post, isLiked: !post.isLiked, likeCount: post.likeCount + (post.isLiked ? -1 : 1) });
+      const r = post.isLiked
+        ? await postsApi.unlike(post.id)
+        : await postsApi.like(post.id);
+      setPost({ ...post, isLiked: r.liked, likeCount: r.like_count });
     } catch { /* ignore */ }
   };
 
@@ -60,17 +61,17 @@ export default function BoardPostDetailPage() {
             <Avatar
               src={post.userAvatar}
               sx={{ width: 44, height: 44, cursor: "pointer" }}
-              onClick={() => navigate(`/profile/${post.user_id}`)}
+              onClick={() => navigate(`/profile/${post.userId}`)}
             />
             <Box sx={{ flex: 1 }}>
               <Typography
                 sx={{ fontSize: 14, fontWeight: 700, cursor: "pointer", "&:hover": { color: NAVY } }}
-                onClick={() => navigate(`/profile/${post.user_id}`)}
+                onClick={() => navigate(`/profile/${post.userId}`)}
               >
                 {post.userName}
               </Typography>
               <Typography sx={{ fontSize: 12, color: tokens.color.placeholder }}>
-                {formatDate(post.created_at)}
+                {formatDate(post.createdAt)}
               </Typography>
             </Box>
             <Box sx={{

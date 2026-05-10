@@ -9,11 +9,11 @@ import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import SearchIcon from "@mui/icons-material/Search";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
-import PlaceIcon from "@mui/icons-material/Place";
 import EventCard from "../components/EventCard";
 import { eventsApi } from "../api";
 import { useData } from "../context/DataContext";
 import { tokens } from "../theme";
+import { translateTag } from "../i18n/tagLabels";
 
 const PAGE_SIZE = 6;
 
@@ -30,7 +30,7 @@ const SHORTCUT_TABS = [
 ];
 
 export default function HomePage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
   const searchQuery = searchParams.get("search") || "";
 
@@ -39,7 +39,6 @@ export default function HomePage() {
   const [selectedTag, setSelectedTag] = useState("");
   const [keyword, setKeyword] = useState(searchQuery);
   const [date, setDate] = useState("");
-  const [location, setLocation] = useState("");
 
   const [listPage, setListPage] = useState(1);
   const [listData, setListData] = useState({ items: [], total: 0 });
@@ -57,7 +56,7 @@ export default function HomePage() {
   // Reset to page 1 when filters change
   useEffect(() => {
     setListPage(1);
-  }, [activeTab, selectedCategory, selectedTag, keyword, date, location]);
+  }, [activeTab, selectedCategory, selectedTag, keyword, date]);
 
   // Build query params from current filter state
   const buildQuery = () => {
@@ -68,7 +67,7 @@ export default function HomePage() {
     if (activeTab === "tags" && selectedTag) params.tag = selectedTag;
     const kw = keyword.trim();
     if (kw) params.keyword = params.keyword ? `${params.keyword} ${kw}` : kw;
-    if (location.trim()) params.keyword = (params.keyword ? params.keyword + " " : "") + location.trim();
+    if (date) params.date = date;
     return params;
   };
 
@@ -80,7 +79,7 @@ export default function HomePage() {
       .catch(() => { if (live) setListData({ items: [], total: 0 }); });
     return () => { live = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab, selectedCategory, selectedTag, keyword, date, location, listPage]);
+  }, [activeTab, selectedCategory, selectedTag, keyword, date, listPage]);
 
   // Hot
   useEffect(() => {
@@ -157,9 +156,6 @@ export default function HomePage() {
               </Box>
             );
           })}
-          <Box sx={{ px: 1.6, py: 1, fontSize: 14, color: tokens.color.placeholder, whiteSpace: "nowrap" }}>
-            {t("filter.tabs.more")}
-          </Box>
         </Box>
 
         {/* === Secondary chip row (官方分類 / #標籤) === */}
@@ -185,9 +181,10 @@ export default function HomePage() {
             {(activeTab === "official" ? categoryOptions : tagOptions).map((opt) => {
               const cur = activeTab === "official" ? selectedCategory : selectedTag;
               const setCur = activeTab === "official" ? setSelectedCategory : setSelectedTag;
+              const label = translateTag(opt, i18n.language);
               return (
                 <Chip key={opt} active={cur === opt} onClick={() => setCur(opt)}>
-                  {activeTab === "tags" ? `#${opt}` : opt}
+                  {activeTab === "tags" ? `#${label}` : label}
                 </Chip>
               );
             })}
@@ -211,22 +208,27 @@ export default function HomePage() {
             onEnter={handleKeywordEnter}
             flex={2}
           />
-          <FilterInput
-            label={t("filter.dateRangeLabel")}
-            placeholder={t("filter.dateRange")}
-            value={date}
-            onChange={setDate}
-            icon={<CalendarTodayIcon sx={{ fontSize: 16, color: tokens.color.placeholder }} />}
-            flex={1}
-          />
-          <FilterInput
-            label={t("filter.location")}
-            placeholder={t("filter.anyLocation")}
-            value={location}
-            onChange={setLocation}
-            icon={<PlaceIcon sx={{ fontSize: 16, color: tokens.color.placeholder }} />}
-            flex={1}
-          />
+          <Box sx={{ flex: 1, minWidth: 160 }}>
+            <Typography sx={{ fontSize: 12, color: tokens.color.placeholder, mb: 0.4 }}>
+              {t("filter.dateRangeLabel")}
+            </Typography>
+            <Box sx={{
+              display: "flex", alignItems: "center", bgcolor: "#fff",
+              border: `1px solid ${tokens.color.border}`, borderRadius: 1.5,
+              px: 1.4, height: 56, gap: 0.75,
+            }}>
+              <CalendarTodayIcon sx={{ fontSize: 16, color: tokens.color.placeholder }} />
+              <input
+                type="date"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                style={{
+                  border: "none", outline: "none", background: "transparent",
+                  flex: 1, fontSize: 14, color: tokens.color.text, fontFamily: "inherit",
+                }}
+              />
+            </Box>
+          </Box>
           <IconButton
             sx={{
               bgcolor: tokens.color.navy, color: "#fff",

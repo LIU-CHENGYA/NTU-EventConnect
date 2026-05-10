@@ -13,7 +13,8 @@ function mapEvent(e) {
     content: e.content || "",
     activityContent: e.content || "",
     category: e.category || "活動",
-    image: e.image_url,
+    officialCategory: e.official_category || null,
+    image: resolveUrl(e.image_url),
     organizer: e.organizer || "",
     organizerContact: e.organizer_contact || "",
     contactPhone: e.contact_phone || "",
@@ -46,9 +47,14 @@ const getBaseUrl = () => {
   return base.replace(/\/api\/?$/, "");
 };
 
+function resolveUrl(url) {
+  if (!url) return url;
+  return /^(https?:|data:)/i.test(url) ? url : `${getBaseUrl()}${url}`;
+}
+
 function avatarFor(userId, avatarPath) {
   if (avatarPath && String(avatarPath).trim() !== "") {
-    return avatarPath.startsWith("http") ? avatarPath : `${getBaseUrl()}${avatarPath}`;
+    return resolveUrl(avatarPath);
   }
   return `https://api.dicebear.com/7.x/adventurer/svg?seed=${userId}`;
 }
@@ -69,7 +75,7 @@ function mapPost(p) {
     commentCount: p.comment_count ?? 0,
     isLiked: !!p.is_liked,
     isBookmarked: !!p.is_bookmarked,
-    images: p.images || [],
+    images: (p.images || []).map(resolveUrl),
     createdAt: p.created_at || "",
     updatedAt: p.updated_at || "",
     userName: p.user_name || `User #${p.user_id}`,
@@ -87,13 +93,16 @@ function mapPost(p) {
 
 function mapUser(u) {
   if (!u) return null;
-  const timestamp = new Date().getTime();
+  // Upload backend generates unique filenames (secrets.token_hex), so the URL
+  // itself acts as the cache-bust key. Adding `?t=Date.now()` would force every
+  // page load to re-fetch the image (and risks being dropped by CDNs that
+  // strip query strings) — it doesn't help avatar update propagation.
   return {
     ...u,
     isAdmin: !!u.is_admin,
     studentId: u.student_id,
     avatarUrl: u.avatar_url
-      ? (u.avatar_url.startsWith("http") ? u.avatar_url : `${getBaseUrl()}${u.avatar_url}?t=${timestamp}`)
+      ? resolveUrl(u.avatar_url)
       : `https://api.dicebear.com/7.x/adventurer/svg?seed=${u.id}`,
   };
 }
@@ -180,10 +189,12 @@ export const postsApi = {
   remove: (id) => api.delete(`/api/posts/${id}`),
   addComment: (postId, content) =>
     api.post(`/api/posts/${postId}/comments`, { content }).then((r) => r.data),
-  like: (id) => api.post(`/api/posts/${id}/like`),
-  unlike: (id) => api.delete(`/api/posts/${id}/like`),
-  bookmark: (id) => api.post(`/api/posts/${id}/bookmark`),
-  unbookmark: (id) => api.delete(`/api/posts/${id}/bookmark`),
+  // like/bookmark return { liked|bookmarked, like_count|bookmark_count } so
+  // consumers can replace optimistic counts with server truth (idempotent).
+  like: (id) => api.post(`/api/posts/${id}/like`).then((r) => r.data),
+  unlike: (id) => api.delete(`/api/posts/${id}/like`).then((r) => r.data),
+  bookmark: (id) => api.post(`/api/posts/${id}/bookmark`).then((r) => r.data),
+  unbookmark: (id) => api.delete(`/api/posts/${id}/bookmark`).then((r) => r.data),
 };
 
 // Board API: thin sugar over postsApi for the 留言板 surfaces.
@@ -206,8 +217,8 @@ export const bookmarksApi = {
     const { data } = await api.get("/api/users/me/bookmarks/posts");
     return data.map(mapPost);
   },
-  bookmarkEvent: (id) => api.post(`/api/events/${id}/bookmark`),
-  unbookmarkEvent: (id) => api.delete(`/api/events/${id}/bookmark`),
+  bookmarkEvent: (id) => api.post(`/api/events/${id}/bookmark`).then((r) => r.data),
+  unbookmarkEvent: (id) => api.delete(`/api/events/${id}/bookmark`).then((r) => r.data),
 };
 
 function mapMyComment(c) {
@@ -232,7 +243,9 @@ export const usersApi = {
     const { data } = await api.get("/api/users/me/drafts");
     return data.map(mapPost);
   },
-  myRegistrations: () => api.get("/api/users/me/registrations").then((r) => r.data),
+  myRegistrations: () => api.get("/api/users/me/registrations").then((r) =>
+    r.data.map((reg) => ({ ...reg, event_image: resolveUrl(reg.event_image) }))
+  ),
   myComments: async () => {
     const { data } = await api.get("/api/users/me/comments");
     return data.map(mapMyComment);

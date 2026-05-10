@@ -1,4 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import func
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.deps import get_current_user
@@ -14,7 +16,11 @@ from app.api.posts import _post_out, _can_view
 router = APIRouter(tags=["bookmarks"])
 
 
-@router.post("/api/events/{event_id}/bookmark", status_code=204)
+def _event_bookmark_count(db: Session, event_id: int) -> int:
+    return db.query(func.count(EventBookmark.event_id)).filter(EventBookmark.event_id == event_id).scalar() or 0
+
+
+@router.post("/api/events/{event_id}/bookmark")
 def bookmark_event(
     event_id: int,
     db: Session = Depends(get_db),
@@ -22,15 +28,15 @@ def bookmark_event(
 ):
     if not db.get(Event, event_id):
         raise HTTPException(404, "Event not found")
-    exists = db.query(EventBookmark).filter(
-        EventBookmark.event_id == event_id, EventBookmark.user_id == current.id
-    ).first()
-    if not exists:
+    try:
         db.add(EventBookmark(event_id=event_id, user_id=current.id))
         db.commit()
+    except IntegrityError:
+        db.rollback()
+    return {"bookmarked": True, "bookmark_count": _event_bookmark_count(db, event_id)}
 
 
-@router.delete("/api/events/{event_id}/bookmark", status_code=204)
+@router.delete("/api/events/{event_id}/bookmark")
 def unbookmark_event(
     event_id: int,
     db: Session = Depends(get_db),
@@ -40,6 +46,7 @@ def unbookmark_event(
         EventBookmark.event_id == event_id, EventBookmark.user_id == current.id
     ).delete()
     db.commit()
+    return {"bookmarked": False, "bookmark_count": _event_bookmark_count(db, event_id)}
 
 
 @router.get("/api/users/me/bookmarks/events", response_model=list[EventDetailOut])

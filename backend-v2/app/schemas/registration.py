@@ -15,6 +15,10 @@ class RegistrationDetailOut(RegistrationOut):
     event_id: int | None = None
     event_title: str | None = None
     event_image: str | None = None
+    # Both axis are surfaced for the board post create dialog: it groups past
+    # registrations and falls back across columns when one is missing.
+    category: str | None = None
+    official_category: str | None = None
     session_name: str | None = None
     date: str | None = None
     location: str | None = None

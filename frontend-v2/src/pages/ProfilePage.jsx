@@ -5,9 +5,11 @@ import {
 } from "@mui/material";
 import EventCard from "../components/EventCard";
 import PostCard from "../components/PostCard";
+import CancelConfirmDialog from "../components/CancelConfirmDialog";
 import { useAuth } from "../context/AuthContext";
 import { useData } from "../context/DataContext";
 import { postsApi, usersApi, bookmarksApi, uploadsApi } from "../api";
+import api from "../api/client";
 import { tokens } from "../theme";
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -47,6 +49,9 @@ export default function ProfilePage() {
   const [bookmarkedEvents, setBookmarkedEvents] = useState([]);
   const [bookmarkedPosts, setBookmarkedPosts] = useState([]);
   const [myComments, setMyComments] = useState([]);
+  const [pendingCancel, setPendingCancel] = useState(null);
+  const [cancelLoading, setCancelLoading] = useState(false);
+  const [cancelError, setCancelError] = useState("");
 
   // 取得報名資料
   useEffect(() => {
@@ -88,9 +93,36 @@ export default function ProfilePage() {
   if (!ready) return null;
   if (!user) return null;
 
+  const isUpcoming = (reg) => {
+    if (!reg.date) return true;  // unknown date → keep visible
+    const eod = new Date(reg.date + "T23:59:59");
+    return Date.now() <= eod.getTime();
+  };
+
+  const baseRegs = tab === 1
+    ? myRegistrations.filter(isUpcoming)
+    : myRegistrations;
   const filteredRegistrations = statusFilter === "全部"
-    ? myRegistrations
-    : myRegistrations.filter((r) => STATUS_TO_ZH[r.status] === statusFilter);
+    ? baseRegs
+    : baseRegs.filter((r) => STATUS_TO_ZH[r.status] === statusFilter);
+
+  const reloadRegistrations = () =>
+    usersApi.myRegistrations().then(setMyRegistrations).catch(() => {});
+
+  const handleConfirmCancel = async () => {
+    if (!pendingCancel) return;
+    setCancelLoading(true);
+    setCancelError("");
+    try {
+      await api.delete(`/api/registrations/${pendingCancel.id}`);
+      setPendingCancel(null);
+      await reloadRegistrations();
+    } catch (e) {
+      setCancelError(e?.response?.data?.detail || e.message || "取消失敗");
+    } finally {
+      setCancelLoading(false);
+    }
+  };
 
   const sidebarCard = {
     bgcolor: "#fffefe",
@@ -171,10 +203,11 @@ export default function ProfilePage() {
               displayStaticWrapperAs="desktop"
               value={new Date()}
               slotProps={{
-                actionBar: { 
-                  sx: { display: 'none !important' } 
+                actionBar: {
+                  sx: { display: 'none !important' }
                 },
-                toolbar: { hidden: true }
+                // toolbar: hidden を解除し、年月切替を表示する（year disappearing バグ対策）
+                toolbar: { hidden: false },
               }}
               slots={{
                 day: (props) => {
@@ -343,7 +376,15 @@ export default function ProfilePage() {
                     date: reg.date,
                     location: reg.location,
                   };
-                  return <EventCard key={reg.id} event={event} showActions status={STATUS_TO_ZH[reg.status]} />;
+                  return (
+                    <EventCard
+                      key={reg.id}
+                      event={event}
+                      showActions
+                      status={STATUS_TO_ZH[reg.status]}
+                      onCancel={reg.status !== "cancelled" ? () => setPendingCancel(reg) : undefined}
+                    />
+                  );
                 })}
                 {filteredRegistrations.length === 0 && (
                   <Typography sx={{ textAlign: "center", color: "#999", gridColumn: "1/-1", py: 4 }}>沒有報名紀錄</Typography>
@@ -457,6 +498,20 @@ export default function ProfilePage() {
           <Button variant="contained" onClick={handleSaveEdit} sx={{ bgcolor: tokens.color.navy }}>儲存</Button>
         </DialogActions>
       </Dialog>
+
+      <CancelConfirmDialog
+        open={!!pendingCancel}
+        event={pendingCancel ? {
+          title: pendingCancel.event_title,
+          image: pendingCancel.event_image,
+          date: pendingCancel.date,
+          location: pendingCancel.location,
+          sessionName: pendingCancel.session_name,
+        } : undefined}
+        loading={cancelLoading}
+        onClose={() => { setPendingCancel(null); setCancelError(""); }}
+        onConfirm={handleConfirmCancel}
+      />
     </Box>
   );
 }

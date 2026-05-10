@@ -46,19 +46,18 @@ export function DataProvider({ children }) {
 
   const toggleEventBookmark = async (eventId) => {
     if (!user) return;
-    const prev = bookmarkedEventIds;
-    const isOn = prev.has(eventId);
-    const next = new Set(prev);
-    if (isOn) next.delete(eventId);
-    else next.add(eventId);
-    setBookmarkedEventIds(next);
+    const isOn = bookmarkedEventIds.has(eventId);
     try {
-      if (isOn) await bookmarksApi.unbookmarkEvent(eventId);
-      else await bookmarksApi.bookmarkEvent(eventId);
-    } catch {
-      // revert on failure — must be a NEW Set so React sees a different ref
-      setBookmarkedEventIds(new Set(prev));
-    }
+      const r = isOn
+        ? await bookmarksApi.unbookmarkEvent(eventId)
+        : await bookmarksApi.bookmarkEvent(eventId);
+      setBookmarkedEventIds((prev) => {
+        const next = new Set(prev);
+        if (r.bookmarked) next.add(eventId);
+        else next.delete(eventId);
+        return next;
+      });
+    } catch { /* keep current state on failure */ }
   };
 
   const isEventBookmarked = (id) => bookmarkedEventIds.has(id);

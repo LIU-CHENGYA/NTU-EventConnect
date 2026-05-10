@@ -29,6 +29,7 @@ def list_events(
     category: str | None = Query(None),
     tag: str | None = Query(None),
     keyword: str | None = Query(None),
+    date: str | None = Query(None, description="YYYY-MM-DD; events with any session on or after this date"),
     sort: str = Query("id", pattern="^(id|hot)$"),
     page: int = Query(1, ge=1),
     size: int = Query(20, ge=1, le=100),
@@ -36,8 +37,10 @@ def list_events(
 ):
     filters = []
     if category and category != "全部":
-        # Category is a finite taxonomy — exact match keeps semantics tight.
-        filters.append(Event.category == category)
+        # `category` query param now means "official category" (NTU 大分類).
+        # Some legacy callers may still send legacy values (講座/工作坊/...);
+        # OR-match on both columns so neither side breaks during the rollout.
+        filters.append(or_(Event.official_category == category, Event.category == category))
     if keyword:
         # 模糊比對且不限大小寫 — works for ASCII (English keywords) and
         # passes through for CJK where case is moot.
@@ -53,6 +56,16 @@ def list_events(
         # Tag list comes from a finite seed; exact match by design.
         tagged = db.query(EventTag.event_id).filter(EventTag.tag == tag).subquery()
         filters.append(Event.id.in_(tagged))
+    if date:
+        # `date` is a YYYY-MM-DD threshold. Match events with at least one
+        # session on or after that day. EventSession.date is stored as a string
+        # in YYYY-MM-DD format so lexicographic >= behaves as a date compare.
+        on_or_after = (
+            db.query(EventSession.event_id)
+            .filter(EventSession.date.isnot(None), EventSession.date >= date)
+            .subquery()
+        )
+        filters.append(Event.id.in_(on_or_after))
 
     total = (
         db.query(func.count(Event.id)).filter(*filters).scalar() or 0
@@ -90,10 +103,18 @@ def list_events(
 
 @router.get("/categories")
 def list_categories(db: Session = Depends(get_db)):
+    """Official NTU categories (life_learning_type 大分類).
+
+    Per-row fallback: any row missing `official_category` (i.e. legacy or
+    backfill-pending) contributes its `category` instead. This keeps the
+    listing complete during the rollout where some rows have one and not
+    the other.
+    """
+    name_expr = func.coalesce(Event.official_category, Event.category).label("name")
     rows = (
-        db.query(Event.category, func.count(Event.id).label("count"))
-        .filter(Event.category.isnot(None))
-        .group_by(Event.category)
+        db.query(name_expr, func.count(Event.id).label("count"))
+        .filter(name_expr.isnot(None))
+        .group_by(name_expr)
         .order_by(func.count(Event.id).desc())
         .all()
     )

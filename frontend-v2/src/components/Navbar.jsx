@@ -234,6 +234,9 @@ export default function Navbar() {
                     <MenuItem onClick={() => { setAnchorEl(null); navigate("/my-registrations"); }}>
                       {t("nav.myRegistrations")}
                     </MenuItem>
+                    <MenuItem onClick={() => { setAnchorEl(null); navigate("/board"); }}>
+                      {t("nav.groups")}
+                    </MenuItem>
                     <MenuItem onClick={handleLogout}>{t("nav.logout")}</MenuItem>
                   </Menu>
                 </>
@@ -340,6 +343,9 @@ export default function Navbar() {
               </ListItemButton>
               <ListItemButton onClick={() => drawerNav("/my-registrations")}>
                 <ListItemText primary={t("nav.myRegistrations")} />
+              </ListItemButton>
+              <ListItemButton onClick={() => drawerNav("/board")}>
+                <ListItemText primary={t("nav.groups")} />
               </ListItemButton>
               {user.isAdmin && (
                 <ListItemButton onClick={() => drawerNav("/events/create")}>
