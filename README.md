@@ -4,7 +4,7 @@
 
 > 軟體工程課期末專案
 
-**線上網址：** <https://d1p66hfjtmja1e.cloudfront.net/>
+**線上網址：** <https://d1tz6syfib05nx.cloudfront.net/>
 
 > **第二階段程式碼位置**：第一階段保留在 `frontend/` 與 `backend/`，第二階段新功能（留言板、群組、SSO、取消確認、i18n、標籤篩選等）放在 `frontend-v2/` 與 `backend-v2/`。CI/CD 目前仍指向第一階段。
 
@@ -720,7 +720,7 @@ Developer Push → GitHub → Actions Workflow → AWS Deployment
 
 ### Frontend（AWS S3 + CloudFront）
 
-**前端網址：** <https://d1p66hfjtmja1e.cloudfront.net>
+**前端網址：** <https://d1tz6syfib05nx.cloudfront.net>
 
 #### 自動部署流程（GitHub Actions）
 
@@ -740,7 +740,7 @@ Developer Push → GitHub → Actions Workflow → AWS Deployment
 - `AWS_SECRET_ACCESS_KEY`
 - `AWS_S3_BUCKET`
 - `CLOUDFRONT_DISTRIBUTION_ID`
-- `VITE_API_URL`（例如 `https://d1p66hfjtmja1e.cloudfront.net`，前端會呼叫 `${VITE_API_URL}/api/...`）
+- `VITE_API_URL`（例如 `https://d1tz6syfib05nx.cloudfront.net`，前端會呼叫 `${VITE_API_URL}/api/...`）
 ---
 
 ### Backend（AWS ECS Fargate + ECR）
@@ -816,12 +816,12 @@ ECS Task Definition 裡需要設定以下環境變數：
 | `JWT_SECRET` | JWT 簽名密鑰（用 `python -c "import secrets; print(secrets.token_urlsafe(48))"` 產生） |
 | `JWT_ALGORITHM` | `HS256` |
 | `JWT_EXPIRE_MINUTES` | `10080`（7 天） |
-| `CORS_ORIGINS` | 前端 domain（如 `https://d1p66hfjtmja1e.cloudfront.net`） |
+| `CORS_ORIGINS` | 前端 domain（如 `https://d1tz6syfib05nx.cloudfront.net`） |
 
 #### Frontend (Build Time)
 
 ```env
-VITE_API_URL=https://d1p66hfjtmja1e.cloudfront.net
+VITE_API_URL=https://d1tz6syfib05nx.cloudfront.net
 ```
 
 前端程式會呼叫 `${VITE_API_URL}/api/...`，CloudFront 再把 `/api/*` 代理到 ALB，
@@ -865,7 +865,7 @@ curl http://ntu-api-alb-1725363642.ap-northeast-1.elb.amazonaws.com/api/health
 # 預期: {"status":"ok"}
 
 # 測試前端
-curl -I https://d1p66hfjtmja1e.cloudfront.net
+curl -I https://d1tz6syfib05nx.cloudfront.net
 # 預期: HTTP 200
 
 # 測試 API 連接
