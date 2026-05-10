@@ -58,6 +58,8 @@ function mapPost(p) {
   return {
     ...p,
     title: p.title || "",
+    userId: p.user_id,
+    eventId: p.event_id ?? null,
     eventTitle: p.event_title || "",
     groupId: p.group_id || null,
     groupName: p.group_name || null,
@@ -67,10 +69,16 @@ function mapPost(p) {
     commentCount: p.comment_count ?? 0,
     isLiked: !!p.is_liked,
     isBookmarked: !!p.is_bookmarked,
+    images: p.images || [],
+    createdAt: p.created_at || "",
+    updatedAt: p.updated_at || "",
     userName: p.user_name || `User #${p.user_id}`,
     userAvatar: avatarFor(p.user_id, p.user_avatar),
     comments: (p.comments || []).map((c) => ({
       ...c,
+      userId: c.user_id,
+      postId: c.post_id ?? null,
+      createdAt: c.created_at || "",
       userName: c.user_name || `User #${c.user_id}`,
       userAvatar: avatarFor(c.user_id, c.user_avatar),
     })),
@@ -202,6 +210,21 @@ export const bookmarksApi = {
   unbookmarkEvent: (id) => api.delete(`/api/events/${id}/bookmark`),
 };
 
+function mapMyComment(c) {
+  if (!c) return null;
+  return {
+    id: c.id,
+    content: c.content,
+    createdAt: c.created_at,
+    postId: c.post_id,
+    postTitle: c.post_title,
+    postExcerpt: c.post_excerpt || "",
+    postIsBoardPost: !!c.post_is_board_post,
+    postEventId: c.post_event_id,
+    postEventTitle: c.post_event_title,
+  };
+}
+
 export const usersApi = {
   get: (id) => api.get(`/api/users/${id}`).then((r) => mapUser(r.data)),
   updateMe: (payload) => api.patch("/api/users/me", payload).then((r) => mapUser(r.data)),
@@ -210,6 +233,10 @@ export const usersApi = {
     return data.map(mapPost);
   },
   myRegistrations: () => api.get("/api/users/me/registrations").then((r) => r.data),
+  myComments: async () => {
+    const { data } = await api.get("/api/users/me/comments");
+    return data.map(mapMyComment);
+  },
 };
 
 export const uploadsApi = {

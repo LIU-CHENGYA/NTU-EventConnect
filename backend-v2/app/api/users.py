@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy.orm import Session
@@ -5,7 +7,7 @@ from sqlalchemy.orm import Session
 from app.core.deps import get_current_user
 from app.db.session import get_db
 from app.models.event import Event
-from app.models.post import Post
+from app.models.post import Comment, Post
 from app.models.registration import Registration
 from app.models.user import User
 from app.schemas.user import UserOut
@@ -39,6 +41,56 @@ def update_me(
     db.commit()
     db.refresh(current)
     return current
+
+
+class MyCommentOut(BaseModel):
+    """A comment authored by the current user, with enough post context to link back."""
+
+    id: int
+    content: str
+    created_at: datetime
+    post_id: int
+    post_title: str | None = None
+    post_excerpt: str
+    post_is_board_post: bool
+    post_event_id: int | None = None
+    post_event_title: str | None = None
+
+
+@router.get("/me/comments", response_model=list[MyCommentOut])
+def list_my_comments(
+    db: Session = Depends(get_db),
+    current: User = Depends(get_current_user),
+):
+    """Return the current user's comments, newest first, with linked post info.
+
+    The frontend renders this on the personal page so each comment can navigate
+    to its source post (board post or event review thread).
+    """
+    rows = (
+        db.query(Comment, Post, Event)
+        .join(Post, Post.id == Comment.post_id)
+        .outerjoin(Event, Event.id == Post.event_id)
+        .filter(Comment.user_id == current.id)
+        .order_by(Comment.created_at.desc())
+        .all()
+    )
+    out: list[MyCommentOut] = []
+    for c, p, e in rows:
+        out.append(
+            MyCommentOut(
+                id=c.id,
+                content=c.content,
+                created_at=c.created_at,
+                post_id=p.id,
+                post_title=p.title,
+                post_excerpt=(p.content or "")[:80],
+                post_is_board_post=bool(p.is_board_post),
+                post_event_id=p.event_id,
+                post_event_title=e.title if e else None,
+            )
+        )
+    return out
 
 
 @router.get("/{user_id}", response_model=UserProfileOut)

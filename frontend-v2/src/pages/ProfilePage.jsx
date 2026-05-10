@@ -25,7 +25,7 @@ const TAG_COLORS = {
   "求職": "rgba(255,57,159,0.42)",
 };
 
-const TABS = ["我的貼文", "即將到來的活動", "收藏貼文", "收藏活動"];
+const TABS = ["我的貼文", "即將到來的活動", "收藏貼文", "收藏活動", "我的留言"];
 const STATUS_FILTERS = ["全部", "報名成功", "等待候補", "已取消"];
 const STATUS_TO_ZH = { success: "報名成功", waitlist: "等待候補", cancelled: "已取消" };
 
@@ -46,6 +46,7 @@ export default function ProfilePage() {
   const [profileStats, setProfileStats] = useState({ post_count: 0, joined_event_count: 0 });
   const [bookmarkedEvents, setBookmarkedEvents] = useState([]);
   const [bookmarkedPosts, setBookmarkedPosts] = useState([]);
+  const [myComments, setMyComments] = useState([]);
 
   // 取得報名資料
   useEffect(() => {
@@ -73,12 +74,14 @@ export default function ProfilePage() {
       usersApi.get(user.id).catch(() => null),
       bookmarksApi.myEvents().catch(() => []),
       bookmarksApi.myPosts().catch(() => []),
-    ]).then(([posts, regs, profile, bEv, bPo]) => {
+      usersApi.myComments().catch(() => []),
+    ]).then(([posts, regs, profile, bEv, bPo, comments]) => {
       setMyPosts(posts);
       setMyRegistrations(regs);
       if (profile) setProfileStats(profile);
       setBookmarkedEvents(bEv);
       setBookmarkedPosts(bPo);
+      setMyComments(comments);
     });
   }, [user, ready, navigate]);
 
@@ -376,8 +379,39 @@ export default function ProfilePage() {
             </Box>
           )}
 
-          {/* 個人頁面に新增留言ボタンは置かない (Phase 2 spec: 個人頁不可新增留言。
-              留言板から作成する動線へ統一) */}
+          {tab === 4 && (
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
+              {myComments.map((c) => {
+                const target = c.postIsBoardPost
+                  ? `/board/posts/${c.postId}`
+                  : `/posts/${c.postId}`;
+                const headline = c.postTitle
+                  || c.postEventTitle
+                  || (c.postExcerpt ? `${c.postExcerpt}…` : "原文");
+                return (
+                  <Box
+                    key={c.id}
+                    onClick={() => navigate(target)}
+                    sx={{
+                      bgcolor: "#fffefe", borderRadius: "16px",
+                      boxShadow: tokens.shadow.pill, p: 2.5, cursor: "pointer",
+                      "&:hover": { transform: "translateY(-1px)", transition: "transform .15s" },
+                    }}
+                  >
+                    <Typography sx={{ fontSize: 14, color: tokens.color.text, mb: 0.8, whiteSpace: "pre-wrap" }}>
+                      {c.content}
+                    </Typography>
+                    <Typography sx={{ fontSize: 12, color: tokens.color.placeholder }}>
+                      留言於「{headline}」 · {(c.createdAt || "").slice(0, 10)}
+                    </Typography>
+                  </Box>
+                );
+              })}
+              {myComments.length === 0 && (
+                <Typography sx={{ textAlign: "center", color: "#999", py: 4 }}>尚無留言</Typography>
+              )}
+            </Box>
+          )}
         </Box>
       </Box>
 

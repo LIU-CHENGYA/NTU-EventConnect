@@ -22,8 +22,26 @@ from app.db.session import Base, SessionLocal, engine  # noqa: E402
 from app.models.event import Event, EventSession, EventTag  # noqa: E402
 from app import models  # noqa: F401, E402
 
-CSV_PATH = ROOT.parent / "fetch_data" / "csv" / "events.csv"
-TAGS_CSV_PATH = ROOT.parent / "fetch_data" / "csv" / "events_tags.csv"
+def _csv_dir() -> Path:
+    """Locate fetch_data/csv across host and docker-compose layouts.
+
+    - Host: backend-v2/ is sibling of fetch_data/  → ROOT.parent/fetch_data
+    - Container: scripts/ and fetch_data/ are both volume-mounted under /app
+      → ROOT/fetch_data (mounted via docker-compose volumes:)
+
+    `FETCH_DATA_DIR` env var overrides both for explicit deployments.
+    """
+    import os
+    env = os.getenv("FETCH_DATA_DIR")
+    if env:
+        return Path(env) / "csv"
+    sibling = ROOT.parent / "fetch_data" / "csv"
+    inside = ROOT / "fetch_data" / "csv"
+    return inside if inside.exists() else sibling
+
+
+CSV_PATH = _csv_dir() / "events.csv"
+TAGS_CSV_PATH = _csv_dir() / "events_tags.csv"
 
 DEFAULT_IMAGES = {
     "講座": "https://images.unsplash.com/photo-1505373877841-8d25f7d46678?w=800",

@@ -23,12 +23,12 @@ const NAVY = tokens.color.navy;
 
 const SHORTCUT_TABS = [
   { id: "all",      labelKey: "filter.tabs.all",      query: null },
-  { id: "official", labelKey: "filter.tabs.official", query: null }, // sub-tabs (官方分類): wired via secondary chip row in future iter
-  { id: "tags",     labelKey: "filter.tabs.tags",     query: null }, // sub-tabs (#標籤): wired via secondary chip row in future iter
+  { id: "official", labelKey: "filter.tabs.official", query: null }, // secondary chip row → category=
+  { id: "tags",     labelKey: "filter.tabs.tags",     query: null }, // secondary chip row → tag=
   { id: "free",     labelKey: "filter.tabs.free",     query: { tag: "免報名費" } },
   { id: "meal",     labelKey: "filter.tabs.meal",     query: { tag: "免費餐點" } },
-  { id: "career",   labelKey: "filter.tabs.career",   query: { keyword: "徵才" } },
-  { id: "english",  labelKey: "filter.tabs.english",  query: { keyword: "英文" } },
+  { id: "career",   labelKey: "filter.tabs.career",   query: { tag: "職涯分享" } },
+  { id: "english",  labelKey: "filter.tabs.english",  query: { tag: "英文學習" } },
 ];
 
 const VIS_LABELS = { public: "公開", private: "私人", group: "僅限群組" };
@@ -52,13 +52,32 @@ export default function BoardPage() {
   const [date, setDate] = useState("");
   const [location, setLocation] = useState("");
 
+  const [selectedCategory, setSelectedCategory] = useState("");
+  const [selectedTag, setSelectedTag] = useState("");
+  const [categoryOptions, setCategoryOptions] = useState([]);
+  const [tagOptions, setTagOptions] = useState([]);
+
+  // Reset secondary chip when switching the top tab away from official/tags.
+  useEffect(() => {
+    if (activeTab !== "official") setSelectedCategory("");
+    if (activeTab !== "tags") setSelectedTag("");
+  }, [activeTab]);
+
   const reload = () => {
     // Combine top-row shortcut tab → tag/keyword query with sidebar tab + group/keyword.
     const tabDef = SHORTCUT_TABS.find((tt) => tt.id === activeTab);
     const tabQuery = (tabDef && tabDef.query) || {};
-    const kw = keyword.trim();
     const params = { ...tabQuery };
-    if (kw) params.keyword = params.keyword ? `${params.keyword} ${kw}` : kw;
+
+    if (activeTab === "official" && selectedCategory) params.category = selectedCategory;
+    if (activeTab === "tags" && selectedTag) params.tag = selectedTag;
+
+    // The /api/posts endpoint accepts only `keyword`. Date and location have no
+    // dedicated columns, so we fold them into keyword (same pattern as HomePage).
+    const tokens = [keyword.trim(), date.trim(), location.trim()].filter(Boolean);
+    if (tokens.length) {
+      params.keyword = params.keyword ? `${params.keyword} ${tokens.join(" ")}` : tokens.join(" ");
+    }
 
     if (activeGroupId) {
       boardApi.byGroup(activeGroupId, params).then(setPosts).catch(() => setPosts([]));
@@ -76,11 +95,14 @@ export default function BoardPage() {
     p.then(setPosts).catch(() => setPosts([]));
   };
 
-  useEffect(() => { reload(); /* eslint-disable-next-line */ }, [sidebarTab, activeGroupId, activeTab, keyword]);
+  useEffect(() => { reload(); /* eslint-disable-next-line */ },
+    [sidebarTab, activeGroupId, activeTab, keyword, date, location, selectedCategory, selectedTag]);
 
   useEffect(() => {
     boardApi.hot({ size: 5 }).then(setHotWeekly).catch(() => setHotWeekly([]));
     if (user) groupsApi.listMine().then(setGroups).catch(() => setGroups([]));
+    eventsApi.categories().then((rows) => setCategoryOptions(rows.map((r) => r.name))).catch(() => {});
+    eventsApi.tags().then((rows) => setTagOptions(rows.map((r) => r.name))).catch(() => {});
   }, [user]);
 
   // Keyword filtering happens server-side via boardApi params.
@@ -140,6 +162,30 @@ export default function BoardPage() {
             {t("filter.tabs.more")}
           </Box>
         </Box>
+
+        {(activeTab === "official" || activeTab === "tags") && (
+          <Box sx={{
+            display: "flex", gap: 0.75, flexWrap: "wrap",
+            maxWidth: 1280, mx: "auto", mt: 1, mb: 0.5, p: 1.25,
+            bgcolor: "#fff", border: `1px solid ${tokens.color.border}`, borderRadius: 1.5,
+          }}>
+            <ChipBtn
+              active={(activeTab === "official" ? selectedCategory : selectedTag) === ""}
+              onClick={() => activeTab === "official" ? setSelectedCategory("") : setSelectedTag("")}
+            >
+              {activeTab === "official" ? t("filter.anyCategory") : t("filter.anyTag")}
+            </ChipBtn>
+            {(activeTab === "official" ? categoryOptions : tagOptions).map((opt) => {
+              const cur = activeTab === "official" ? selectedCategory : selectedTag;
+              const setCur = activeTab === "official" ? setSelectedCategory : setSelectedTag;
+              return (
+                <ChipBtn key={opt} active={cur === opt} onClick={() => setCur(opt)}>
+                  {activeTab === "tags" ? `#${opt}` : opt}
+                </ChipBtn>
+              );
+            })}
+          </Box>
+        )}
 
         <Box
           sx={{
@@ -330,6 +376,24 @@ function SideItem({ label, count, active, onClick, onEdit }) {
   );
 }
 
+function ChipBtn({ active, onClick, children }) {
+  return (
+    <Box
+      onClick={onClick}
+      sx={{
+        px: 1.4, py: 0.6, fontSize: 13, fontWeight: active ? 700 : 500,
+        color: active ? "#fff" : tokens.color.text,
+        bgcolor: active ? NAVY : "#fff",
+        border: `1px solid ${active ? NAVY : tokens.color.border}`,
+        borderRadius: "9999px", cursor: "pointer", userSelect: "none", whiteSpace: "nowrap",
+        "&:hover": { borderColor: NAVY },
+      }}
+    >
+      {children}
+    </Box>
+  );
+}
+
 function FilterField({ label, placeholder, value, onChange, icon, flex = 1 }) {
   return (
     <Box sx={{ flex }}>
@@ -370,7 +434,7 @@ function PostListItem({ post, onClick, onToggleLike, onToggleBookmark }) {
         <Box sx={{ flex: 1 }}>
           <Typography sx={{ fontSize: 13, fontWeight: 700 }}>{post.userName}</Typography>
           <Typography sx={{ fontSize: 11, color: tokens.color.placeholder }}>
-            {formatDate(post.created_at)}
+            {formatDate(post.createdAt)}
           </Typography>
         </Box>
         <Box sx={{

@@ -1,3 +1,8 @@
+import logging
+from contextlib import asynccontextmanager
+
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.triggers.cron import CronTrigger
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -15,9 +20,33 @@ from pathlib import Path
 from app.core.config import settings
 from app.db.session import Base, engine
 from app.db.migrate import run_startup_migrations
+from app.scheduler.daily_refresh import run_daily_refresh
 from app import models  # noqa: F401  ensure models are imported before create_all
 
-app = FastAPI(title="NTU EventConnect API", version="0.1.0")
+logger = logging.getLogger(__name__)
+
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    # Daily 02:00 Asia/Taipei: NTU 学校サイトが夜間にしか抓取を許さないため
+    scheduler = AsyncIOScheduler(timezone="Asia/Taipei")
+    scheduler.add_job(
+        run_daily_refresh,
+        CronTrigger(hour=2, minute=0),
+        id="daily_data_refresh",
+        replace_existing=True,
+        coalesce=True,
+        max_instances=1,
+    )
+    scheduler.start()
+    logger.info("APScheduler started: daily_data_refresh @ 02:00 Asia/Taipei")
+    try:
+        yield
+    finally:
+        scheduler.shutdown(wait=False)
+
+
+app = FastAPI(title="NTU EventConnect API", version="0.1.0", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins_list,

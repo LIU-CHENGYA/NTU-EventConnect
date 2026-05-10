@@ -11,6 +11,8 @@ TAG_LABELS = {
     "tag_audience_alumni":  "校友",
     "tag_audience_faculty": "教師",
     "tag_free":             "免報名費",
+    "tag_english":          "英文學習",
+    "tag_career":           "職涯分享",
 }
 
 

@@ -7,6 +7,20 @@ CONTENT_FIELDS = ["activity_content", "session_content", "note"]
 
 MEAL_HAS_FOOD = {"提供用餐", "葷食", "素食(植物性餐食)"}
 
+ENGLISH_KEYWORDS = ("英文", "英語", "English")
+CAREER_KEYWORDS = ("職涯", "生涯", "就業", "求職", "工作職場", "career")
+KEYWORD_SCAN_FIELDS = (
+    "activity_content",
+    "activity_name_event_page",
+    "activity_name_activity_session",
+    "session_content",
+    "life_learning_type",
+)
+
+
+def _row_text(row) -> str:
+    return " ".join(str(row.get(c) or "") for c in KEYWORD_SCAN_FIELDS)
+
 
 def fix_newlines(df: pd.DataFrame) -> pd.DataFrame:
     for col in CONTENT_FIELDS:
@@ -30,6 +44,11 @@ def add_tag_columns(df: pd.DataFrame) -> pd.DataFrame:
 
     # tag_free: 免費報名
     df["tag_free"] = df["registration_fee"] == "免費"
+
+    # tag_english / tag_career: keyword scan across content + title + learning type
+    text = df.apply(_row_text, axis=1)
+    df["tag_english"] = text.apply(lambda t: any(k in t for k in ENGLISH_KEYWORDS))
+    df["tag_career"] = text.apply(lambda t: any(k in t for k in CAREER_KEYWORDS))
 
     return df
 

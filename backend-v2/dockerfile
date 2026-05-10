@@ -23,6 +23,10 @@ RUN pip install --no-cache-dir --upgrade pip && \
 # 複製應用程式碼
 COPY app/ ./app/
 
+# scripts/ は APScheduler 経由の daily_refresh が `python -m scripts.seed_events`
+# で起動するため必須。CSV (fetch_data/) は別管理 (volume mount / 外部 sync) が前提。
+COPY scripts/ ./scripts/
+
 # 建立 uploads 目錄
 RUN mkdir -p uploads
 
