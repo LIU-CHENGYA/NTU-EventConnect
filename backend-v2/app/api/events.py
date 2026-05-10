@@ -40,7 +40,13 @@ def list_events(
         # `category` = 母活動名 (Event.official_category = activity_name_activity_session,
         # info.md L30 + Figma). Match equally against Event.title because old DBs
         # may not have the column populated yet; both store the parent name.
-        filters.append(or_(Event.official_category == category, Event.title == category))
+        # Event.category (= activity_type 講座/工作坊...) is kept in the OR for
+        # backward compatibility with legacy seed/test fixtures.
+        filters.append(or_(
+            Event.official_category == category,
+            Event.title == category,
+            Event.category == category,
+        ))
     if keyword:
         # 模糊比對且不限大小寫 — works for ASCII (English keywords) and
         # passes through for CJK where case is moot.

@@ -75,7 +75,7 @@ def _user_attended_ended(db: Session, user: User, event_id: int) -> bool:
     return False
 
 
-def _post_out(db: Session, p: Post) -> PostOut:
+def _post_out(db: Session, p: Post, viewer: User | None = None) -> PostOut:
     out = PostOut.model_validate(p)
     out.user_name = p.user.name if p.user else None
     out.user_avatar = _user_avatar(p.user)
@@ -94,6 +94,21 @@ def _post_out(db: Session, p: Post) -> PostOut:
     out.comment_count = (
         db.query(func.count(Comment.id)).filter(Comment.post_id == p.id).scalar() or 0
     )
+    if viewer is not None:
+        out.is_liked = (
+            db.query(PostLike.user_id)
+            .filter(PostLike.post_id == p.id, PostLike.user_id == viewer.id)
+            .limit(1)
+            .scalar()
+            is not None
+        )
+        out.is_bookmarked = (
+            db.query(PostBookmark.user_id)
+            .filter(PostBookmark.post_id == p.id, PostBookmark.user_id == viewer.id)
+            .limit(1)
+            .scalar()
+            is not None
+        )
     return out
 
 
@@ -105,29 +120,10 @@ def _comment_out(c: Comment) -> CommentOut:
 
 
 def _detail(db: Session, post: Post, user: User | None) -> PostDetailOut:
-    base = _post_out(db, post)
-    is_liked = False
-    is_bookmarked = False
-    if user:
-        is_liked = (
-            db.query(PostLike.user_id)
-            .filter(PostLike.post_id == post.id, PostLike.user_id == user.id)
-            .limit(1)
-            .scalar()
-            is not None
-        )
-        is_bookmarked = (
-            db.query(PostBookmark.user_id)
-            .filter(PostBookmark.post_id == post.id, PostBookmark.user_id == user.id)
-            .limit(1)
-            .scalar()
-            is not None
-        )
+    base = _post_out(db, post, viewer=user)
     return PostDetailOut(
         **base.model_dump(),
         comments=[_comment_out(c) for c in post.comments],
-        is_liked=is_liked,
-        is_bookmarked=is_bookmarked,
     )
 
 
@@ -185,8 +181,13 @@ def list_posts(
     if category:
         # Filter by linked event's parent activity name — mirrors /api/events
         # semantics (info.md L30: 母活動名 = activity_name_activity_session).
+        # Event.category is kept in the OR for backward compatibility.
         cat_events = db.query(Event.id).filter(
-            or_(Event.official_category == category, Event.title == category)
+            or_(
+                Event.official_category == category,
+                Event.title == category,
+                Event.category == category,
+            )
         ).subquery()
         q = q.filter(Post.event_id.in_(cat_events))
     if tag:
@@ -232,7 +233,7 @@ def list_posts(
         q = q.order_by(Post.id.desc())
 
     rows = q.offset((page - 1) * size).limit(size).all()
-    return [_post_out(db, p) for p in rows]
+    return [_post_out(db, p, viewer=current) for p in rows]
 
 
 # ---------- create ----------
@@ -271,7 +272,7 @@ def create_post(
     db.add(p)
     db.commit()
     db.refresh(p)
-    return _post_out(db, p)
+    return _post_out(db, p, viewer=current)
 
 
 # ---------- get / patch / delete ----------
@@ -319,7 +320,7 @@ def update_post(
         setattr(post, k, v)
     db.commit()
     db.refresh(post)
-    return _post_out(db, post)
+    return _post_out(db, post, viewer=current)
 
 
 @router.delete("/{post_id}", status_code=204)

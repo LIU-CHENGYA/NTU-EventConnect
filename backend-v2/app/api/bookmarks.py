@@ -96,7 +96,7 @@ def my_post_bookmarks(
     # appearing once the user is removed from the group, and visibility flips
     # from public→private aren't leaked via bookmarks.
     visible = [p for p in rows if _can_view(db, p, current)]
-    return [_post_out(db, p) for p in visible]
+    return [_post_out(db, p, viewer=current) for p in visible]
 
 
 @router.get("/api/users/me/drafts", response_model=list[PostOut])
@@ -115,4 +115,4 @@ def my_drafts(
         .limit(size)
         .all()
     )
-    return [_post_out(db, p) for p in rows]
+    return [_post_out(db, p, viewer=current) for p in rows]

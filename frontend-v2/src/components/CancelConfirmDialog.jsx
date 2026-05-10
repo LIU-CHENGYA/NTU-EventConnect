@@ -13,6 +13,7 @@ export default function CancelConfirmDialog({
   onClose,
   onConfirm,
   loading = false,
+  error = "",
   event,           // { title, sessionName, image, date, location }
   category,        // optional category chip text
 }) {
@@ -97,6 +98,16 @@ export default function CancelConfirmDialog({
           <li>{t("cancelDialog.bullet1")}</li>
           <li>{t("cancelDialog.bullet2")}</li>
         </Box>
+
+        {error && (
+          <Box sx={{
+            mt: 2, px: 2, py: 1.25, borderRadius: 1.5,
+            bgcolor: "#FFF1F0", border: "1px solid #FFD6D6",
+            color: "#A8071A", fontSize: 13,
+          }}>
+            {error}
+          </Box>
+        )}
 
         <Box sx={{ mt: 3, display: "flex", gap: 1.5, justifyContent: "flex-end" }}>
           <Button

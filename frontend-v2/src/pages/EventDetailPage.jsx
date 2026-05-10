@@ -224,16 +224,36 @@ export default function EventDetailPage() {
                 <Typography sx={{ fontSize: 13 }}>用餐：{event.meal}</Typography>
               )}
 
-              <Button
-                onClick={() => navigate(`/events/${event.id}/register`)}
-                sx={{
-                  mt: 1.5, bgcolor: "#1e1e1e", color: "#fffefe",
-                  borderRadius: "30px", height: 54, fontSize: 22, fontWeight: 700,
-                  textTransform: "none", "&:hover": { bgcolor: "#000" },
-                }}
-              >
-                立即報名
-              </Button>
+              {(() => {
+                // CTA: フロント側で終了判定 (date のみ、approximate)。
+                // backend の session_has_ended は time_range も見るが、UI の
+                // 早期 disable は登録ページで 409 を見る前の摩擦削減用。
+                const sessions = event.sessions || [];
+                const today = new Date(); today.setHours(0, 0, 0, 0);
+                const hasFuture = sessions.some((s) => {
+                  if (!s.date) return true;
+                  const d = new Date(`${s.date}T23:59:59`);
+                  return d.getTime() >= today.getTime();
+                });
+                const ended = sessions.length > 0 && !hasFuture;
+                return (
+                  <Button
+                    onClick={() => !ended && navigate(`/events/${event.id}/register`)}
+                    disabled={ended}
+                    sx={{
+                      mt: 1.5,
+                      bgcolor: ended ? "#9aa0a6" : "#1e1e1e",
+                      color: "#fffefe",
+                      borderRadius: "30px", height: 54, fontSize: 22, fontWeight: 700,
+                      textTransform: "none",
+                      "&:hover": { bgcolor: ended ? "#9aa0a6" : "#000" },
+                      "&.Mui-disabled": { bgcolor: "#9aa0a6", color: "#fffefe" },
+                    }}
+                  >
+                    {ended ? "活動已結束" : "立即報名"}
+                  </Button>
+                );
+              })()}
             </Card>
           </Box>
         </Box>

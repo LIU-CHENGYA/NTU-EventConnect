@@ -67,11 +67,15 @@ class PostOut(BaseModel):
     like_count: int = 0
     bookmark_count: int = 0
     comment_count: int = 0
+    # Per-viewer toggle state. Populated by _post_out() when a current user is
+    # available, false otherwise. Exposing this on the list response is required
+    # so the heart/bookmark icons start in the correct state — without it, list
+    # views always render as "not liked" until a detail navigation refreshes.
+    is_liked: bool = False
+    is_bookmarked: bool = False
     created_at: datetime
     updated_at: datetime
 
 
 class PostDetailOut(PostOut):
     comments: list[CommentOut] = []
-    is_liked: bool = False
-    is_bookmarked: bool = False

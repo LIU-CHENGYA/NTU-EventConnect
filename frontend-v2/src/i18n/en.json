@@ -32,9 +32,10 @@
       "free": "Free",
       "meal": "Meal Provided",
       "career": "Career Fair",
-      "english": "English",
-      "more": "More"
+      "english": "English"
     },
+    "officialHint": "Filter by parent activity (e.g. VISION Career Fair series)",
+    "tagsHint": "Filter by topic tag (Workshop, Competition, Recruitment, etc.)",
     "keyword": "Search by name / organizer",
     "keywordLabel": "Keyword",
     "dateRange": "Pick a date",

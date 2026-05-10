@@ -32,9 +32,10 @@
       "free": "免費活動",
       "meal": "有提供餐點",
       "career": "企業徵才",
-      "english": "英文相關",
-      "more": "更多"
+      "english": "英文相關"
     },
+    "officialHint": "依母活動名分類（例：VISION 微才博覽會）",
+    "tagsHint": "依主題標籤分類（工作坊、競賽、徵才等）",
     "keyword": "搜尋活動名稱／主辦單位",
     "keywordLabel": "關鍵字",
     "dateRange": "選擇日期",

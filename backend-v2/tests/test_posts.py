@@ -135,14 +135,20 @@ def test_like_idempotent_and_unlike(client):
     t2, _ = _register(client, "b@b.com")
     pid = client.post("/api/posts", headers=_auth(t1), json={"content": "x"}).json()["id"]
 
-    assert client.post(f"/api/posts/{pid}/like", headers=_auth(t2)).status_code == 204
-    assert client.post(f"/api/posts/{pid}/like", headers=_auth(t2)).status_code == 204  # idempotent
+    # Endpoints return 200 + {liked, like_count} so the client can reconcile
+    # optimistic UI counts with server truth (idempotent on duplicate clicks).
+    r = client.post(f"/api/posts/{pid}/like", headers=_auth(t2))
+    assert r.status_code == 200 and r.json() == {"liked": True, "like_count": 1}
+    r = client.post(f"/api/posts/{pid}/like", headers=_auth(t2))  # idempotent
+    assert r.status_code == 200 and r.json() == {"liked": True, "like_count": 1}
     assert client.get(f"/api/posts/{pid}").json()["like_count"] == 1
 
-    assert client.delete(f"/api/posts/{pid}/like", headers=_auth(t2)).status_code == 204
+    r = client.delete(f"/api/posts/{pid}/like", headers=_auth(t2))
+    assert r.status_code == 200 and r.json() == {"liked": False, "like_count": 0}
     assert client.get(f"/api/posts/{pid}").json()["like_count"] == 0
     # unlike when not liked is fine
-    assert client.delete(f"/api/posts/{pid}/like", headers=_auth(t2)).status_code == 204
+    r = client.delete(f"/api/posts/{pid}/like", headers=_auth(t2))
+    assert r.status_code == 200 and r.json() == {"liked": False, "like_count": 0}
 
 
 def test_like_missing_post(client):
@@ -156,23 +162,28 @@ def test_bookmark_post_and_list(client):
     t2, _ = _register(client, "b@b.com")
     pid = client.post("/api/posts", headers=_auth(t1), json={"content": "x"}).json()["id"]
 
-    assert client.post(f"/api/posts/{pid}/bookmark", headers=_auth(t2)).status_code == 204
-    assert client.post(f"/api/posts/{pid}/bookmark", headers=_auth(t2)).status_code == 204
+    r = client.post(f"/api/posts/{pid}/bookmark", headers=_auth(t2))
+    assert r.status_code == 200 and r.json() == {"bookmarked": True, "bookmark_count": 1}
+    r = client.post(f"/api/posts/{pid}/bookmark", headers=_auth(t2))  # idempotent
+    assert r.status_code == 200 and r.json() == {"bookmarked": True, "bookmark_count": 1}
     rows = client.get("/api/users/me/bookmarks/posts", headers=_auth(t2)).json()
     assert len(rows) == 1 and rows[0]["id"] == pid
 
-    assert client.delete(f"/api/posts/{pid}/bookmark", headers=_auth(t2)).status_code == 204
+    r = client.delete(f"/api/posts/{pid}/bookmark", headers=_auth(t2))
+    assert r.status_code == 200 and r.json() == {"bookmarked": False, "bookmark_count": 0}
     assert client.get("/api/users/me/bookmarks/posts", headers=_auth(t2)).json() == []
 
 
 def test_bookmark_event_and_list(client):
     t, _ = _register(client, "a@b.com")
     eid = _create_event(client)
-    assert client.post(f"/api/events/{eid}/bookmark", headers=_auth(t)).status_code == 204
+    r = client.post(f"/api/events/{eid}/bookmark", headers=_auth(t))
+    assert r.status_code == 200 and r.json() == {"bookmarked": True, "bookmark_count": 1}
     rows = client.get("/api/users/me/bookmarks/events", headers=_auth(t)).json()
     assert len(rows) == 1 and rows[0]["id"] == eid
 
-    assert client.delete(f"/api/events/{eid}/bookmark", headers=_auth(t)).status_code == 204
+    r = client.delete(f"/api/events/{eid}/bookmark", headers=_auth(t))
+    assert r.status_code == 200 and r.json() == {"bookmarked": False, "bookmark_count": 0}
     assert client.get("/api/users/me/bookmarks/events", headers=_auth(t)).json() == []
 
 

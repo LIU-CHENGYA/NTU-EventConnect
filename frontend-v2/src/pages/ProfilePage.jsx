@@ -141,7 +141,8 @@ export default function ProfilePage() {
     setEditForm({ ...editForm, avatarUrl: previewUrl });
   };
 
-  const upcomingCount = myRegistrations.filter((r) => r.status === "success").length;
+  // sidebar count uses the same upcoming filter as the tab so they stay consistent.
+  const upcomingCount = myRegistrations.filter((r) => r.status === "success" && isUpcoming(r)).length;
   const stats = [
     { label: "貼文", value: profileStats.post_count },
     { label: "已參加的活動", value: profileStats.joined_event_count },
@@ -509,6 +510,7 @@ export default function ProfilePage() {
           sessionName: pendingCancel.session_name,
         } : undefined}
         loading={cancelLoading}
+        error={cancelError}
         onClose={() => { setPendingCancel(null); setCancelError(""); }}
         onConfirm={handleConfirmCancel}
       />

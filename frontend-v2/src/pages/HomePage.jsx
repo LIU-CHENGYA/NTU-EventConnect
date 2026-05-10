@@ -160,6 +160,11 @@ export default function HomePage() {
 
         {/* === Secondary chip row (官方分類 = 母活動名 / #標籤) === */}
         {(activeTab === "official" || activeTab === "tags") && (
+          <Typography sx={{ fontSize: 12, color: tokens.color.placeholder, mb: 0.5 }}>
+            {activeTab === "official" ? t("filter.officialHint") : t("filter.tagsHint")}
+          </Typography>
+        )}
+        {(activeTab === "official" || activeTab === "tags") && (
           <Box
             sx={{
               display: "flex",

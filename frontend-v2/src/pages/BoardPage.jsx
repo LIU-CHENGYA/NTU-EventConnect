@@ -156,9 +156,17 @@ export default function BoardPage() {
         </Box>
 
         {(activeTab === "official" || activeTab === "tags") && (
+          <Typography sx={{
+            fontSize: 12, color: tokens.color.placeholder,
+            maxWidth: 1280, mx: "auto", mt: 1,
+          }}>
+            {activeTab === "official" ? t("filter.officialHint") : t("filter.tagsHint")}
+          </Typography>
+        )}
+        {(activeTab === "official" || activeTab === "tags") && (
           <Box sx={{
             display: "flex", gap: 0.75,
-            maxWidth: 1280, mx: "auto", mt: 1, mb: 0.5, p: 1.25,
+            maxWidth: 1280, mx: "auto", mt: 0.5, mb: 0.5, p: 1.25,
             bgcolor: "#fff", border: `1px solid ${tokens.color.border}`, borderRadius: 1.5,
             // 母活動名は 329 種あるため横スクロール、タグは折返し OK
             flexWrap: activeTab === "tags" ? "wrap" : "nowrap",
@@ -197,10 +205,13 @@ export default function BoardPage() {
         >
           <FilterField label={t("filter.keywordLabel")} placeholder={t("filter.keyword")}
             value={keyword} onChange={setKeyword} flex={3} />
-          <IconButton sx={{
-            bgcolor: NAVY, color: "#fff", borderRadius: 1.5, width: 50, height: 50,
-            alignSelf: "flex-end", "&:hover": { bgcolor: tokens.color.navyDark },
-          }}>
+          <IconButton
+            onClick={reload}
+            sx={{
+              bgcolor: NAVY, color: "#fff", borderRadius: 1.5, width: 50, height: 50,
+              alignSelf: "flex-end", "&:hover": { bgcolor: tokens.color.navyDark },
+            }}
+          >
             <SearchIcon />
           </IconButton>
         </Box>
