@@ -40,6 +40,7 @@ Thumbs.db
 
 # Claude Code 工作檔
 CLAUDE.md
+AGENTS.md
 .claude/
 
 # 執行時上傳檔案
