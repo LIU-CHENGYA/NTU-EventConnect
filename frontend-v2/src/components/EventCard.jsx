@@ -87,14 +87,14 @@ export default function EventCard({
               {t("event.mealProvided")}
             </Box>
           )}
-          {(event.officialCategory || event.category) && (
+          {event.category && (
             <Box
               sx={{
                 bgcolor: "rgba(0,0,0,0.65)", color: "white",
                 fontSize: 11, px: 1, py: "2px", borderRadius: "4px",
               }}
             >
-              {translateTag(event.officialCategory || event.category, i18n.language)}
+              {translateTag(event.category, i18n.language)}
             </Box>
           )}
         </Box>

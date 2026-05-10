@@ -131,19 +131,14 @@ def norm(s: str) -> str | None:
     return v
 
 
-# 公式分類 = life_learning_type の `/` 先頭セグメント。NTU actionList.aspx
-# の大項目に対応。「活動總表」「過期活動總表」は集計用バケットで意味の無い
-# ノイズなので NULL に倒す。
-_OFFICIAL_NOISE = {"活動總表", "過期活動總表"}
-
-
-def extract_official_category(life_learning_type: str | None) -> str | None:
-    if not life_learning_type:
+# 公式分類 = 母活動名 (activity_name_activity_session)。
+# fetch_data/info.md L30 に従い「大類別は activity_name_activity_session
+# 欄位」とチームで合意。複数場次を 1 個の母活動チップにまとめる軸。
+def extract_official_category(activity_name_activity_session: str | None) -> str | None:
+    if not activity_name_activity_session:
         return None
-    head = life_learning_type.split("/")[0].strip()
-    if not head or head in _OFFICIAL_NOISE:
-        return None
-    return head
+    v = activity_name_activity_session.strip()
+    return v or None
 
 
 def seed(db, csv_path: Path = CSV_PATH, limit: int | None = None) -> tuple[int, int]:
@@ -163,23 +158,34 @@ def seed(db, csv_path: Path = CSV_PATH, limit: int | None = None) -> tuple[int, 
             existing = db.query(Event).filter(Event.source_url == parent_url).first()
             category = (row.get("activity_type") or "").strip()
             category_clean = re.sub(r"\s*\([^)]*\)\s*$", "", category) or "活動"
-            official = extract_official_category(row.get("life_learning_type", ""))
+            # 母活動名 (parent activity name) — info.md L30 と Figma に従い
+            # 「台大官方分類」のチップ source として使う。
+            parent_name = extract_official_category(row.get("activity_name_activity_session", ""))
+            # Event.title は母活動名を優先。activity_name_event_page は場次ページ名で
+            # 同一母活動内でも揺れが入りうる (info.md L78)。
+            # strip した後で truthiness 判定 — 空白のみの親活動名でも event_page に正しくフォールバック。
+            title = (
+                parent_name
+                or (row.get("activity_name_event_page") or "").strip()
+                or "(無標題)"
+            )
             if existing:
-                # Idempotent backfill: existing rows seeded before official_category
-                # was introduced will have official_category=NULL; populate it.
-                if official and existing.official_category != official:
-                    existing.official_category = official
+                # Idempotent backfill: 旧 seed (life_learning_type 由来) で
+                # official_category が入っているケースを上書きする。Event.title も
+                # 場次名で seed されている可能性があるので母活動名に揃える。
+                if parent_name and existing.official_category != parent_name:
+                    existing.official_category = parent_name
+                if title and existing.title != title:
+                    existing.title = title
                 events_by_url[parent_url] = existing
             else:
                 name, phone, email = parse_contact(row.get("organizer_contact", ""))
                 ev = Event(
                     source_url=parent_url,
-                    title=(row.get("activity_name_event_page")
-                           or row.get("activity_name_activity_session")
-                           or "(無標題)").strip(),
+                    title=title,
                     content=norm(row.get("activity_content", "")),
                     category=category_clean,
-                    official_category=official,
+                    official_category=parent_name,
                     image_url=pick_image(category),
                     organizer=norm(row.get("organizer_unit", "")),
                     organizer_contact=name or None,

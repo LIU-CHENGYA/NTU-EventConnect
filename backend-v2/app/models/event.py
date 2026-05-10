@@ -23,7 +23,8 @@ class Event(Base):
     target_audience: Mapped[str | None] = mapped_column(String(500), nullable=True)
     restrictions: Mapped[str | None] = mapped_column(String(500), nullable=True)
     learning_category: Mapped[str | None] = mapped_column(String(100), nullable=True)
-    # Phase 2.1: NTU 「官方分類」の大分類 (life_learning_type 先頭セグメント由来)。
+    # Phase 2.2: NTU 「官方分類」 = 母活動名 (activity_name_activity_session)。
+    # info.md L30 + Figma 準拠。複数場次を 1 個の母活動チップにまとめる軸。
     # legacy `category` (= activity_type 講座/工作坊...) はタグとしても event_tags に書く。
     official_category: Mapped[str | None] = mapped_column(String(100), index=True, nullable=True)
     created_at: Mapped[datetime] = mapped_column(

@@ -157,9 +157,14 @@ export default function BoardPage() {
 
         {(activeTab === "official" || activeTab === "tags") && (
           <Box sx={{
-            display: "flex", gap: 0.75, flexWrap: "wrap",
+            display: "flex", gap: 0.75,
             maxWidth: 1280, mx: "auto", mt: 1, mb: 0.5, p: 1.25,
             bgcolor: "#fff", border: `1px solid ${tokens.color.border}`, borderRadius: 1.5,
+            // 母活動名は 329 種あるため横スクロール、タグは折返し OK
+            flexWrap: activeTab === "tags" ? "wrap" : "nowrap",
+            overflowX: activeTab === "official" ? "auto" : "visible",
+            "&::-webkit-scrollbar": { height: 6 },
+            "&::-webkit-scrollbar-thumb": { bgcolor: tokens.color.border, borderRadius: 3 },
           }}>
             <ChipBtn
               active={(activeTab === "official" ? selectedCategory : selectedTag) === ""}
@@ -167,10 +172,14 @@ export default function BoardPage() {
             >
               {activeTab === "official" ? t("filter.anyCategory") : t("filter.anyTag")}
             </ChipBtn>
-            {(activeTab === "official" ? categoryOptions : tagOptions).map((opt) => {
+            {/* 母活動名は固有名詞なので i18n しない。Top 15 で frontend cap。 */}
+            {(activeTab === "official"
+              ? categoryOptions.slice(0, 15)
+              : tagOptions
+            ).map((opt) => {
               const cur = activeTab === "official" ? selectedCategory : selectedTag;
               const setCur = activeTab === "official" ? setSelectedCategory : setSelectedTag;
-              const label = translateTag(opt, i18n.language);
+              const label = activeTab === "tags" ? translateTag(opt, i18n.language) : opt;
               return (
                 <ChipBtn key={opt} active={cur === opt} onClick={() => setCur(opt)}>
                   {activeTab === "tags" ? `#${label}` : label}

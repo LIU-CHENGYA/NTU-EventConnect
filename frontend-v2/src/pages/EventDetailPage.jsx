@@ -199,7 +199,7 @@ export default function EventDetailPage() {
                 {event.title}
               </Typography>
               <Box sx={{ bgcolor: "#1e1e1e", color: "#fffefe", px: 1.5, py: 0.5, borderRadius: "20px", fontSize: 12, ml: 1 }}>
-                {translateTag(event.officialCategory || event.category, i18n.language)}
+                {translateTag(event.category, i18n.language)}
               </Box>
             </Card>
 

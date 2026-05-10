@@ -37,10 +37,10 @@ def list_events(
 ):
     filters = []
     if category and category != "全部":
-        # `category` query param now means "official category" (NTU 大分類).
-        # Some legacy callers may still send legacy values (講座/工作坊/...);
-        # OR-match on both columns so neither side breaks during the rollout.
-        filters.append(or_(Event.official_category == category, Event.category == category))
+        # `category` = 母活動名 (Event.official_category = activity_name_activity_session,
+        # info.md L30 + Figma). Match equally against Event.title because old DBs
+        # may not have the column populated yet; both store the parent name.
+        filters.append(or_(Event.official_category == category, Event.title == category))
     if keyword:
         # 模糊比對且不限大小寫 — works for ASCII (English keywords) and
         # passes through for CJK where case is moot.
@@ -103,19 +103,24 @@ def list_events(
 
 @router.get("/categories")
 def list_categories(db: Session = Depends(get_db)):
-    """Official NTU categories (life_learning_type 大分類).
+    """「台大官方分類」 = 母活動名 (activity_name_activity_session).
 
-    Per-row fallback: any row missing `official_category` (i.e. legacy or
-    backfill-pending) contributes its `category` instead. This keeps the
-    listing complete during the rollout where some rows have one and not
-    the other.
+    Per info.md L30 + Figma, this groups sessions by parent activity. Each row
+    is a distinct parent name + total session count, ordered by session count
+    desc so the most-active parents surface first (the chip row is typically
+    capped to top 15 client-side).
+
+    Falls back per-row to `Event.title` so legacy DBs without the
+    `official_category` column still render something useful — both store the
+    parent activity name post-seed.
     """
-    name_expr = func.coalesce(Event.official_category, Event.category).label("name")
+    name_expr = func.coalesce(Event.official_category, Event.title).label("name")
     rows = (
-        db.query(name_expr, func.count(Event.id).label("count"))
+        db.query(name_expr, func.count(EventSession.id).label("count"))
+        .outerjoin(EventSession, EventSession.event_id == Event.id)
         .filter(name_expr.isnot(None))
         .group_by(name_expr)
-        .order_by(func.count(Event.id).desc())
+        .order_by(func.count(EventSession.id).desc(), name_expr.asc())
         .all()
     )
     return [{"name": name, "count": count} for name, count in rows]

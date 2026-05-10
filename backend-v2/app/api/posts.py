@@ -183,10 +183,10 @@ def list_posts(
     if is_board_post is not None:
         q = q.filter(Post.is_board_post == is_board_post)
     if category:
-        # Filter by the linked event's category — match official_category (NTU
-        # 大分類) OR legacy category, mirroring /api/events filter semantics.
+        # Filter by linked event's parent activity name — mirrors /api/events
+        # semantics (info.md L30: 母活動名 = activity_name_activity_session).
         cat_events = db.query(Event.id).filter(
-            or_(Event.official_category == category, Event.category == category)
+            or_(Event.official_category == category, Event.title == category)
         ).subquery()
         q = q.filter(Post.event_id.in_(cat_events))
     if tag:
