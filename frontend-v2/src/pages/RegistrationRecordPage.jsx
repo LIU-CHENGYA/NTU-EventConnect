@@ -179,31 +179,30 @@ export default function RegistrationRecordPage() {
                       查看活動
                     </Button>
                     {reg.status !== "cancelled" && (() => {
-                      // FE 側の事前ガード: 活動が既に過去ならボタンを非活性。
-                      // BE も /api/registrations DELETE で 409 を返すが UX のため先回り。
+                      // Past events: cancellation is rejected by BE (409) so
+                      // we hide the button entirely instead of showing a
+                      // disabled "已結束" pill that reads as "broken" to users.
                       const isPast = (() => {
                         if (!reg.date) return false;
                         const d = new Date(reg.date);
                         if (Number.isNaN(d.getTime())) return false;
-                        // 終わった日の翌日 0 時を超えたら過去とみなす（時刻精度はBEで再判定）
                         const endOfDay = new Date(d);
                         endOfDay.setHours(23, 59, 59, 999);
                         return Date.now() > endOfDay.getTime();
                       })();
+                      if (isPast) return null;
                       return (
                         <Button
                           variant="contained"
-                          disabled={isPast}
                           onClick={() => setPendingCancel(reg)}
                           sx={{
                             textTransform: "none", borderRadius: "22px", height: 44, px: 2.5,
-                            bgcolor: isPast ? "#D9DEE7" : tokens.color.black,
+                            bgcolor: tokens.color.black,
                             color: "#fff", fontSize: 14, fontWeight: 600,
-                            "&:hover": { bgcolor: isPast ? "#D9DEE7" : tokens.color.navyDark },
+                            "&:hover": { bgcolor: tokens.color.navyDark },
                           }}
-                          title={isPast ? "活動已結束，無法取消報名" : ""}
                         >
-                          {isPast ? "已結束" : "取消報名"}
+                          取消報名
                         </Button>
                       );
                     })()}

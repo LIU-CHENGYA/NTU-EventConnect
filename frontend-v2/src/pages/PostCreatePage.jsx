@@ -135,10 +135,13 @@ export default function PostCreatePage() {
 
             <Box sx={{ mt: 3, display: "flex", alignItems: "center", gap: 1 }}>
               <Typography sx={{ fontSize: 14, fontWeight: 600, color: tokens.color.text }}>權限：</Typography>
+              {/* Group posts go through BoardPostCreateDialog (which has the
+                  group picker). On this page we only offer public/private to
+                  avoid posting visibility=group without a group_id, which the
+                  backend (correctly) refuses. */}
               <RadioGroup row value={visibility} onChange={(e) => setVisibility(e.target.value)}>
                 <FormControlLabel value="public" control={<Radio size="small" />} label={<Typography sx={{ fontSize: 13 }}>公開</Typography>} />
                 <FormControlLabel value="private" control={<Radio size="small" />} label={<Typography sx={{ fontSize: 13 }}>私人</Typography>} />
-                <FormControlLabel value="group" control={<Radio size="small" />} label={<Typography sx={{ fontSize: 13 }}>僅限群組</Typography>} />
               </RadioGroup>
             </Box>
 

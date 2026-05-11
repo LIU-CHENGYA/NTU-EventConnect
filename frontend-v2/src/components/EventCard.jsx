@@ -184,9 +184,9 @@ export default function EventCard({
 
         {/* CTA buttons */}
         <Box sx={{ display: "flex", gap: 0.5, mt: 1.2 }}>
-          {showActions && (status === "報名成功" || status === "等待候補") && (
+          {showActions && onCancel && (status === "報名成功" || status === "等待候補") && (
             <button
-              onClick={(e) => { e.stopPropagation(); onCancel?.(); }}
+              onClick={(e) => { e.stopPropagation(); onCancel(); }}
               style={{
                 flex: "0 0 auto", padding: "7px 12px", border: "none",
                 borderRadius: 4, backgroundColor: "#e0e0e0", color: "#333",

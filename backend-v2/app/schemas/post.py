@@ -32,6 +32,16 @@ class PostUpdate(BaseModel):
     visibility: str | None = Field(None, pattern=_VISIBILITY)
     group_id: int | None = None
 
+    @model_validator(mode="after")
+    def _check_group(self):
+        # Mirrors PostCreate: prevent visibility=group with no target.
+        # Without this, switching a non-group post to group via PATCH
+        # would land in update_post with group_id=None and trigger a
+        # misleading 403 "Not a member" instead of a clear 422.
+        if self.visibility == "group" and self.group_id is None:
+            raise ValueError("group_id is required when visibility=group")
+        return self
+
 
 class CommentCreate(BaseModel):
     content: str = Field(min_length=1)

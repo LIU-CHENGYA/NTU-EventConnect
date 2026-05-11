@@ -6,6 +6,7 @@ from app.core.config import settings
 from app.core.deps import get_current_user
 from app.core.security import create_access_token, hash_password, verify_password
 from app.db.session import get_db
+from app.models.group import GroupInvitation, GroupMember
 from app.models.user import User
 from app.schemas.user import (
     GoogleLoginRequest,
@@ -16,6 +17,30 @@ from app.schemas.user import (
 )
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
+
+
+def _claim_pending_invitations(db: Session, user: User) -> None:
+    # When a user first signs up, any GroupInvitation rows targeting their
+    # email (status="pending") were left dangling because _attach_member only
+    # creates GroupMember when the invitee already exists at invite time.
+    # Promote them now so the user can immediately see group posts that were
+    # made while they were still a pending invitee.
+    pendings = (
+        db.query(GroupInvitation)
+        .filter(GroupInvitation.email == user.email, GroupInvitation.status == "pending")
+        .all()
+    )
+    for inv in pendings:
+        existing = (
+            db.query(GroupMember)
+            .filter(GroupMember.group_id == inv.group_id, GroupMember.user_id == user.id)
+            .first()
+        )
+        if not existing:
+            db.add(GroupMember(group_id=inv.group_id, user_id=user.id))
+        inv.status = "accepted"
+    if pendings:
+        db.commit()
 
 
 @router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
@@ -31,6 +56,7 @@ def register(payload: UserRegister, db: Session = Depends(get_db)):
     db.add(user)
     db.commit()
     db.refresh(user)
+    _claim_pending_invitations(db, user)
     return TokenResponse(access_token=create_access_token(user.id), user=UserOut.model_validate(user))
 
 
@@ -74,6 +100,7 @@ def google_login(payload: GoogleLoginRequest, db: Session = Depends(get_db)):
         db.add(user)
         db.commit()
         db.refresh(user)
+        _claim_pending_invitations(db, user)
     return TokenResponse(
         access_token=create_access_token(user.id),
         user=UserOut.model_validate(user),

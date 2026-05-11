@@ -377,13 +377,24 @@ export default function ProfilePage() {
                     date: reg.date,
                     location: reg.location,
                   };
+                  // Hide Cancel for past events (BE 409 would reject anyway).
+                  // Matches RegistrationRecordPage to keep the two surfaces in sync.
+                  const isPast = (() => {
+                    if (!reg.date) return false;
+                    const d = new Date(reg.date);
+                    if (Number.isNaN(d.getTime())) return false;
+                    const endOfDay = new Date(d);
+                    endOfDay.setHours(23, 59, 59, 999);
+                    return Date.now() > endOfDay.getTime();
+                  })();
+                  const canCancel = reg.status !== "cancelled" && !isPast;
                   return (
                     <EventCard
                       key={reg.id}
                       event={event}
                       showActions
                       status={STATUS_TO_ZH[reg.status]}
-                      onCancel={reg.status !== "cancelled" ? () => setPendingCancel(reg) : undefined}
+                      onCancel={canCancel ? () => setPendingCancel(reg) : undefined}
                     />
                   );
                 })}

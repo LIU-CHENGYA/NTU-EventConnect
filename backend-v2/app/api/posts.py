@@ -314,7 +314,9 @@ def update_post(
     data = payload.model_dump(exclude_unset=True)
     if data.get("visibility") == "group":
         gid = data.get("group_id", post.group_id)
-        if gid is None or not _is_group_member(db, current, gid):
+        if gid is None:
+            raise HTTPException(400, "group_id required when visibility=group")
+        if not _is_group_member(db, current, gid):
             raise HTTPException(403, "Not a member of the target group")
     for k, v in data.items():
         setattr(post, k, v)

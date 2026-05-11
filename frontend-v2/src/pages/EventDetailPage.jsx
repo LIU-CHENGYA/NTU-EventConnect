@@ -12,6 +12,7 @@ import { eventsApi, postsApi } from "../api";
 import { useAuth } from "../context/AuthContext";
 import { tokens } from "../theme";
 import { translateTag } from "../i18n/tagLabels";
+import { eventHasFutureSession } from "../utils/sessionTime";
 
 export default function EventDetailPage() {
   const { id } = useParams();
@@ -225,16 +226,12 @@ export default function EventDetailPage() {
               )}
 
               {(() => {
-                // CTA: フロント側で終了判定 (date のみ、approximate)。
-                // backend の session_has_ended は time_range も見るが、UI の
-                // 早期 disable は登録ページで 409 を見る前の摩擦削減用。
+                // CTA gating mirrors backend `session_has_ended` (time-aware):
+                // parses raw_session_time / time_range so a same-day session
+                // that already ended this morning correctly disables the
+                // button instead of staying clickable until midnight.
                 const sessions = event.sessions || [];
-                const today = new Date(); today.setHours(0, 0, 0, 0);
-                const hasFuture = sessions.some((s) => {
-                  if (!s.date) return true;
-                  const d = new Date(`${s.date}T23:59:59`);
-                  return d.getTime() >= today.getTime();
-                });
+                const hasFuture = eventHasFutureSession(event);
                 const ended = sessions.length > 0 && !hasFuture;
                 return (
                   <Button

@@ -264,6 +264,45 @@ export default function BoardPage() {
 
         {/* === Posts list === */}
         <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5, position: "relative" }}>
+          {/* Mobile-only groups strip — desktop has the sidebar; mobile had
+              NO surface for groups previously (the only entry point). */}
+          {user && (
+            <Box sx={{ display: { xs: "block", md: "none" }, mb: 0.5 }}>
+              <Typography sx={{
+                fontSize: 11, fontWeight: 700, color: tokens.color.placeholder,
+                textTransform: "uppercase", letterSpacing: 0.5, mb: 0.5,
+              }}>
+                {t("board.groups.title")}
+              </Typography>
+              <Box sx={{
+                display: "flex", gap: 0.75, overflowX: "auto", pb: 0.5,
+                "&::-webkit-scrollbar": { height: 4 },
+                "&::-webkit-scrollbar-thumb": { bgcolor: tokens.color.border, borderRadius: 2 },
+              }}>
+                <ChipBtn
+                  active={!activeGroupId}
+                  onClick={() => setActiveGroupId(null)}
+                >
+                  {t("board.category.all")}
+                </ChipBtn>
+                {groups.map((g) => (
+                  <ChipBtn
+                    key={g.id}
+                    active={activeGroupId === g.id}
+                    onClick={() => setActiveGroupId(g.id)}
+                  >
+                    {g.name}{typeof g.postCount === "number" ? ` (${g.postCount})` : ""}
+                  </ChipBtn>
+                ))}
+                <ChipBtn
+                  active={false}
+                  onClick={() => { setEditingGroupId(null); setGroupEditOpen(true); }}
+                >
+                  + {t("board.groups.create")}
+                </ChipBtn>
+              </Box>
+            </Box>
+          )}
           {filteredPosts.length === 0 ? (
             <Box sx={{ p: 6, textAlign: "center", color: tokens.color.placeholder, bgcolor: "#fff", borderRadius: 2 }}>
               還沒有留言

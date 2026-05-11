@@ -57,12 +57,26 @@ export default function PostEditPage() {
 
   const handleSave = async () => {
     try {
-      await postsApi.update(post.id, { rating, content, visibility });
+      // Preserve original group_id when keeping a post as a group post.
+      // Without this, the PATCH payload would lack group_id and the new
+      // PostUpdate validator would 422 (or fall through to backend "Not a
+      // member"). Switching to visibility=group from a non-group post is
+      // not supported here — the group picker lives in BoardPostCreateDialog.
+      const payload = { rating, content, visibility };
+      if (visibility === "group" && post.groupId) {
+        payload.group_id = post.groupId;
+      }
+      await postsApi.update(post.id, payload);
       navigate(`/posts/${post.id}`);
     } catch (e) {
       alert("更新失敗: " + (e?.response?.data?.detail || e.message));
     }
   };
+
+  // Only let the user pick "僅限群組" if the post was originally a group
+  // post (so we can preserve its group_id). Switching public/private → group
+  // would need a group picker, which only BoardPostCreateDialog has today.
+  const groupOptionEnabled = !!post.groupId;
 
   const cardSx = {
     borderRadius: "20px",
@@ -152,7 +166,16 @@ export default function PostEditPage() {
               <RadioGroup row value={visibility} onChange={(e) => setVisibility(e.target.value)}>
                 <FormControlLabel value="public" control={<Radio size="small" />} label={<Typography sx={{ fontSize: 13 }}>公開</Typography>} />
                 <FormControlLabel value="private" control={<Radio size="small" />} label={<Typography sx={{ fontSize: 13 }}>私人</Typography>} />
-                <FormControlLabel value="group" control={<Radio size="small" />} label={<Typography sx={{ fontSize: 13 }}>僅限群組</Typography>} />
+                <FormControlLabel
+                  value="group"
+                  control={<Radio size="small" />}
+                  disabled={!groupOptionEnabled}
+                  label={
+                    <Typography sx={{ fontSize: 13, color: groupOptionEnabled ? undefined : tokens.color.placeholder }}>
+                      僅限群組{groupOptionEnabled ? "" : "（請從留言板建立）"}
+                    </Typography>
+                  }
+                />
               </RadioGroup>
             </Box>
 
