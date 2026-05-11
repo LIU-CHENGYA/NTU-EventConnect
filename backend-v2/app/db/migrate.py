@@ -114,20 +114,18 @@ def widen_columns(engine: Engine) -> list[str]:
 
 
 def run_startup_migrations(engine: Engine) -> None:
-    """Best-effort, idempotent. Logs added columns for the operator."""
+    """Idempotent. ADD COLUMN failures stay best-effort; column-widening
+    failures are fatal so the 02:00 cron cannot silently repeat the
+    2026-05-11 VARCHAR(100) overflow regression.
+    """
+    import logging
+    log = logging.getLogger("uvicorn")
     try:
         added = ensure_columns(engine)
         if added:
-            import logging
-            logging.getLogger("uvicorn").warning(
-                "[migrate] Added missing columns: %s", ", ".join(added)
-            )
-        altered = widen_columns(engine)
-        if altered:
-            import logging
-            logging.getLogger("uvicorn").warning(
-                "[migrate] Widened columns: %s", ", ".join(altered)
-            )
+            log.warning("[migrate] Added missing columns: %s", ", ".join(added))
     except Exception as e:  # noqa: BLE001
-        import logging
-        logging.getLogger("uvicorn").error("[migrate] startup migration failed: %s", e)
+        log.error("[migrate] ensure_columns failed: %s", e)
+    altered = widen_columns(engine)
+    if altered:
+        log.warning("[migrate] Widened columns: %s", ", ".join(altered))
