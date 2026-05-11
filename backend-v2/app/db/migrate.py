@@ -24,7 +24,7 @@ EXPECTED_COLUMNS = [
     ("events",         "content_en",            "TEXT"),
     ("events",         "category_en",           "VARCHAR(100)"),
     ("events",         "official_category_en",  "VARCHAR(500)"),
-    ("events",         "organizer_en",          "VARCHAR(200)"),
+    ("events",         "organizer_en",          "VARCHAR(500)"),
     ("events",         "registration_type_en",  "VARCHAR(100)"),
     ("events",         "registration_fee_en",   "VARCHAR(100)"),
     ("events",         "target_audience_en",    "VARCHAR(500)"),
@@ -32,7 +32,7 @@ EXPECTED_COLUMNS = [
     ("events",         "learning_category_en",  "VARCHAR(100)"),
     ("event_sessions", "session_name_en",       "VARCHAR(500)"),
     ("event_sessions", "session_content_en",    "TEXT"),
-    ("event_sessions", "instructor_en",         "VARCHAR(200)"),
+    ("event_sessions", "instructor_en",         "VARCHAR(500)"),
     ("event_sessions", "location_en",           "VARCHAR(300)"),
     ("event_sessions", "meal_en",               "VARCHAR(100)"),
 ]
@@ -83,6 +83,12 @@ ensure_post_columns = ensure_columns
 EXPECTED_WIDENINGS = [
     ("events", "official_category",    500),
     ("events", "official_category_en", 500),
+    # 2026-05-11 #2: events_en.csv の organizer_unit / instructor が翻訳後
+    # 200 文字を超え seed 失敗。ZH 側も対称に拡げる。
+    ("events",         "organizer",     500),
+    ("events",         "organizer_en",  500),
+    ("event_sessions", "instructor",    500),
+    ("event_sessions", "instructor_en", 500),
 ]
 
 
