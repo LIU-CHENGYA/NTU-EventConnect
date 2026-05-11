@@ -5,14 +5,20 @@ import ArrowBackIosNewIcon from "@mui/icons-material/ArrowBackIosNew";
 import StarIcon from "@mui/icons-material/Star";
 import FavoriteIcon from "@mui/icons-material/Favorite";
 import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
+import { useTranslation } from "react-i18next";
 import { postsApi } from "../api";
 import { tokens } from "../theme";
 import { formatDate } from "../utils/format";
 
 const NAVY = tokens.color.navy;
-const VIS_LABELS = { public: "公開", private: "私人", group: "僅限群組" };
 
 export default function BoardPostDetailPage() {
+  const { t } = useTranslation();
+  const VIS_LABELS = {
+    public: t("board.modal.visPublic"),
+    private: t("board.modal.visPrivate"),
+    group: t("board.modal.visGroup"),
+  };
   const { id } = useParams();
   const navigate = useNavigate();
   const [post, setPost] = useState(null);
@@ -36,8 +42,8 @@ export default function BoardPostDetailPage() {
     } catch { /* ignore */ }
   };
 
-  if (loading) return <Box sx={{ p: 6, textAlign: "center" }}>載入中...</Box>;
-  if (!post)   return <Box sx={{ p: 6, textAlign: "center" }}>找不到此留言</Box>;
+  if (loading) return <Box sx={{ p: 6, textAlign: "center" }}>{t("common.loading")}</Box>;
+  if (!post)   return <Box sx={{ p: 6, textAlign: "center" }}>{t("post.commentNotFound")}</Box>;
 
   const visColor = post.visibility === "public" ? "#0EA371" : post.visibility === "private" ? "#6B7280" : "#7C3AED";
 
@@ -53,7 +59,7 @@ export default function BoardPostDetailPage() {
           }}
         >
           <ArrowBackIosNewIcon sx={{ fontSize: 14 }} />
-          返回留言板
+          {t("board.backToBoard")}
         </Box>
 
         <Box sx={{ bgcolor: "#fff", borderRadius: 2, p: 3, boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>

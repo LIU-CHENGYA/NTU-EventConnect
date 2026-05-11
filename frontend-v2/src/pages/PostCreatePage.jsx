@@ -9,11 +9,13 @@ import StarBorderIcon from "@mui/icons-material/StarBorder";
 import AddPhotoAlternateIcon from "@mui/icons-material/AddPhotoAlternate";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import PlaceIcon from "@mui/icons-material/Place";
+import { useTranslation } from "react-i18next";
 import { postsApi } from "../api";
 import { useAuth } from "../context/AuthContext";
 import { tokens } from "../theme";
 
 export default function PostCreatePage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { user, ready } = useAuth();
   const [searchParams] = useSearchParams();
@@ -41,7 +43,7 @@ export default function PostCreatePage() {
       if (event) navigate(`/events/${event.id}`);
       else navigate("/profile");
     } catch (e) {
-      alert("發布失敗: " + (e?.response?.data?.detail || e.message));
+      alert(t("post.publishFailed") + ": " + (e?.response?.data?.detail || e.message));
     }
   };
 
@@ -57,7 +59,7 @@ export default function PostCreatePage() {
       });
       navigate("/profile");
     } catch (e) {
-      alert("儲存草稿失敗: " + (e?.response?.data?.detail || e.message));
+      alert(t("post.saveDraftFailed") + ": " + (e?.response?.data?.detail || e.message));
     }
   };
 
@@ -80,7 +82,7 @@ export default function PostCreatePage() {
             <ArrowBackIcon />
           </IconButton>
           <Typography sx={{ fontFamily: tokens.font.logo, fontStyle: "italic", fontSize: { xs: 24, md: 32 }, color: tokens.color.navy }}>
-            {event ? "寫評論" : "發表文章"}
+            {event ? t("post.writeReview") : t("post.writeArticle")}
           </Typography>
           <Box sx={{ ml: "auto", display: { xs: "none", sm: "block" } }}>
             <Avatar src={user.avatar} sx={{ width: 52, height: 52 }} />
@@ -109,13 +111,13 @@ export default function PostCreatePage() {
 
             <TextField
               fullWidth multiline rows={8}
-              placeholder="文字敘述..."
+              placeholder={t("post.contentPlaceholder")}
               value={content}
               onChange={(e) => setContent(e.target.value)}
               sx={fieldSx}
             />
             <Typography sx={{ fontSize: 12, color: tokens.color.placeholder, mt: 0.5 }}>
-              字數：{content.length}
+              {t("post.charCount", { n: content.length })}
             </Typography>
 
             <Box
@@ -129,19 +131,19 @@ export default function PostCreatePage() {
             >
               <AddPhotoAlternateIcon sx={{ fontSize: 32, color: tokens.color.placeholder }} />
               <Typography sx={{ fontSize: 13, color: tokens.color.textSecondary }}>
-                + 新增圖片
+                {t("post.addImage")}
               </Typography>
             </Box>
 
             <Box sx={{ mt: 3, display: "flex", alignItems: "center", gap: 1 }}>
-              <Typography sx={{ fontSize: 14, fontWeight: 600, color: tokens.color.text }}>權限：</Typography>
+              <Typography sx={{ fontSize: 14, fontWeight: 600, color: tokens.color.text }}>{t("post.visibility")}</Typography>
               {/* Group posts go through BoardPostCreateDialog (which has the
                   group picker). On this page we only offer public/private to
                   avoid posting visibility=group without a group_id, which the
                   backend (correctly) refuses. */}
               <RadioGroup row value={visibility} onChange={(e) => setVisibility(e.target.value)}>
-                <FormControlLabel value="public" control={<Radio size="small" />} label={<Typography sx={{ fontSize: 13 }}>公開</Typography>} />
-                <FormControlLabel value="private" control={<Radio size="small" />} label={<Typography sx={{ fontSize: 13 }}>私人</Typography>} />
+                <FormControlLabel value="public" control={<Radio size="small" />} label={<Typography sx={{ fontSize: 13 }}>{t("post.visPublic")}</Typography>} />
+                <FormControlLabel value="private" control={<Radio size="small" />} label={<Typography sx={{ fontSize: 13 }}>{t("post.visPrivate")}</Typography>} />
               </RadioGroup>
             </Box>
 
@@ -155,7 +157,7 @@ export default function PostCreatePage() {
                   borderColor: tokens.color.border, color: tokens.color.text,
                 }}
               >
-                儲存草稿
+                {t("post.saveDraft")}
               </Button>
               <Button
                 variant="contained"
@@ -169,7 +171,7 @@ export default function PostCreatePage() {
                   "&:hover": { bgcolor: tokens.color.navyDark },
                 }}
               >
-                發布
+                {t("post.publish")}
               </Button>
             </Box>
           </Paper>

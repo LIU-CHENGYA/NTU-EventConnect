@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import {
   Box, Typography, Avatar, Button, TextField, Dialog, DialogTitle, DialogContent, DialogActions,
 } from "@mui/material";
+import { useTranslation } from "react-i18next";
 import EventCard from "../components/EventCard";
 import PostCard from "../components/PostCard";
 import CancelConfirmDialog from "../components/CancelConfirmDialog";
@@ -27,11 +28,12 @@ const TAG_COLORS = {
   "求職": "rgba(255,57,159,0.42)",
 };
 
-const TABS = ["我的貼文", "即將到來的活動", "收藏貼文", "收藏活動", "我的留言"];
-const STATUS_FILTERS = ["全部", "報名成功", "等待候補", "已取消"];
-const STATUS_TO_ZH = { success: "報名成功", waitlist: "等待候補", cancelled: "已取消" };
+// i18n-keyed tabs/filters. Render labels via t() at usage site.
+const TAB_KEYS = ["myPosts", "upcoming", "bookmarkedPosts", "bookmarkedEvents", "myComments"];
+const STATUS_FILTERS = ["all", "success", "waitlist", "cancelled"];
 
 export default function ProfilePage() {
+  const { t } = useTranslation();
   const [registrations, setRegistrations] = useState([]); // 存儲報名活動
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [selectedFile, setSelectedFile] = useState(null);
@@ -39,7 +41,7 @@ export default function ProfilePage() {
   const navigate = useNavigate();
   const { drafts, refreshUserData } = useData();
   const [tab, setTab] = useState(1);
-  const [statusFilter, setStatusFilter] = useState("全部");
+  const [statusFilter, setStatusFilter] = useState("all");
   const [editOpen, setEditOpen] = useState(false);
   const [editForm, setEditForm] = useState({ name: "", bio: "" });
 
@@ -102,9 +104,9 @@ export default function ProfilePage() {
   const baseRegs = tab === 1
     ? myRegistrations.filter(isUpcoming)
     : myRegistrations;
-  const filteredRegistrations = statusFilter === "全部"
+  const filteredRegistrations = statusFilter === "all"
     ? baseRegs
-    : baseRegs.filter((r) => STATUS_TO_ZH[r.status] === statusFilter);
+    : baseRegs.filter((r) => r.status === statusFilter);
 
   const reloadRegistrations = () =>
     usersApi.myRegistrations().then(setMyRegistrations).catch(() => {});
@@ -118,7 +120,7 @@ export default function ProfilePage() {
       setPendingCancel(null);
       await reloadRegistrations();
     } catch (e) {
-      setCancelError(e?.response?.data?.detail || e.message || "取消失敗");
+      setCancelError(e?.response?.data?.detail || e.message || t("records.cancelFailed"));
     } finally {
       setCancelLoading(false);
     }
@@ -144,10 +146,10 @@ export default function ProfilePage() {
   // sidebar count uses the same upcoming filter as the tab so they stay consistent.
   const upcomingCount = myRegistrations.filter((r) => r.status === "success" && isUpcoming(r)).length;
   const stats = [
-    { label: "貼文", value: profileStats.post_count },
-    { label: "已參加的活動", value: profileStats.joined_event_count },
-    { label: "即將到來的活動", value: upcomingCount },
-    { label: "關注的標籤", value: "" },
+    { label: t("profile.stats.posts"), value: profileStats.post_count },
+    { label: t("profile.stats.joined"), value: profileStats.joined_event_count },
+    { label: t("profile.stats.upcoming"), value: upcomingCount },
+    { label: t("profile.stats.tags"), value: "" },
   ];
   const handleSaveEdit = async () => {
     try {
@@ -320,9 +322,9 @@ export default function ProfilePage() {
               overflowX: "auto", px: { xs: 1.5, sm: 0 },
               "&::-webkit-scrollbar": { display: "none" }, scrollbarWidth: "none",
             }}>
-              {TABS.map((t, i) => (
+              {TAB_KEYS.map((tk, i) => (
                 <Box
-                  key={t}
+                  key={tk}
                   onClick={() => setTab(i)}
                   sx={{
                     cursor: "pointer", fontSize: { xs: 14, md: 18 },
@@ -332,7 +334,7 @@ export default function ProfilePage() {
                     whiteSpace: "nowrap",
                   }}
                 >
-                  {t}
+                  {t(`profile.tabs.${tk}`)}
                 </Box>
               ))}
             </Box>
@@ -364,7 +366,7 @@ export default function ProfilePage() {
                       fontWeight: 500,
                     }}
                   >
-                    {s}
+                    {t(`event.statusFilter.${s}`)}
                   </Box>
                 ))}
               </Box>
@@ -393,13 +395,13 @@ export default function ProfilePage() {
                       key={reg.id}
                       event={event}
                       showActions
-                      status={STATUS_TO_ZH[reg.status]}
+                      status={reg.status}
                       onCancel={canCancel ? () => setPendingCancel(reg) : undefined}
                     />
                   );
                 })}
                 {filteredRegistrations.length === 0 && (
-                  <Typography sx={{ textAlign: "center", color: "#999", gridColumn: "1/-1", py: 4 }}>沒有報名紀錄</Typography>
+                  <Typography sx={{ textAlign: "center", color: "#999", gridColumn: "1/-1", py: 4 }}>{t("profile.empty.noRegistrations")}</Typography>
                 )}
               </Box>
             </>
@@ -409,7 +411,7 @@ export default function ProfilePage() {
             <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2,1fr)", md: "repeat(3,1fr)" }, gap: 2.5 }}>
               {[...myPosts, ...drafts].map((p) => <PostCard key={p.id} post={p} />)}
               {myPosts.length + drafts.length === 0 && (
-                <Typography sx={{ textAlign: "center", color: "#999", gridColumn: "1/-1", py: 4 }}>尚無貼文</Typography>
+                <Typography sx={{ textAlign: "center", color: "#999", gridColumn: "1/-1", py: 4 }}>{t("profile.empty.noPosts")}</Typography>
               )}
             </Box>
           )}
@@ -418,7 +420,7 @@ export default function ProfilePage() {
             <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2,1fr)", md: "repeat(3,1fr)" }, gap: 2.5 }}>
               {bookmarkedPosts.map((p) => <PostCard key={p.id} post={p} />)}
               {bookmarkedPosts.length === 0 && (
-                <Typography sx={{ textAlign: "center", color: "#999", gridColumn: "1/-1", py: 4 }}>尚無收藏貼文</Typography>
+                <Typography sx={{ textAlign: "center", color: "#999", gridColumn: "1/-1", py: 4 }}>{t("profile.empty.noBookmarkedPosts")}</Typography>
               )}
             </Box>
           )}
@@ -427,7 +429,7 @@ export default function ProfilePage() {
             <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2,1fr)", md: "repeat(3,1fr)" }, gap: 2.5 }}>
               {bookmarkedEvents.map((e) => <EventCard key={e.id} event={e} favorited />)}
               {bookmarkedEvents.length === 0 && (
-                <Typography sx={{ textAlign: "center", color: "#999", gridColumn: "1/-1", py: 4 }}>尚無收藏活動</Typography>
+                <Typography sx={{ textAlign: "center", color: "#999", gridColumn: "1/-1", py: 4 }}>{t("profile.empty.noBookmarkedEvents")}</Typography>
               )}
             </Box>
           )}
@@ -440,7 +442,7 @@ export default function ProfilePage() {
                   : `/posts/${c.postId}`;
                 const headline = c.postTitle
                   || c.postEventTitle
-                  || (c.postExcerpt ? `${c.postExcerpt}…` : "原文");
+                  || (c.postExcerpt ? `${c.postExcerpt}…` : t("profile.originalPost"));
                 return (
                   <Box
                     key={c.id}
@@ -455,13 +457,13 @@ export default function ProfilePage() {
                       {c.content}
                     </Typography>
                     <Typography sx={{ fontSize: 12, color: tokens.color.placeholder }}>
-                      留言於「{headline}」 · {(c.createdAt || "").slice(0, 10)}
+                      {t("profile.commentOn", { title: headline })} · {(c.createdAt || "").slice(0, 10)}
                     </Typography>
                   </Box>
                 );
               })}
               {myComments.length === 0 && (
-                <Typography sx={{ textAlign: "center", color: "#999", py: 4 }}>尚無留言</Typography>
+                <Typography sx={{ textAlign: "center", color: "#999", py: 4 }}>{t("profile.empty.noComments")}</Typography>
               )}
             </Box>
           )}
@@ -469,20 +471,20 @@ export default function ProfilePage() {
       </Box>
 
       <Dialog open={editOpen} onClose={() => setEditOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ fontWeight: 700 }}>編輯個人資料</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 700 }}>{t("profile.editTitle")}</DialogTitle>
         <DialogContent>
           <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mt: 1, mb: 3 }}>
-            <Avatar 
-              src={editForm.avatarUrl} 
+            <Avatar
+              src={editForm.avatarUrl}
               sx={{ width: 100, height: 100, mb: 1, border: `2px solid ${tokens.color.navy}` }}
             />
-            <Button 
-              variant="outlined" 
+            <Button
+              variant="outlined"
               size="small"
               component="label"
               sx={{ color: tokens.color.navy, borderColor: tokens.color.navy }}
             >
-              更換照片
+              {t("profile.changePhoto")}
               <input
                 type="file"
                 hidden
@@ -492,13 +494,13 @@ export default function ProfilePage() {
             </Button>
           </Box>
           <TextField
-            fullWidth label="顯示名稱"
+            fullWidth label={t("profile.displayName")}
             value={editForm.name}
             onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
             sx={{ mt: 1, mb: 2 }}
           />
           <TextField
-            fullWidth label="自我介紹"
+            fullWidth label={t("profile.bio")}
             value={editForm.bio}
             onChange={(e) => setEditForm({ ...editForm, bio: e.target.value })}
             multiline rows={3} sx={{ mb: 2 }}
@@ -506,8 +508,8 @@ export default function ProfilePage() {
           <TextField fullWidth label="Email" value={user.email} disabled sx={{ mb: 2 }} />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setEditOpen(false)}>取消</Button>
-          <Button variant="contained" onClick={handleSaveEdit} sx={{ bgcolor: tokens.color.navy }}>儲存</Button>
+          <Button onClick={() => setEditOpen(false)}>{t("common.cancel")}</Button>
+          <Button variant="contained" onClick={handleSaveEdit} sx={{ bgcolor: tokens.color.navy }}>{t("common.save")}</Button>
         </DialogActions>
       </Dialog>
 

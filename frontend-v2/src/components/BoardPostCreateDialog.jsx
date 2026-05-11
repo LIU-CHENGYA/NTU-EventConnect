@@ -104,15 +104,15 @@ export default function BoardPostCreateDialog({ open, onClose, onCreated }) {
       const res = await uploadsApi.upload(file);
       if (res?.url) setImages([...images, res.url]);
     } catch {
-      setError("圖片上傳失敗");
+      setError(t("post.uploadFailed"));
     }
   };
 
   const validate = () => {
-    if (!event) return "請選擇活動";
-    if (!title.trim()) return "請輸入標題";
-    if (!content.trim()) return "請輸入文字敘述";
-    if (visibility === "group" && !groupId) return "請選擇群組";
+    if (!event) return t("post.selectActivity");
+    if (!title.trim()) return t("post.enterTitle");
+    if (!content.trim()) return t("post.enterContent");
+    if (visibility === "group" && !groupId) return t("post.selectGroup");
     return null;
   };
 
@@ -139,7 +139,7 @@ export default function BoardPostCreateDialog({ open, onClose, onCreated }) {
       setTitle(""); setContent(""); setImages([]);
       setRating(4); setVisibility("public"); setGroupId(null);
     } catch (e) {
-      setError(e?.response?.data?.detail || "發佈失敗");
+      setError(e?.response?.data?.detail || t("post.publishFailed"));
     } finally {
       setSubmitting(false);
     }
@@ -227,7 +227,7 @@ export default function BoardPostCreateDialog({ open, onClose, onCreated }) {
             </Typography>
             <TextField
               fullWidth size="small"
-              placeholder="例如：第一次參加藝術節，整個被震撼到！"
+              placeholder={t("post.titlePlaceholderExample")}
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               sx={{ mb: 2, "& .MuiOutlinedInput-root": { borderRadius: "10px", bgcolor: tokens.color.bg } }}
@@ -240,12 +240,12 @@ export default function BoardPostCreateDialog({ open, onClose, onCreated }) {
               fullWidth multiline minRows={6} maxRows={12}
               value={content}
               onChange={(e) => setContent(e.target.value)}
-              placeholder="分享你對這個活動的感想..."
+              placeholder={t("post.contentPlaceholderThoughts")}
               inputProps={{ maxLength: 2000 }}
               sx={{ "& .MuiOutlinedInput-root": { borderRadius: "10px", bgcolor: tokens.color.bg } }}
             />
             <Typography sx={{ fontSize: 11, color: tokens.color.placeholder, textAlign: "right", mt: 0.4 }}>
-              字數：{content.length} / 2000
+              {t("post.charLimit", { n: content.length })}
             </Typography>
           </Box>
 
@@ -393,7 +393,7 @@ export default function BoardPostCreateDialog({ open, onClose, onCreated }) {
         <Box sx={{ overflowY: "auto", maxHeight: 320 }}>
           {Object.keys(eventsByCategory).length === 0 ? (
             <Typography sx={{ p: 2, fontSize: 13, color: tokens.color.placeholder, textAlign: "center" }}>
-              沒有可分享的已結束活動
+              {t("board.modal.noEndedActivities")}
             </Typography>
           ) : Object.entries(eventsByCategory).map(([cat, regs]) => (
             <Box key={cat}>
@@ -469,7 +469,7 @@ export default function BoardPostCreateDialog({ open, onClose, onCreated }) {
         <Box sx={{ overflowY: "auto", maxHeight: 280, pb: 1 }}>
           {filteredGroups.length === 0 ? (
             <Typography sx={{ p: 2, fontSize: 13, color: tokens.color.placeholder, textAlign: "center" }}>
-              尚未加入任何群組
+              {t("board.modal.noGroupsJoined")}
             </Typography>
           ) : filteredGroups.map((g) => {
             const selected = groupId === g.id;
@@ -489,7 +489,7 @@ export default function BoardPostCreateDialog({ open, onClose, onCreated }) {
                 <Box sx={{ flex: 1 }}>
                   <Typography sx={{ fontSize: 14, fontWeight: 700 }}>{g.name}</Typography>
                   <Typography sx={{ fontSize: 11, color: tokens.color.textSecondary }}>
-                    {g.memberCount} 位成員 • {g.postCount} 篇留言
+                    {t("board.modal.groupMeta", { members: g.memberCount, posts: g.postCount })}
                   </Typography>
                 </Box>
                 {selected && <CheckIcon sx={{ color: NAVY, fontSize: 18 }} />}

@@ -207,7 +207,7 @@ export default function Navbar() {
                         "&:hover": { bgcolor: "#222" },
                       }}
                     >
-                      新增活動
+                      {t("nav2.createEvent")}
                     </Button>
                   )}
                   <IconButton sx={{ mr: 1 }}>
@@ -326,14 +326,14 @@ export default function Navbar() {
             <Box sx={{ p: 2, display: "flex", alignItems: "center", gap: 1.5 }}>
               <Avatar src={user.avatarUrl} sx={{ width: 40, height: 40 }} />
               <Box>
-                <Box sx={{ fontWeight: 600, fontSize: 14 }}>{user.name || "使用者"}</Box>
+                <Box sx={{ fontWeight: 600, fontSize: 14 }}>{user.name || t("nav2.userFallback")}</Box>
                 <Box sx={{ fontSize: 12, color: tokens.color.placeholder }}>{user.email}</Box>
               </Box>
             </Box>
             <Divider />
             <List>
               <ListItemButton onClick={() => drawerNav("/")}>
-                <ListItemText primary="首頁" />
+                <ListItemText primary={t("nav2.home")} />
               </ListItemButton>
               <ListItemButton onClick={() => drawerNav("/board")}>
                 <ListItemText primary={t("nav.board")} />
@@ -349,7 +349,7 @@ export default function Navbar() {
               </ListItemButton>
               {user.isAdmin && (
                 <ListItemButton onClick={() => drawerNav("/events/create")}>
-                  <ListItemText primary="新增活動" />
+                  <ListItemText primary={t("nav2.createEvent")} />
                 </ListItemButton>
               )}
             </List>
@@ -363,7 +363,7 @@ export default function Navbar() {
         ) : (
           <List>
             <ListItemButton onClick={() => drawerNav("/")}>
-              <ListItemText primary="首頁" />
+              <ListItemText primary={t("nav2.home")} />
             </ListItemButton>
             <ListItemButton onClick={() => drawerNav("/board")}>
               <ListItemText primary={t("nav.board")} />

@@ -57,14 +57,14 @@ export default function GroupEditDialog({ open, onClose, groupId, onSaved }) {
         setMembers(g.members || []);
         setPending(g.invitations || []);
       })
-      .catch((e) => setError(e?.response?.data?.detail || "載入群組失敗"))
+      .catch((e) => setError(e?.response?.data?.detail || t("errors.loadGroupFailed")))
       .finally(() => setLoading(false));
   }, [open, groupId, isEdit]);
 
   const handleAddInvite = () => {
     const email = inviteEmail.trim().toLowerCase();
     if (!email || !/.+@.+\..+/.test(email)) {
-      setError("請輸入有效的 Email 地址");
+      setError(t("errors.enterValidEmail"));
       return;
     }
     setError("");
@@ -84,7 +84,7 @@ export default function GroupEditDialog({ open, onClose, groupId, onSaved }) {
         setPending(g.invitations || []);
         setInviteEmail("");
       })
-      .catch((e) => setError(e?.response?.data?.detail || "邀請失敗"));
+      .catch((e) => setError(e?.response?.data?.detail || t("errors.inviteFailed")));
   };
 
   const handleRemovePending = (entry) => {
@@ -94,19 +94,19 @@ export default function GroupEditDialog({ open, onClose, groupId, onSaved }) {
     }
     groupsApi.revokeInvite(groupId, entry.id)
       .then(() => setPending(pending.filter((p) => p.id !== entry.id)))
-      .catch((e) => setError(e?.response?.data?.detail || "撤銷邀請失敗"));
+      .catch((e) => setError(e?.response?.data?.detail || t("errors.revokeInviteFailed")));
   };
 
   const handleRemoveMember = (member) => {
     if (!isEdit) return;
     groupsApi.removeMember(groupId, member.userId)
       .then(() => setMembers(members.filter((m) => m.userId !== member.userId)))
-      .catch((e) => setError(e?.response?.data?.detail || "移除成員失敗"));
+      .catch((e) => setError(e?.response?.data?.detail || t("errors.removeMemberFailed")));
   };
 
   const handleSave = async () => {
     setError("");
-    if (!name.trim()) { setError("請輸入群組名稱"); return; }
+    if (!name.trim()) { setError(t("errors.enterGroupName")); return; }
     setLoading(true);
     try {
       if (isEdit) {
@@ -120,7 +120,7 @@ export default function GroupEditDialog({ open, onClose, groupId, onSaved }) {
       onSaved?.();
       onClose?.();
     } catch (e) {
-      setError(e?.response?.data?.detail || "儲存失敗");
+      setError(e?.response?.data?.detail || t("errors.saveFailed"));
     } finally {
       setLoading(false);
     }
@@ -213,7 +213,7 @@ export default function GroupEditDialog({ open, onClose, groupId, onSaved }) {
                   {inv.email}
                   {!inv.isMember && (
                     <Box component="span" sx={{ ml: 1, fontSize: 11, color: "#A8071A" }}>
-                      ({inv.raw.status === "staged" ? "尚未送出" : inv.raw.status})
+                      ({inv.raw.status === "staged" ? t("errors.stagedNotSent") : inv.raw.status})
                     </Box>
                   )}
                 </Typography>
@@ -229,7 +229,7 @@ export default function GroupEditDialog({ open, onClose, groupId, onSaved }) {
           })}
           {allInvites.length === 0 && (
             <Typography sx={{ fontSize: 13, color: tokens.color.placeholder, textAlign: "center", py: 1 }}>
-              尚未邀請任何成員
+              {t("groupDialog.noInvitees")}
             </Typography>
           )}
         </Box>

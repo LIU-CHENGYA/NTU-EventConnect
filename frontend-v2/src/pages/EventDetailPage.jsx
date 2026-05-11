@@ -18,7 +18,7 @@ export default function EventDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
   const REVIEW_PAGE_SIZE = 10;
   const [event, setEvent] = useState(null);
   const [reviews, setReviews] = useState([]);
@@ -59,13 +59,13 @@ export default function EventDetailPage() {
   }, [id, i18n.language]);
 
   if (loading) {
-    return <Box sx={{ p: 4, textAlign: "center" }}><Typography>載入中...</Typography></Box>;
+    return <Box sx={{ p: 4, textAlign: "center" }}><Typography>{t("common.loading")}</Typography></Box>;
   }
   if (!event) {
     return (
       <Box sx={{ p: 4, textAlign: "center" }}>
-        <Typography>找不到此活動</Typography>
-        <Button onClick={() => navigate("/")}>返回首頁</Button>
+        <Typography>{t("event.notFound")}</Typography>
+        <Button onClick={() => navigate("/")}>{t("common.backToHome")}</Button>
       </Box>
     );
   }
@@ -85,7 +85,7 @@ export default function EventDetailPage() {
             <ArrowBackIosNewIcon sx={{ fontSize: 18 }} />
           </IconButton>
           <Typography sx={{ fontFamily: tokens.font.logo, fontStyle: "italic", fontSize: 28, color: "#000" }}>
-            活動詳情
+            {t("event.details")}
           </Typography>
         </Box>
 
@@ -103,20 +103,20 @@ export default function EventDetailPage() {
 
             {/* Content card */}
             <Card sx={{ p: 3 }}>
-              <Typography sx={{ fontWeight: 700, fontSize: 18, mb: 1 }}>活動內容</Typography>
+              <Typography sx={{ fontWeight: 700, fontSize: 18, mb: 1 }}>{t("event.content")}</Typography>
               <Typography sx={{ fontSize: 14, color: "#444", lineHeight: 1.8, mb: 2, whiteSpace: "pre-wrap" }}>
                 {(event.content || "").replace(/\\n/g, "\n")}
               </Typography>
               {event.instructor && (
                 <>
-                  <Typography sx={{ fontWeight: 700, fontSize: 15, mb: 0.5 }}>授課人</Typography>
+                  <Typography sx={{ fontWeight: 700, fontSize: 15, mb: 0.5 }}>{t("event.instructor")}</Typography>
                   <Typography sx={{ fontSize: 14, color: "#444", mb: 2 }}>{event.instructor}</Typography>
                 </>
               )}
 
               <Divider sx={{ my: 2 }} />
               <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
-                <Typography sx={{ fontWeight: 700, fontSize: 16 }}>評論與分享 ({reviews.length})</Typography>
+                <Typography sx={{ fontWeight: 700, fontSize: 16 }}>{t("event.commentsAndShares", { count: reviews.length })}</Typography>
                 {user && (
                   <Button
                     onClick={() => navigate("/board")}
@@ -127,9 +127,9 @@ export default function EventDetailPage() {
                       borderRadius: "20px", px: 2, fontSize: 13,
                       "&:hover": { bgcolor: "#EEF2FB" },
                     }}
-                    title="活動底下原本的留言功能已轉移至留言板"
+                    title={t("event.commentsLegacyTooltip")}
                   >
-                    至留言板分享
+                    {t("event.shareOnBoard")}
                   </Button>
                 )}
               </Box>
@@ -161,7 +161,7 @@ export default function EventDetailPage() {
                 </Box>
               ))}
               {reviews.length === 0 && (
-                <Typography sx={{ textAlign: "center", color: "#999", py: 2 }}>尚無評論</Typography>
+                <Typography sx={{ textAlign: "center", color: "#999", py: 2 }}>{t("event.noReviews")}</Typography>
               )}
               {hasMoreReviews && (
                 <Box sx={{ textAlign: "center", mt: 1 }}>
@@ -185,7 +185,7 @@ export default function EventDetailPage() {
                     }}
                     sx={{ textTransform: "none", color: tokens.color.navy }}
                   >
-                    {loadingMore ? "載入中..." : "載入更多評論"}
+                    {loadingMore ? t("common.loading") : t("event.loadMoreReviews")}
                   </Button>
                 </Box>
               )}
@@ -209,20 +209,20 @@ export default function EventDetailPage() {
               <Box component="img" src={event.image}
                 sx={{ width: "100%", height: 180, objectFit: "cover", borderRadius: "10px", mb: 1 }} />
 
-              <Section icon={<CalendarTodayIcon sx={{ fontSize: 18 }} />} title="日期時間"
+              <Section icon={<CalendarTodayIcon sx={{ fontSize: 18 }} />} title={t("event.dateTime")}
                 lines={[event.date, event.time]} />
-              <Section icon={<PlaceIcon sx={{ fontSize: 18 }} />} title="地點" lines={[event.location]} />
-              <Section icon={<PersonIcon sx={{ fontSize: 18 }} />} title="承辦"
-                lines={[event.organizer, `聯絡人：${event.organizerContact}`]} />
+              <Section icon={<PlaceIcon sx={{ fontSize: 18 }} />} title={t("event.location")} lines={[event.location]} />
+              <Section icon={<PersonIcon sx={{ fontSize: 18 }} />} title={t("event.organizer")}
+                lines={[event.organizer, t("event.contact", { name: event.organizerContact })]} />
               <Section icon={<PhoneIcon sx={{ fontSize: 18 }} />} title="" lines={[event.contactPhone]} />
 
               <Divider sx={{ my: 0.5 }} />
-              <Typography sx={{ fontSize: 13 }}>報名時間：{event.registrationStart} ~ {event.registrationEnd}</Typography>
-              <Typography sx={{ fontSize: 13 }}>報名類型：{event.registrationType}</Typography>
-              <Typography sx={{ fontSize: 13 }}>參加對象：{event.targetAudience}</Typography>
-              <Typography sx={{ fontSize: 13 }}>名額：{event.remainingSlots}/{event.capacity}</Typography>
+              <Typography sx={{ fontSize: 13 }}>{t("event.registrationPeriod")}：{event.registrationStart} ~ {event.registrationEnd}</Typography>
+              <Typography sx={{ fontSize: 13 }}>{t("event.registrationType")}：{event.registrationType}</Typography>
+              <Typography sx={{ fontSize: 13 }}>{t("event.targetAudience")}：{event.targetAudience}</Typography>
+              <Typography sx={{ fontSize: 13 }}>{t("event.slots", { remaining: event.remainingSlots, total: event.capacity })}</Typography>
               {event.meal && event.meal !== "無" && (
-                <Typography sx={{ fontSize: 13 }}>用餐：{event.meal}</Typography>
+                <Typography sx={{ fontSize: 13 }}>{t("event.meal")}：{event.meal}</Typography>
               )}
 
               {(() => {
@@ -247,7 +247,7 @@ export default function EventDetailPage() {
                       "&.Mui-disabled": { bgcolor: "#9aa0a6", color: "#fffefe" },
                     }}
                   >
-                    {ended ? "活動已結束" : "立即報名"}
+                    {ended ? t("event.endedLabel") : t("event.registerNow")}
                   </Button>
                 );
               })()}

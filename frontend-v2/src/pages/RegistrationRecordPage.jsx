@@ -6,20 +6,23 @@ import {
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
+import { useTranslation } from "react-i18next";
 import { usersApi } from "../api";
 import api from "../api/client";
 import { useAuth } from "../context/AuthContext";
 import { tokens } from "../theme";
 import CancelConfirmDialog from "../components/CancelConfirmDialog";
 
-const STATUS_FILTERS = ["全部", "報名成功", "等待候補", "已取消"];
-const STATUS_TO_ZH = { success: "報名成功", waitlist: "等待候補", cancelled: "已取消" };
+// Filter values are canonical English keys; display labels come from i18n
+// (event.statusFilter.*). Backend `Registration.status` is already English.
+const STATUS_FILTERS = ["all", "success", "waitlist", "cancelled"];
 const FALLBACK_IMG = "https://images.unsplash.com/photo-1511795409834-ef04bbd61622?w=400";
 
 export default function RegistrationRecordPage() {
+  const { t } = useTranslation();
   const { user, ready } = useAuth();
   const navigate = useNavigate();
-  const [filter, setFilter] = useState("全部");
+  const [filter, setFilter] = useState("all");
   const [expandedId, setExpandedId] = useState(null);
   const [registrations, setRegistrations] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -44,14 +47,14 @@ export default function RegistrationRecordPage() {
   if (!ready) return null;
   if (!user) return null;
 
-  const filtered = filter === "全部"
+  const filtered = filter === "all"
     ? registrations
-    : registrations.filter((r) => STATUS_TO_ZH[r.status] === filter);
+    : registrations.filter((r) => r.status === filter);
 
   const statusColors = {
-    "報名成功": { bg: tokens.color.success.bg, color: tokens.color.success.fg },
-    "等待候補": { bg: tokens.color.warning.bg, color: tokens.color.warning.fg },
-    "已取消":   { bg: tokens.color.danger.bg,  color: tokens.color.danger.fg  },
+    success:   { bg: tokens.color.success.bg, color: tokens.color.success.fg },
+    waitlist:  { bg: tokens.color.warning.bg, color: tokens.color.warning.fg },
+    cancelled: { bg: tokens.color.danger.bg,  color: tokens.color.danger.fg  },
   };
 
   const cardSx = {
@@ -71,7 +74,7 @@ export default function RegistrationRecordPage() {
       setPendingCancel(null);
       reload();
     } catch (e) {
-      setCancelError(e?.response?.data?.detail || e.message || "取消失敗");
+      setCancelError(e?.response?.data?.detail || e.message || t("records.cancelFailed"));
     } finally {
       setCancelLoading(false);
     }
@@ -85,7 +88,7 @@ export default function RegistrationRecordPage() {
             <ArrowBackIcon />
           </IconButton>
           <Typography sx={{ fontFamily: tokens.font.logo, fontStyle: "italic", fontSize: { xs: 24, md: 32 }, color: tokens.color.navy }}>
-            報名紀錄
+            {t("records.pageTitle")}
           </Typography>
           <Box sx={{ ml: "auto", display: { xs: "none", sm: "block" } }}>
             <Avatar src={user.avatar_url || user.avatar} sx={{ width: 52, height: 52 }} />
@@ -105,16 +108,16 @@ export default function RegistrationRecordPage() {
                 fontFamily: "'Roboto',sans-serif", fontWeight: 500,
               }}
             >
-              {s}
+              {t(`event.statusFilter.${s}`)}
             </Box>
           ))}
         </Box>
 
-        {loading && <Typography sx={{ textAlign: "center", py: 4 }}>載入中...</Typography>}
+        {loading && <Typography sx={{ textAlign: "center", py: 4 }}>{t("common.loading")}</Typography>}
 
         {!loading && filtered.map((reg) => {
           const isExpanded = expandedId === reg.id;
-          const zhStatus = STATUS_TO_ZH[reg.status];
+          const statusKey = reg.status;
           return (
             <Paper key={reg.id} sx={cardSx}>
               <Box
@@ -140,12 +143,12 @@ export default function RegistrationRecordPage() {
                 <Box
                   sx={{
                     px: 1.5, py: "5px", borderRadius: "20px",
-                    bgcolor: statusColors[zhStatus]?.bg,
-                    color: statusColors[zhStatus]?.color,
+                    bgcolor: statusColors[statusKey]?.bg,
+                    color: statusColors[statusKey]?.color,
                     fontSize: 12, fontWeight: 700, mr: 1,
                   }}
                 >
-                  {zhStatus}
+                  {t(`event.status.${statusKey}`, { defaultValue: statusKey })}
                 </Box>
                 {isExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
               </Box>
@@ -155,10 +158,10 @@ export default function RegistrationRecordPage() {
                 <Box sx={{ p: 2.5 }}>
                   <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 }}>
                     {[
-                      ["報名時間", (reg.registered_at || "").slice(0, 10)],
-                      ["活動地點", reg.location || "—"],
-                      ["活動日期", reg.date || "—"],
-                      ["場次", reg.session_name || "—"],
+                      [t("records.registeredAt"), (reg.registered_at || "").slice(0, 10)],
+                      [t("records.activityLocation"), reg.location || "—"],
+                      [t("records.activityDate"), reg.date || "—"],
+                      [t("records.session"), reg.session_name || "—"],
                     ].map(([k, v]) => (
                       <Box key={k}>
                         <Typography sx={{ fontSize: 12, color: tokens.color.placeholder }}>{k}</Typography>
@@ -176,7 +179,7 @@ export default function RegistrationRecordPage() {
                         borderColor: tokens.color.border, color: tokens.color.text, fontSize: 14,
                       }}
                     >
-                      查看活動
+                      {t("records.viewActivity")}
                     </Button>
                     {reg.status !== "cancelled" && (() => {
                       // Past events: cancellation is rejected by BE (409) so
@@ -202,7 +205,7 @@ export default function RegistrationRecordPage() {
                             "&:hover": { bgcolor: tokens.color.navyDark },
                           }}
                         >
-                          取消報名
+                          {t("records.cancelRegistration")}
                         </Button>
                       );
                     })()}
@@ -215,7 +218,7 @@ export default function RegistrationRecordPage() {
 
         {!loading && filtered.length === 0 && (
           <Typography sx={{ textAlign: "center", py: 6, color: tokens.color.placeholder }}>
-            沒有符合條件的報名紀錄
+            {t("records.noMatching")}
           </Typography>
         )}
       </Box>

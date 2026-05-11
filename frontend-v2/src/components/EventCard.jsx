@@ -23,10 +23,23 @@ export default function EventCard({
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
 
+  // Status is passed in as a canonical English key (success/waitlist/cancelled)
+  // by callers; legacy ZH literals are still accepted as keys for safety.
   const statusColors = {
+    success:    { bg: "#c8e6c9", color: "#1b5e20" },
+    waitlist:   { bg: "#ffe0b2", color: "#bf360c" },
+    cancelled:  { bg: "#ffcdd2", color: "#b71c1c" },
     "報名成功": { bg: "#c8e6c9", color: "#1b5e20" },
     "等待候補": { bg: "#ffe0b2", color: "#bf360c" },
     "已取消":   { bg: "#ffcdd2", color: "#b71c1c" },
+  };
+  const statusLabel = (s) => {
+    if (!s) return s;
+    const KEY_BY_ZH = { "報名成功": "success", "等待候補": "waitlist", "已取消": "cancelled" };
+    const key = KEY_BY_ZH[s] || s;
+    const i18nKey = `event.status.${key}`;
+    const translated = t(i18nKey);
+    return translated === i18nKey ? s : translated;
   };
 
   const tagsToShow = (event.tags || []).slice(0, 3);
@@ -155,7 +168,7 @@ export default function EventCard({
           <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, mt: 0.3 }}>
             <PeopleIcon sx={{ fontSize: 12, color: tokens.color.textSecondary }} />
             <Typography sx={{ fontSize: 11, color: tokens.color.textSecondary }}>
-              剩餘名額：{event.remainingSlots}/{event.capacity}
+              {t("event.capacityShort", { remaining: event.remainingSlots, total: event.capacity })}
             </Typography>
           </Box>
         )}
@@ -175,7 +188,7 @@ export default function EventCard({
                 borderRadius: "4px",
               }}
             >
-              {status}
+              {statusLabel(status)}
             </Box>
           </Box>
         )}
@@ -184,7 +197,7 @@ export default function EventCard({
 
         {/* CTA buttons */}
         <Box sx={{ display: "flex", gap: 0.5, mt: 1.2 }}>
-          {showActions && onCancel && (status === "報名成功" || status === "等待候補") && (
+          {showActions && onCancel && (status === "報名成功" || status === "等待候補" || status === "success" || status === "waitlist") && (
             <button
               onClick={(e) => { e.stopPropagation(); onCancel(); }}
               style={{

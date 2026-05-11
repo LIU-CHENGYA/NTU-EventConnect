@@ -5,12 +5,14 @@ import {
 } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import { useTranslation } from "react-i18next";
 import { eventsApi } from "../api";
 import api from "../api/client";
 import { useAuth } from "../context/AuthContext";
 import { tokens } from "../theme";
 
 export default function EventRegisterPage() {
+  const { t } = useTranslation();
   const { id } = useParams();
   const navigate = useNavigate();
   const { user, ready } = useAuth();
@@ -42,23 +44,23 @@ export default function EventRegisterPage() {
   const handleSubmit = async () => {
     if (!agreed) return;
     const session = event?.sessions?.[0];
-    if (!session) { setError("此活動沒有可報名的場次"); return; }
+    if (!session) { setError(t("registerPage.noSession")); return; }
     try {
       await api.post(`/api/sessions/${session.id}/register`);
       setSubmitted(true);
       setTimeout(() => navigate("/my-registrations"), 1200);
     } catch (e) {
-      setError(e?.response?.data?.detail || "報名失敗");
+      setError(e?.response?.data?.detail || t("registerPage.failed"));
     }
   };
 
   if (!ready) return null;
   if (!user) return null;
-  if (loading) return <Box sx={{ p: 4, textAlign: "center" }}><Typography>載入中...</Typography></Box>;
+  if (loading) return <Box sx={{ p: 4, textAlign: "center" }}><Typography>{t("common.loading")}</Typography></Box>;
   if (!event) {
     return (
       <Box sx={{ p: 4, textAlign: "center", bgcolor: tokens.color.bg, minHeight: "calc(100vh - 76px)" }}>
-        <Typography>找不到此活動</Typography>
+        <Typography>{t("event.notFound")}</Typography>
       </Box>
     );
   }
@@ -85,7 +87,7 @@ export default function EventRegisterPage() {
             <ArrowBackIcon />
           </IconButton>
           <Typography sx={{ fontFamily: tokens.font.logo, fontStyle: "italic", fontSize: 32, color: tokens.color.navy }}>
-            活動報名
+            {t("registerPage.pageTitle")}
           </Typography>
           <Box sx={{ ml: "auto" }}>
             <Avatar src={user.avatarUrl} sx={{ width: 52, height: 52 }} />
@@ -96,10 +98,10 @@ export default function EventRegisterPage() {
           <Paper sx={{ ...cardSx, textAlign: "center", py: 6 }}>
             <CheckCircleIcon sx={{ fontSize: 64, color: tokens.color.success.fg, mb: 2 }} />
             <Typography sx={{ fontSize: 20, fontWeight: 700, color: tokens.color.success.fg, mb: 1 }}>
-              報名成功！
+              {t("registerPage.success")}
             </Typography>
             <Typography sx={{ fontSize: 14, color: tokens.color.placeholder }}>
-              即將跳轉至報名紀錄頁面...
+              {t("registerPage.redirecting")}
             </Typography>
           </Paper>
         ) : (
@@ -107,7 +109,7 @@ export default function EventRegisterPage() {
             {/* Event info */}
             <Paper sx={cardSx}>
               <Typography sx={{ fontSize: 15, fontWeight: 700, mb: 2, color: tokens.color.text }}>
-                報名活動
+                {t("registerPage.registerActivity")}
               </Typography>
               <Box sx={{ display: "flex", gap: 2.5, alignItems: "center" }}>
                 <Box
@@ -140,24 +142,24 @@ export default function EventRegisterPage() {
             {/* Registration form */}
             <Paper sx={cardSx}>
               <Typography sx={{ fontSize: 15, fontWeight: 700, mb: 2, color: tokens.color.text }}>
-                報名資料
+                {t("registerPage.registrationInfo")}
               </Typography>
 
-              <Typography sx={labelSx}>姓名</Typography>
+              <Typography sx={labelSx}>{t("registerPage.name")}</Typography>
               <TextField fullWidth size="small" value={form.name} onChange={handleChange("name")} sx={fieldSx} />
 
-              <Typography sx={labelSx}>學號</Typography>
+              <Typography sx={labelSx}>{t("registerPage.studentId")}</Typography>
               <TextField fullWidth size="small" value={form.studentId} onChange={handleChange("studentId")} sx={fieldSx} />
 
-              <Typography sx={labelSx}>系所</Typography>
+              <Typography sx={labelSx}>{t("registerPage.department")}</Typography>
               <TextField fullWidth size="small" value={form.department} onChange={handleChange("department")} sx={fieldSx} />
 
-              <Typography sx={labelSx}>電子郵件</Typography>
+              <Typography sx={labelSx}>{t("registerPage.email")}</Typography>
               <TextField fullWidth size="small" value={form.email} onChange={handleChange("email")} sx={fieldSx} />
 
-              <Typography sx={labelSx}>聯絡電話</Typography>
+              <Typography sx={labelSx}>{t("registerPage.phone")}</Typography>
               <TextField
-                fullWidth size="small" placeholder="0912-345-678"
+                fullWidth size="small" placeholder={t("registerPage.phonePlaceholder")}
                 value={form.phone} onChange={handleChange("phone")}
                 sx={{ ...fieldSx, mb: 0 }}
               />
@@ -166,15 +168,15 @@ export default function EventRegisterPage() {
             {/* Notes */}
             <Paper sx={cardSx}>
               <Typography sx={{ fontSize: 15, fontWeight: 700, mb: 1.5, color: tokens.color.text }}>
-                報名注意事項
+                {t("registerPage.notice")}
               </Typography>
               <Box component="ul" sx={{ pl: 2.5, m: 0, "& li": { mb: 0.6, color: tokens.color.textSecondary } }}>
-                <li><Typography sx={{ fontSize: 13 }}>報名時間：{event.registrationStart} ~ {event.registrationEnd}</Typography></li>
-                <li><Typography sx={{ fontSize: 13 }}>參加對象：{event.targetAudience}</Typography></li>
+                <li><Typography sx={{ fontSize: 13 }}>{t("event.registrationPeriod")}：{event.registrationStart} ~ {event.registrationEnd}</Typography></li>
+                <li><Typography sx={{ fontSize: 13 }}>{t("event.targetAudience")}：{event.targetAudience}</Typography></li>
                 {event.restrictions && (
-                  <li><Typography sx={{ fontSize: 13 }}>限制條件：{event.restrictions}</Typography></li>
+                  <li><Typography sx={{ fontSize: 13 }}>{t("event.restrictions")}：{event.restrictions}</Typography></li>
                 )}
-                <li><Typography sx={{ fontSize: 13 }}>請自備攜帶電腦</Typography></li>
+                <li><Typography sx={{ fontSize: 13 }}>{t("registerPage.byob")}</Typography></li>
               </Box>
             </Paper>
 
@@ -187,7 +189,7 @@ export default function EventRegisterPage() {
                 control={<Checkbox checked={agreed} onChange={(e) => setAgreed(e.target.checked)} />}
                 label={
                   <Typography sx={{ fontSize: 13, color: tokens.color.text }}>
-                    我已閱讀並同意以上注意事項，所填寫的資料均為真實且正確
+                    {t("registerPage.agreement")}
                   </Typography>
                 }
               />
@@ -201,7 +203,7 @@ export default function EventRegisterPage() {
                     borderColor: tokens.color.border, color: tokens.color.text,
                   }}
                 >
-                  取消
+                  {t("common.cancel")}
                 </Button>
                 <Button
                   variant="contained"
@@ -219,7 +221,7 @@ export default function EventRegisterPage() {
                     "&:hover": { bgcolor: tokens.color.navyDark },
                   }}
                 >
-                  確認報名
+                  {t("registerPage.confirmRegister")}
                 </Button>
               </Box>
             </Paper>

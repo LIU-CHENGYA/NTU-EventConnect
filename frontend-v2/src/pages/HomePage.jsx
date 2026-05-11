@@ -338,6 +338,7 @@ function Section({
   title, items, total, page, totalPages, setPage,
   isEventBookmarked, toggleEventBookmark,
 }) {
+  const { t } = useTranslation();
   const start = (page - 1) * PAGE_SIZE;
   const canPrev = page > 1;
   const canNext = page < totalPages;
@@ -382,7 +383,7 @@ function Section({
           ))}
           {items.length === 0 && (
             <Typography sx={{ gridColumn: "1/-1", textAlign: "center", color: tokens.color.placeholder, py: 4 }}>
-              沒有符合條件的活動
+              {t("event.emptyList")}
             </Typography>
           )}
         </Box>

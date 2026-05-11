@@ -1,13 +1,19 @@
-// Static dictionary for DB-driven tag names (event_tags) that can't live in
-// the i18next bundles. Falls back to the original Chinese label if no
-// translation is registered.
+// Static dictionary for DB-driven Chinese labels that can't live in the
+// i18next bundles. Two groups, both translated via this map:
 //
-// Scope: tags only. 「台大官方分類」 chips show 母活動名 (parent activity name)
-// which is a proper noun and is rendered verbatim — translateTag is not
-// applied to those.
+//   1) The 7 canonical event_tags (EventTag.tag) — see backend-v2/scripts/
+//      seed_events.py EN_TAG_FLAGS. These power the #標籤 chips, the
+//      free/meal shortcut tabs, and the per-card tag pills.
+//   2) Event.category (= activity_type from events.csv, e.g. 講座/工作坊/
+//      競賽/徵才/...) — small badge on the card / detail title pill. This
+//      is the *category* field, distinct from the `official_category` /
+//      母活動名 (329 proper nouns) which is rendered verbatim with no
+//      translation.
 //
-// Keep keys exactly as they are seeded — see fetch_data/build_tags_table.py
-// (TAG_LABELS).
+// Falls back to the original Chinese label if no translation is registered
+// (e.g. 母活動名 proper nouns).
+//
+// Keep keys exactly as they are seeded by the backend.
 
 const EN_MAP = {
   "免費餐點": "Free Meal",

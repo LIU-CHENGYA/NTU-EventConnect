@@ -9,11 +9,13 @@ import StarBorderIcon from "@mui/icons-material/StarBorder";
 import AddPhotoAlternateIcon from "@mui/icons-material/AddPhotoAlternate";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import PlaceIcon from "@mui/icons-material/Place";
+import { useTranslation } from "react-i18next";
 import { postsApi, eventsApi } from "../api";
 import { useAuth } from "../context/AuthContext";
 import { tokens } from "../theme";
 
 export default function PostEditPage() {
+  const { t } = useTranslation();
   const { id } = useParams();
   const navigate = useNavigate();
   const { user, ready } = useAuth();
@@ -46,11 +48,11 @@ export default function PostEditPage() {
 
   if (!ready) return null;
   if (!user) return null;
-  if (loading) return <Box sx={{ p: 4, textAlign: "center" }}><Typography>載入中...</Typography></Box>;
+  if (loading) return <Box sx={{ p: 4, textAlign: "center" }}><Typography>{t("common.loading")}</Typography></Box>;
   if (!post) {
     return (
       <Box sx={{ p: 4, textAlign: "center", bgcolor: tokens.color.bg, minHeight: "calc(100vh - 76px)" }}>
-        <Typography>找不到此貼文</Typography>
+        <Typography>{t("post.notFound")}</Typography>
       </Box>
     );
   }
@@ -69,7 +71,7 @@ export default function PostEditPage() {
       await postsApi.update(post.id, payload);
       navigate(`/posts/${post.id}`);
     } catch (e) {
-      alert("更新失敗: " + (e?.response?.data?.detail || e.message));
+      alert(t("post.updateFailed") + ": " + (e?.response?.data?.detail || e.message));
     }
   };
 
@@ -97,7 +99,7 @@ export default function PostEditPage() {
             <ArrowBackIcon />
           </IconButton>
           <Typography sx={{ fontFamily: tokens.font.logo, fontStyle: "italic", fontSize: { xs: 24, md: 32 }, color: tokens.color.navy }}>
-            編輯文章
+            {t("post.editTitle")}
           </Typography>
           <Box sx={{ ml: "auto", display: { xs: "none", sm: "block" } }}>
             <Avatar src={user.avatar} sx={{ width: 52, height: 52 }} />
@@ -130,7 +132,7 @@ export default function PostEditPage() {
               sx={fieldSx}
             />
             <Typography sx={{ fontSize: 12, color: tokens.color.placeholder, mt: 0.5 }}>
-              字數：{content.length}
+              {t("post.charCount", { n: content.length })}
             </Typography>
 
             {post.images?.length > 0 && (
@@ -157,22 +159,22 @@ export default function PostEditPage() {
             >
               <AddPhotoAlternateIcon sx={{ fontSize: 28, color: tokens.color.placeholder }} />
               <Typography sx={{ fontSize: 13, color: tokens.color.textSecondary }}>
-                + 新增圖片
+                {t("post.addImage")}
               </Typography>
             </Box>
 
             <Box sx={{ mt: 2.5, display: "flex", alignItems: "center", gap: 1 }}>
-              <Typography sx={{ fontSize: 14, fontWeight: 600, color: tokens.color.text }}>權限：</Typography>
+              <Typography sx={{ fontSize: 14, fontWeight: 600, color: tokens.color.text }}>{t("post.visibility")}</Typography>
               <RadioGroup row value={visibility} onChange={(e) => setVisibility(e.target.value)}>
-                <FormControlLabel value="public" control={<Radio size="small" />} label={<Typography sx={{ fontSize: 13 }}>公開</Typography>} />
-                <FormControlLabel value="private" control={<Radio size="small" />} label={<Typography sx={{ fontSize: 13 }}>私人</Typography>} />
+                <FormControlLabel value="public" control={<Radio size="small" />} label={<Typography sx={{ fontSize: 13 }}>{t("post.visPublic")}</Typography>} />
+                <FormControlLabel value="private" control={<Radio size="small" />} label={<Typography sx={{ fontSize: 13 }}>{t("post.visPrivate")}</Typography>} />
                 <FormControlLabel
                   value="group"
                   control={<Radio size="small" />}
                   disabled={!groupOptionEnabled}
                   label={
                     <Typography sx={{ fontSize: 13, color: groupOptionEnabled ? undefined : tokens.color.placeholder }}>
-                      僅限群組{groupOptionEnabled ? "" : "（請從留言板建立）"}
+                      {t("post.visGroupRestricted", { suffix: groupOptionEnabled ? "" : t("post.visGroupSuffix") })}
                     </Typography>
                   }
                 />
@@ -189,7 +191,7 @@ export default function PostEditPage() {
                   borderColor: tokens.color.border, color: tokens.color.text,
                 }}
               >
-                取消
+                {t("common.cancel")}
               </Button>
               <Button
                 variant="contained"
@@ -202,7 +204,7 @@ export default function PostEditPage() {
                   "&:hover": { bgcolor: tokens.color.navyDark },
                 }}
               >
-                儲存
+                {t("common.save")}
               </Button>
             </Box>
           </Paper>

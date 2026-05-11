@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState } from "react";
+import i18n from "../i18n";
 import { authApi, mapUser } from "../api";
 
 const AuthContext = createContext(null);
@@ -31,7 +32,7 @@ export function AuthProvider({ children }) {
         setUser(u); 
         return { success: true };
       } catch (e) {
-        return { success: false, error: e?.response?.data?.detail || "登入失敗" };
+        return { success: false, error: e?.response?.data?.detail || i18n.t("auth.loginFailed") };
       }
     };
 
@@ -42,7 +43,7 @@ export function AuthProvider({ children }) {
       setUser(u);
       return { success: true };
     } catch (e) {
-      return { success: false, error: e?.response?.data?.detail || "註冊失敗" };
+      return { success: false, error: e?.response?.data?.detail || i18n.t("auth.registerFailed") };
     }
   };
 
@@ -53,7 +54,7 @@ export function AuthProvider({ children }) {
       setUser(u);
       return { success: true, needsUsername: needs_username };
     } catch (e) {
-      return { success: false, error: e?.response?.data?.detail || "Google 登入失敗" };
+      return { success: false, error: e?.response?.data?.detail || i18n.t("auth.googleLoginFailed") };
     }
   };
 

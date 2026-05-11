@@ -25,13 +25,13 @@ export default function RegisterPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.name || !form.email || !form.password || !form.confirmPassword) {
-      setError("請填寫所有必填欄位"); return;
+      setError(t("auth.requiredFields")); return;
     }
-    if (form.password !== form.confirmPassword) { setError("兩次密碼輸入不一致"); return; }
-    if (form.password.length < 8) { setError("密碼需至少 8 個字元"); return; }
+    if (form.password !== form.confirmPassword) { setError(t("auth.passwordMismatch")); return; }
+    if (form.password.length < 8) { setError(t("auth.passwordTooShort")); return; }
     const result = await register(form.name, form.email, form.password);
     if (result.success) navigate("/");
-    else setError(result.error || "註冊失敗");
+    else setError(result.error || t("auth.registerFailed"));
   };
 
   const fieldSx = {

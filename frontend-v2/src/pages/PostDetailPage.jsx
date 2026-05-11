@@ -8,11 +8,13 @@ import FavoriteIcon from "@mui/icons-material/Favorite";
 import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import PlaceIcon from "@mui/icons-material/Place";
+import { useTranslation } from "react-i18next";
 import { postsApi, eventsApi } from "../api";
 import { useAuth } from "../context/AuthContext";
 import { tokens } from "../theme";
 
 export default function PostDetailPage() {
+  const { t } = useTranslation();
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -38,12 +40,12 @@ export default function PostDetailPage() {
   }, [id]);
 
   if (loading) {
-    return <Box sx={{ p: 4, textAlign: "center" }}><Typography>載入中...</Typography></Box>;
+    return <Box sx={{ p: 4, textAlign: "center" }}><Typography>{t("common.loading")}</Typography></Box>;
   }
   if (!post) {
     return (
       <Box sx={{ p: 4, textAlign: "center", bgcolor: tokens.color.bg, minHeight: "calc(100vh - 76px)" }}>
-        <Typography>找不到此貼文</Typography>
+        <Typography>{t("post.notFound")}</Typography>
       </Box>
     );
   }
@@ -69,7 +71,7 @@ export default function PostDetailPage() {
             <ArrowBackIcon />
           </IconButton>
           <Typography sx={{ fontFamily: tokens.font.logo, fontStyle: "italic", fontSize: { xs: 24, md: 32 }, color: tokens.color.navy }}>
-            文章詳細
+            {t("post.detailTitle")}
           </Typography>
           {user && (
             <Box sx={{ ml: "auto", display: { xs: "none", sm: "block" } }}>
@@ -103,7 +105,7 @@ export default function PostDetailPage() {
                   onClick={() => navigate(`/posts/${post.id}/edit`)}
                   sx={{ textTransform: "none", color: tokens.color.navy, fontWeight: 600 }}
                 >
-                  編輯貼文
+                  {t("post.editPost")}
                 </Button>
               )}
             </Box>

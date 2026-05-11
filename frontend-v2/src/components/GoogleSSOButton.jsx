@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import {
   Box, Typography, Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField,
 } from "@mui/material";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "../context/AuthContext";
 import { usersApi } from "../api";
 import { tokens } from "../theme";
@@ -10,6 +11,7 @@ import { tokens } from "../theme";
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
 
 export default function GoogleSSOButton({ onError, onSuccess, width = 360 }) {
+  const { t } = useTranslation();
   const { googleLogin, setUser } = useAuth();
   const navigate = useNavigate();
   const btnRef = useRef(null);
@@ -54,7 +56,7 @@ export default function GoogleSSOButton({ onError, onSuccess, width = 360 }) {
       onSuccess?.();
       navigate("/");
     } catch (e) {
-      onError?.(e?.response?.data?.detail || "設定使用者名稱失敗");
+      onError?.(e?.response?.data?.detail || t("auth.setUsernameFailed"));
     }
   };
 
@@ -66,7 +68,7 @@ export default function GoogleSSOButton({ onError, onSuccess, width = 360 }) {
           borderRadius: "10px", textAlign: "center", color: tokens.color.placeholder, fontSize: 12,
         }}
       >
-        尚未設定 VITE_GOOGLE_CLIENT_ID，無法使用 Google 登入
+        {t("auth.googleNotConfigured")}
       </Box>
     );
   }
@@ -78,11 +80,11 @@ export default function GoogleSSOButton({ onError, onSuccess, width = 360 }) {
       </Box>
 
       <Dialog open={usernameOpen} disableEscapeKeyDown>
-        <DialogTitle>請設定使用者名稱</DialogTitle>
+        <DialogTitle>{t("auth.setUsernameTitle")}</DialogTitle>
         <DialogContent>
           <TextField
             autoFocus fullWidth margin="dense"
-            label="使用者名稱"
+            label={t("auth.usernameLabel")}
             value={newUsername}
             onChange={(e) => setNewUsername(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter") handleSaveUsername(); }}
@@ -90,7 +92,7 @@ export default function GoogleSSOButton({ onError, onSuccess, width = 360 }) {
         </DialogContent>
         <DialogActions>
           <Button onClick={handleSaveUsername} disabled={!newUsername.trim()}>
-            確認
+            {t("auth.confirm")}
           </Button>
         </DialogActions>
       </Dialog>

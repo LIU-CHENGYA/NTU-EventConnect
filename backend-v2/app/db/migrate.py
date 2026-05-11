@@ -17,13 +17,13 @@ EXPECTED_COLUMNS = [
     ("posts",  "title",             "VARCHAR(200)"),
     ("posts",  "group_id",          "INTEGER"),
     ("posts",  "is_board_post",     "BOOLEAN NOT NULL DEFAULT 0"),
-    ("events", "official_category", "VARCHAR(100)"),
+    ("events", "official_category", "VARCHAR(500)"),
     # English variants seeded from fetch_data/csv/events_en.csv. Nullable; API
     # falls back to ZH when absent.
     ("events",         "title_en",              "VARCHAR(500)"),
     ("events",         "content_en",            "TEXT"),
     ("events",         "category_en",           "VARCHAR(100)"),
-    ("events",         "official_category_en",  "VARCHAR(100)"),
+    ("events",         "official_category_en",  "VARCHAR(500)"),
     ("events",         "organizer_en",          "VARCHAR(200)"),
     ("events",         "registration_type_en",  "VARCHAR(100)"),
     ("events",         "registration_fee_en",   "VARCHAR(100)"),
@@ -75,6 +75,44 @@ def ensure_columns(engine: Engine) -> list[str]:
 ensure_post_columns = ensure_columns
 
 
+# Postgres-only column-type widenings. SQLite ignores VARCHAR length so the
+# widening is a no-op there; Postgres enforces it and rejected the 2026-05-11
+# seed when EN parent-activity names exceeded 100 chars (max observed 247).
+# Each entry is (table, column, target_length). Skipped when the live column
+# is already at or above target_length so re-startups stay quiet.
+EXPECTED_WIDENINGS = [
+    ("events", "official_category",    500),
+    ("events", "official_category_en", 500),
+]
+
+
+def widen_columns(engine: Engine) -> list[str]:
+    """Grow VARCHAR widths on Postgres only. Returns list of altered columns."""
+    if engine.dialect.name != "postgresql":
+        return []
+    inspector = inspect(engine)
+    table_names = set(inspector.get_table_names())
+    altered: list[str] = []
+    with engine.begin() as conn:
+        for table, col, target_len in EXPECTED_WIDENINGS:
+            if table not in table_names:
+                continue
+            current = next(
+                (c for c in inspector.get_columns(table) if c["name"] == col),
+                None,
+            )
+            if current is None:
+                continue
+            cur_len = getattr(current.get("type"), "length", None)
+            if cur_len is not None and cur_len >= target_len:
+                continue
+            conn.execute(
+                text(f"ALTER TABLE {table} ALTER COLUMN {col} TYPE VARCHAR({target_len})")
+            )
+            altered.append(f"{table}.{col} -> VARCHAR({target_len})")
+    return altered
+
+
 def run_startup_migrations(engine: Engine) -> None:
     """Best-effort, idempotent. Logs added columns for the operator."""
     try:
@@ -83,6 +121,12 @@ def run_startup_migrations(engine: Engine) -> None:
             import logging
             logging.getLogger("uvicorn").warning(
                 "[migrate] Added missing columns: %s", ", ".join(added)
+            )
+        altered = widen_columns(engine)
+        if altered:
+            import logging
+            logging.getLogger("uvicorn").warning(
+                "[migrate] Widened columns: %s", ", ".join(altered)
             )
     except Exception as e:  # noqa: BLE001
         import logging

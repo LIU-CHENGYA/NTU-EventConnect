@@ -26,13 +26,14 @@ class Event(Base):
     # Phase 2.2: NTU 「官方分類」 = 母活動名 (activity_name_activity_session)。
     # info.md L30 + Figma 準拠。複数場次を 1 個の母活動チップにまとめる軸。
     # legacy `category` (= activity_type 講座/工作坊...) はタグとしても event_tags に書く。
-    official_category: Mapped[str | None] = mapped_column(String(100), index=True, nullable=True)
+    # 500 chars to match `title`; ZH max in events.csv is 165, EN max is 247.
+    official_category: Mapped[str | None] = mapped_column(String(500), index=True, nullable=True)
     # English variants seeded from fetch_data/csv/events_en.csv (manual translation).
     # Null when no EN row exists for this parent_url; API falls back to ZH.
     title_en: Mapped[str | None] = mapped_column(String(500), nullable=True)
     content_en: Mapped[str | None] = mapped_column(Text, nullable=True)
     category_en: Mapped[str | None] = mapped_column(String(100), nullable=True)
-    official_category_en: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    official_category_en: Mapped[str | None] = mapped_column(String(500), nullable=True)
     organizer_en: Mapped[str | None] = mapped_column(String(200), nullable=True)
     registration_type_en: Mapped[str | None] = mapped_column(String(100), nullable=True)
     registration_fee_en: Mapped[str | None] = mapped_column(String(100), nullable=True)

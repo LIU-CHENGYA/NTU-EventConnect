@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Box, Typography, Avatar, IconButton } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import { useTranslation } from "react-i18next";
 import PostCard from "../components/PostCard";
 import { usersApi, postsApi } from "../api";
 import { useAuth } from "../context/AuthContext";
@@ -18,6 +19,7 @@ const TAG_COLORS = {
 };
 
 export default function OtherProfilePage() {
+  const { t } = useTranslation();
   const { userId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -40,11 +42,11 @@ export default function OtherProfilePage() {
     return () => { live = false; };
   }, [userId]);
 
-  if (loading) return <Box sx={{ p: 4, textAlign: "center" }}><Typography>載入中...</Typography></Box>;
+  if (loading) return <Box sx={{ p: 4, textAlign: "center" }}><Typography>{t("common.loading")}</Typography></Box>;
   if (!profileUser) {
     return (
       <Box sx={{ p: 4, textAlign: "center", bgcolor: tokens.color.bg, minHeight: "calc(100vh - 76px)" }}>
-        <Typography>找不到此使用者</Typography>
+        <Typography>{t("profile.userNotFound")}</Typography>
       </Box>
     );
   }
@@ -57,9 +59,9 @@ export default function OtherProfilePage() {
   };
 
   const stats = [
-    { label: "貼文", value: profileUser.post_count ?? 0 },
-    { label: "已參加的活動", value: profileUser.joined_event_count ?? 0 },
-    { label: "關注的標籤", value: "" },
+    { label: t("profile.stats.posts"), value: profileUser.post_count ?? 0 },
+    { label: t("profile.stats.joined"), value: profileUser.joined_event_count ?? 0 },
+    { label: t("profile.stats.tags"), value: "" },
   ];
 
   return (
@@ -71,7 +73,7 @@ export default function OtherProfilePage() {
             <ArrowBackIcon />
           </IconButton>
           <Typography sx={{ fontFamily: tokens.font.logo, fontStyle: "italic", fontSize: { xs: 24, md: 32 }, color: tokens.color.navy }}>
-            個人主頁
+            {t("profile.publicProfile")}
           </Typography>
           {user && (
             <Box sx={{ ml: "auto", display: { xs: "none", sm: "block" } }}>
@@ -140,7 +142,7 @@ export default function OtherProfilePage() {
                   fontSize: 18, color: tokens.color.navy,
                   borderBottom: `2px solid ${tokens.color.navy}`, pb: 0.5,
                 }}>
-                  公開貼文
+                  {t("profile.publicPosts")}
                 </Box>
               </Box>
             </Box>
@@ -149,7 +151,7 @@ export default function OtherProfilePage() {
               {publicPosts.map((p) => <PostCard key={p.id} post={p} />)}
               {publicPosts.length === 0 && (
                 <Typography sx={{ textAlign: "center", color: tokens.color.placeholder, gridColumn: "1/-1", py: 4 }}>
-                  尚無公開貼文
+                  {t("profile.noPublicPosts")}
                 </Typography>
               )}
             </Box>

@@ -23,10 +23,10 @@ export default function LoginPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!email || !password) { setError("請輸入帳號和密碼"); return; }
+    if (!email || !password) { setError(t("auth.enterAccountPwd")); return; }
     const result = await login(email, password);
     if (result.success) navigate("/");
-    else setError(result.error || "帳號或密碼錯誤");
+    else setError(result.error || t("auth.wrongCredentials"));
   };
 
   return (
@@ -57,7 +57,7 @@ export default function LoginPage() {
           {t("auth.loginTitle")}
         </Typography>
         <Typography sx={{ fontSize: 14, color: tokens.color.placeholder, textAlign: "center", mb: 3 }}>
-          使用您的帳號或 Email 登入系統
+          {t("auth.loginSubtitle")}
         </Typography>
 
         <Box sx={{ mb: 2.5 }}>

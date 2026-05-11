@@ -28,7 +28,7 @@ const SHORTCUT_TABS = [
   { id: "meal",     labelKey: "filter.tabs.meal",     query: { tag: "免費餐點" } },
 ];
 
-const VIS_LABELS = { public: "公開", private: "私人", group: "僅限群組" };
+// Visibility chip labels are looked up at render time via t(`board.modal.vis${cap}`)
 
 export default function BoardPage() {
   const { t, i18n } = useTranslation();
@@ -305,7 +305,7 @@ export default function BoardPage() {
           )}
           {filteredPosts.length === 0 ? (
             <Box sx={{ p: 6, textAlign: "center", color: tokens.color.placeholder, bgcolor: "#fff", borderRadius: 2 }}>
-              還沒有留言
+              {t("board.noPosts")}
             </Box>
           ) : filteredPosts.map((p) => (
             <PostListItem
@@ -464,6 +464,12 @@ function FilterField({ label, placeholder, value, onChange, icon, flex = 1 }) {
 }
 
 function PostListItem({ post, onClick, onToggleLike, onToggleBookmark }) {
+  const { t } = useTranslation();
+  const VIS_LABELS = {
+    public: t("board.modal.visPublic"),
+    private: t("board.modal.visPrivate"),
+    group: t("board.modal.visGroup"),
+  };
   const visLabel = VIS_LABELS[post.visibility] || post.visibility;
   const visColor = post.visibility === "public" ? "#0EA371" : post.visibility === "private" ? "#6B7280" : "#7C3AED";
   return (

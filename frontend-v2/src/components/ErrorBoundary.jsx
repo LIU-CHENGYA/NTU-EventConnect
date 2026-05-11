@@ -1,4 +1,5 @@
 import { Component } from "react";
+import i18n from "../i18n";
 
 export default class ErrorBoundary extends Component {
   constructor(props) {
@@ -28,9 +29,9 @@ export default class ErrorBoundary extends Component {
           alignItems: "center", justifyContent: "center", padding: 24,
           fontFamily: "sans-serif", textAlign: "center",
         }}>
-          <h2>糟糕，發生錯誤</h2>
+          <h2>{i18n.t("errors.boundary")}</h2>
           <p style={{ color: "#666", maxWidth: 480 }}>
-            頁面遇到未預期的錯誤。請重新整理頁面，若問題持續發生請聯繫管理員。
+            {i18n.t("errors.boundaryDetail")}
           </p>
           <button
             onClick={this.handleReload}
@@ -40,7 +41,7 @@ export default class ErrorBoundary extends Component {
               color: "white", cursor: "pointer",
             }}
           >
-            重新整理
+            {i18n.t("errors.refresh")}
           </button>
         </div>
       );
