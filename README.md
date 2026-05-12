@@ -652,50 +652,54 @@ httpx==0.27.2
 ### 雲端基礎設施架構（v2 起，2026-05-10 切換）
 
 ```
-
-                              Internet
-                                 │
-                                 ▼
-                  ┌──────────────────────────────┐
-                  │     CloudFront (CDN)         │
-                  │  ${VITE_API_URL}             │
-                  │  ─ /          → S3           │
-                  │  ─ /api/*     → EC2 backend  │
-                  │  ─ /uploads/* → EC2 backend  │
-                  └──────────────────────────────┘
-                       │                      │
-                       ▼                      ▼
-          ┌────────────────────────┐ ┌──────────────────────────────┐
-          │  S3 Static Hosting     │ │  EC2 Instance                │
-          │  (Frontend Assets)     │ │  docker-compose.yml          │
-          │  React Vite build      │ │  ┌────────────────────────┐  │
-          └────────────────────────┘ │  │ backend (FastAPI)      │  │
-                                     │  │  build: ${BACKEND_DIR} │  │
-                                     │  │  + APScheduler 02:00   │  │
-                                     │  └────────────────────────┘  │
-                                     │  ┌────────────────────────┐  │
-                                     │  │ postgres:16-alpine     │  │
-                                     │  │  pg_data volume         │  │
-                                     │  └────────────────────────┘  │
-                                     │  ┌────────────────────────┐  │
-                                     │  │ caddy (reverse proxy)  │  │
-                                     │  └────────────────────────┘  │
-                                     │  volumes (read-only):        │
-                                     │   - ./fetch_data → /app/...  │
-                                     │   - ./${BACKEND_DIR}/scripts │
-                                     └──────────────────────────────┘
+                         Internet
+                            │
+       ┌────────────────────┴────────────────────┐
+       │                                         │
+       ▼                                         ▼
+┌─────────────────────┐               ┌──────────────────────────────┐
+│  CloudFront (CDN)   │               │  EC2 Instance                │
+│  d1tz6syfib05nx     │               │  54.175.31.32.nip.io         │
+│  .cloudfront.net    │               │  (VITE_API_URL)              │
+│                     │               │                              │
+│  Origin: S3 (OAC)   │               │  docker-compose.yml          │
+│  ─ / → 前端靜態檔   │               │  ┌────────────────────────┐  │
+│  ─ SPA 404→index    │               │  │ caddy:2-alpine         │  │
+└──────────┬──────────┘               │  │  - Let's Encrypt 自動  │  │
+           │                          │  │    申請 HTTPS 憑證     │  │
+           ▼                          │  │  - 80/443 → backend    │  │
+┌─────────────────────┐               │  └──────────┬─────────────┘  │
+│  S3 (private)       │               │             ▼                │
+│  Vite build 產物    │               │  ┌────────────────────────┐  │
+└─────────────────────┘               │  │ backend (FastAPI)      │  │
+                                      │  │  build: ${BACKEND_DIR} │  │
+前端 JS（在使用者瀏覽器）             │  │  + APScheduler 02:00   │  │
+│                                     │  └──────────┬─────────────┘  │
+│  CORS request ─────────────────────►│             ▼                │
+│  VITE_API_URL/api/*                 │  ┌────────────────────────┐  │
+│  （直連 EC2，不過 CloudFront）       │  │ postgres:16-alpine     │  │
+│                                     │  │  pg_data volume        │  │
+│                                     │  └────────────────────────┘  │
+│                                     │                              │
+│                                     │  host volumes (read-only):   │
+│                                     │   - ./fetch_data             │
+│                                     │   - ./${BACKEND_DIR}/scripts │
+│                                     └──────────────────────────────┘
 ```
+
+**設計重點：** CloudFront 只負責前端靜態檔分發，**不 proxy `/api/*`**。前端 build 時把 `VITE_API_URL` 寫死成 EC2 的 HTTPS domain，瀏覽器直接打 backend。這樣做是為了避免 CloudFront 預設 cache policy 把 query string 吃掉（查詢 / 分頁參數遺失）。EC2 上的 HTTPS 由 Caddy 自動向 Let's Encrypt 申請憑證，使用 `nip.io` wildcard DNS（`54.175.31.32.nip.io` → `54.175.31.32`）。
 
 **部署組件說明：**
 
 | 組件 | 服務 | 配置 | 說明 |
 |------|------|------|------|
-| **前端** | S3 + CloudFront | - | Vite build 產生的靜態檔案 |
-| **後端** | EC2 + docker-compose | container 內 1 vCPU 共用 | Docker 容器運行 FastAPI（image 在 EC2 上 build，不經過 ECR） |
+| **前端 CDN** | CloudFront | OAC + custom error（403/404 → index.html）| SPA 路由重整不會 404 |
+| **前端靜態檔** | S3（private bucket）| 透過 OAC 只接受 CloudFront 存取 | Vite build 產物 |
+| **後端** | EC2 + docker-compose | t3.micro 1 vCPU / 1 GiB（+2 GiB swap）| FastAPI image 在 EC2 上 build，不經過 ECR |
 | **資料庫** | docker-compose `postgres:16-alpine` 同機 | volume `pg_data` | 與 backend 同一台 EC2 |
-| **反向代理** | docker-compose `caddy` | - | 在 EC2 上把 https/http 轉到 backend container |
+| **反向代理 / HTTPS** | docker-compose `caddy:2-alpine` | 80/443 expose | Let's Encrypt 自動憑證，proxy 到 backend:8000 |
 | **CSV 資料** | host volume `./fetch_data` | read-only mount | EC2 主機檔案，由 ETL 流程更新 |
-| **Scheduler** | APScheduler（backend container 內） | 02:00 Asia/Taipei | 每日呼叫 `scripts.seed_events`，CSV → DB |
+| **Scheduler** | APScheduler（backend container 內）| 02:00 Asia/Taipei | 每日呼叫 `scripts.seed_events`，CSV → DB |
 | **日誌** | `docker compose logs backend` | EC2 在地 | 沒有 CloudWatch 集中收集，需 SSH 進機器看 |
 
 ### CI/CD 自動化流程
