@@ -57,6 +57,12 @@ jobs:
               echo "BACKEND_DIR=$BACKEND_DIR" >> .env
             fi
 
+            if grep -q "^GOOGLE_CLIENT_ID=" ./${BACKEND_DIR}/.env; then
+              sed -i "s|^GOOGLE_CLIENT_ID=.*|GOOGLE_CLIENT_ID=${{ secrets.VITE_GOOGLE_CLIENT_ID }}|" ./${BACKEND_DIR}/.env
+            else
+              echo "GOOGLE_CLIENT_ID=${{ secrets.VITE_GOOGLE_CLIENT_ID }}" >> ./${BACKEND_DIR}/.env
+            fi
+            
             echo "Rebuilding backend container ($BACKEND_DIR)..."
             docker compose up -d --build backend
 

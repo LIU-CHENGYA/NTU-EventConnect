@@ -24,6 +24,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    env_file:
+      - ./${BACKEND_DIR:-backend}/.env
     environment:
       DATABASE_URL: postgresql+psycopg://eventconnect:${POSTGRES_PASSWORD}@postgres:5432/eventconnect
       JWT_SECRET: ${JWT_SECRET}
