@@ -42,7 +42,7 @@ export default function ProfilePage() {
   const [selectedFile, setSelectedFile] = useState(null);
   const { user, ready, setUser } = useAuth();
   const navigate = useNavigate();
-  const { drafts } = useData();
+  const { drafts, isEventBookmarked, toggleEventBookmark } = useData();
   const [tab, setTab] = useState(1);
   const [statusFilter, setStatusFilter] = useState("all");
   const [editOpen, setEditOpen] = useState(false);
@@ -67,7 +67,7 @@ export default function ProfilePage() {
     }
     setEditForm({ name: user.name || "", bio: user.bio || "", avatarUrl: user.avatarUrl || "" });
     Promise.all([
-      postsApi.list({ user_id: user.id, is_board_post: false }).catch(() => []),
+      postsApi.list({ user_id: user.id, is_board_post: true }).catch(() => []),
       usersApi.myRegistrations().catch(() => []),
       usersApi.get(user.id).catch(() => null),
       bookmarksApi.myEvents().catch(() => []),
@@ -192,6 +192,8 @@ export default function ProfilePage() {
         showActions
         status={reg.status}
         onCancel={canCancel ? () => setPendingCancel(reg) : undefined}
+        favorited={isEventBookmarked(reg.event_id)}
+        onToggleFavorite={() => toggleEventBookmark(reg.event_id)}
       />
     );
   };
@@ -225,113 +227,128 @@ export default function ProfilePage() {
               {t("profile.calendarTitle")}
             </Typography>
 
-            <LocalizationProvider dateAdapter={AdapterDateFns}>
-              <DateCalendar
-                value={calendarDate}
-                onChange={setCalendarDate}
-                slots={{
-                  day: (props) => {
-                    // Strip MUI PickersDay-internal props so they are not spread
-                    // onto the plain <Box> DOM node (would cause React warnings).
-                    /* eslint-disable no-unused-vars */
-                    const {
-                      day, outsideCurrentMonth,
-                      disableHighlightToday, showDaysOutsideCurrentMonth, isAnimating,
-                      onDaySelect, today, isFirstVisibleCell, isLastVisibleCell,
-                      selected, disabled,
-                      ...other
-                    } = props;
-                    /* eslint-enable no-unused-vars */
-                    const nonCancelledRegs = myRegistrations.filter((r) => r.status !== "cancelled");
-                    const dayEvents = !outsideCurrentMonth
-                      ? nonCancelledRegs.filter((r) => r.date && isSameDay(parseISO(r.date), day))
-                      : [];
-                    const hasEvent = dayEvents.length > 0;
+            <Box sx={{ pb: 0.5 }}>
+              <LocalizationProvider dateAdapter={AdapterDateFns}>
+                <DateCalendar
+                  value={calendarDate}
+                  onChange={setCalendarDate}
+                  yearsPerRow={3}
+                  slots={{
+                    day: (props) => {
+                      // Strip MUI PickersDay-internal props so they are not spread
+                      // onto the plain <Box> DOM node (would cause React warnings).
+                      /* eslint-disable no-unused-vars */
+                      const {
+                        day, outsideCurrentMonth,
+                        disableHighlightToday, showDaysOutsideCurrentMonth, isAnimating,
+                        onDaySelect, today, isFirstVisibleCell, isLastVisibleCell,
+                        selected, disabled,
+                        ...other
+                      } = props;
+                      /* eslint-enable no-unused-vars */
+                      const nonCancelledRegs = myRegistrations.filter((r) => r.status !== "cancelled");
+                      const dayEvents = !outsideCurrentMonth
+                        ? nonCancelledRegs.filter((r) => r.date && isSameDay(parseISO(r.date), day))
+                        : [];
+                      const hasEvent = dayEvents.length > 0;
 
-                    // Tooltip shows: name · time · location · date (spec req 6a)
-                    const tooltipContent = hasEvent
-                      ? dayEvents.map((r) => [r.event_title, r.time, r.location, r.date].filter(Boolean).join(" · ")).join("\n")
-                      : "";
+                      // Tooltip shows: name · time · location · date (spec req 6a)
+                      const tooltipContent = hasEvent
+                        ? dayEvents.map((r) => [r.event_title, r.time, r.location, r.date].filter(Boolean).join(" · ")).join("\n")
+                        : "";
 
-                    const dayBox = (
-                      <Box
-                        {...other}
-                        onClick={(e) => {
-                          if (other.onClick) other.onClick(e);
-                          if (hasEvent) navigate(`/events/${dayEvents[0].event_id}`);
-                        }}
-                        sx={{
-                          ...other.sx,
-                          color: hasEvent ? "red !important" : "inherit",
-                          fontWeight: hasEvent ? "900 !important" : "normal",
-                          width: '32px !important',
-                          height: '32px !important',
-                          display: 'flex',
-                          justifyContent: 'center',
-                          alignItems: 'center',
-                          margin: '0 !important',
-                          cursor: hasEvent ? "pointer" : "default",
-                        }}
-                      >
-                        {day.getDate()}
-                      </Box>
-                    );
+                      const dayBox = (
+                        <Box
+                          {...other}
+                          onClick={(e) => {
+                            if (other.onClick) other.onClick(e);
+                            if (hasEvent) navigate(`/events/${dayEvents[0].event_id}`);
+                          }}
+                          sx={{
+                            ...other.sx,
+                            color: hasEvent ? "red !important" : "inherit",
+                            fontWeight: hasEvent ? "900 !important" : "normal",
+                            width: '32px !important',
+                            height: '32px !important',
+                            display: 'flex',
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            margin: '0 !important',
+                            cursor: hasEvent ? "pointer" : "default",
+                          }}
+                        >
+                          {day.getDate()}
+                        </Box>
+                      );
 
-                    return hasEvent ? (
-                      <Tooltip title={<span style={{ whiteSpace: "pre-line" }}>{tooltipContent}</span>} arrow>
-                        {dayBox}
-                      </Tooltip>
-                    ) : dayBox;
-                  }
-                }}
-                sx={{
-                  width: '100% !important',
-                  maxWidth: '100% !important',
-                  minWidth: 'unset !important',
-                  '& .MuiPickersLayout-root': {
-                    minWidth: 'unset !important',
-                    width: '100% !important',
-                  },
-                  '& .MuiDateCalendar-root': {
-                    width: '100% !important',
-                    minWidth: 'unset !important',
-                    margin: '0 !important',
-                    padding: '0 !important',
-                  },
-                  '& .MuiDayCalendar-monthContainer': {
-                    width: '100% !important'
-                  },
-                  '& .MuiDayCalendar-header': {
-                    width: '100% !important',
-                    display: 'flex !important',
-                    justifyContent: 'space-between !important',
-                    padding: '0 !important',
-                  },
-                  '& .MuiDayCalendar-weekContainer': {
-                    width: '100% !important',
-                    display: 'flex !important',
-                    justifyContent: 'space-between !important',
-                    padding: '0 !important',
-                  },
-                  '& .MuiPickersDay-root': {
-                    width: '32px !important',
-                    height: '32px !important',
-                    margin: '0 !important',
-                  },
-                  '& .MuiDayCalendar-weekDayLabel': {
-                    width: '32px !important',
-                    height: '32px !important',
-                    margin: '0 !important',
-                    fontSize: '0.75rem',
-                  },
-                  '& .MuiPickersCalendarHeader-root': {
-                    padding: '0 !important',
-                    margin: '0 !important',
-                    width: '100% !important',
-                  }
-                }}
-              />
-            </LocalizationProvider>
+                      return hasEvent ? (
+                        <Tooltip title={<span style={{ whiteSpace: "pre-line" }}>{tooltipContent}</span>} arrow>
+                          {dayBox}
+                        </Tooltip>
+                      ) : dayBox;
+                    }
+                  }}
+                  sx={{
+                    width: "100%",
+                    maxWidth: "100%",
+                    "& .MuiPickersLayout-root": {
+                      minWidth: "unset",
+                      width: "100%",
+                    },
+                    "& .MuiDateCalendar-root": {
+                      width: "100%",
+                      margin: 0,
+                      padding: 0,
+                    },
+                    "& .MuiDayCalendar-monthContainer": {
+                      width: "100%",
+                    },
+                    "& .MuiDayCalendar-header": {
+                      width: "100%",
+                      display: "flex",
+                      justifyContent: "space-between",
+                      padding: 0,
+                    },
+                    "& .MuiDayCalendar-weekContainer": {
+                      width: "100%",
+                      display: "flex",
+                      justifyContent: "space-between",
+                      padding: 0,
+                    },
+                    "& .MuiPickersDay-root": {
+                      width: '32px !important',
+                      height: '32px !important',
+                      margin: '0 !important',
+                    },
+                    "& .MuiDayCalendar-weekDayLabel": {
+                      width: '32px !important',
+                      height: '32px !important',
+                      margin: '0 !important',
+                      fontSize: '0.75rem',
+                    },
+                    "& .MuiPickersCalendarHeader-root": {
+                      padding: 0,
+                      margin: 0,
+                      width: "100%",
+                    },
+                    "& .MuiYearCalendar-root": {
+                      width: "100%",
+                      maxWidth: "100%",
+                      padding: 0,
+                    },
+                    "& .MuiPickersYear-root": {
+                      flexBasis: "33.33%",
+                      maxWidth: "33.33%",
+                    },
+                    "& .MuiPickersYear-yearButton": {
+                      width: "100%",
+                      minWidth: "unset",
+                      fontSize: "0.8rem",
+                    },
+                  }}
+                />
+              </LocalizationProvider>
+            </Box>
           </Box>
         </Box>
 
@@ -471,7 +488,17 @@ export default function ProfilePage() {
           {/* Tab 3 — 收藏活動 (bookmarkedEvents) */}
           {tab === 3 && (
             <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2,1fr)", md: "repeat(3,1fr)" }, gap: 2.5 }}>
-              {bookmarkedEvents.map((e) => <EventCard key={e.id} event={e} favorited />)}
+              {bookmarkedEvents.map((e) => {
+                const sessionId = e._bookmarkedSessionId ?? 0;
+                return (
+                  <EventCard
+                    key={`${e.id}-${sessionId}`}
+                    event={e}
+                    favorited={isEventBookmarked(e.id, sessionId)}
+                    onToggleFavorite={() => toggleEventBookmark(e.id, sessionId)}
+                  />
+                );
+              })}
               {bookmarkedEvents.length === 0 && (
                 <Typography sx={{ textAlign: "center", color: "#999", gridColumn: "1/-1", py: 4 }}>{t("profile.empty.noBookmarkedEvents")}</Typography>
               )}

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { Box, Typography, Button, Avatar, IconButton, Divider } from "@mui/material";
 import ArrowBackIosNewIcon from "@mui/icons-material/ArrowBackIosNew";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
@@ -8,7 +8,7 @@ import PersonIcon from "@mui/icons-material/Person";
 import PhoneIcon from "@mui/icons-material/Phone";
 import StarIcon from "@mui/icons-material/Star";
 import { useTranslation } from "react-i18next";
-import { eventsApi, postsApi } from "../api";
+import { eventsApi, postsApi, usersApi } from "../api";
 import { useAuth } from "../context/AuthContext";
 import { tokens } from "../theme";
 import { translateTag } from "../i18n/tagLabels";
@@ -17,6 +17,7 @@ import { eventHasFutureSession } from "../utils/sessionTime";
 export default function EventDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const { t, i18n } = useTranslation();
   const REVIEW_PAGE_SIZE = 10;
@@ -26,6 +27,13 @@ export default function EventDetailPage() {
   const [hasMoreReviews, setHasMoreReviews] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [myRegs, setMyRegs] = useState([]);
+
+  // Fetch the user's registrations so we can show "已報名" on the CTA button.
+  useEffect(() => {
+    if (!user) { setMyRegs([]); return; }
+    usersApi.myRegistrations().then(setMyRegs).catch(() => setMyRegs([]));
+  }, [user, id]);
 
   const mapReview = (p) => ({
     id: p.id,
@@ -69,6 +77,29 @@ export default function EventDetailPage() {
       </Box>
     );
   }
+
+  const sessionParam = searchParams.get("session");
+  const displaySession = (() => {
+    const sessions = event.sessions || [];
+    if (!sessions.length) return null;
+    const sid = sessionParam ? Number(sessionParam) : null;
+    return (sid ? sessions.find((s) => s.id === sid) : null) ?? sessions[0];
+  })();
+  const ds = displaySession || {};
+  const displayDate = ds.date || event.date;
+  const displayTime = ds.time_range || event.time;
+  const displayLocation = ds.location || event.location;
+  const displayCapacity = ds.capacity ?? event.capacity;
+  const displayRemaining = ds.remaining_slots ?? event.remainingSlots;
+  const displayRegStart = ds.registration_start || event.registrationStart;
+  const displayRegEnd = ds.registration_end || event.registrationEnd;
+  const displayMeal = (ds.meal || "").trim() || event.meal;
+
+  // True if the user already has a non-cancelled registration for this session.
+  const isRegistered = myRegs.some((r) => {
+    if (displaySession?.id) return r.session_id === displaySession.id && r.status !== "cancelled";
+    return r.event_id === Number(id) && r.status !== "cancelled";
+  });
 
   const Card = ({ children, sx }) => (
     <Box sx={{ bgcolor: "#fffefe", borderRadius: "20px", boxShadow: tokens.shadow.pill, ...sx }}>
@@ -210,19 +241,19 @@ export default function EventDetailPage() {
                 sx={{ width: "100%", height: 180, objectFit: "cover", borderRadius: "10px", mb: 1 }} />
 
               <Section icon={<CalendarTodayIcon sx={{ fontSize: 18 }} />} title={t("event.dateTime")}
-                lines={[event.date, event.time]} />
-              <Section icon={<PlaceIcon sx={{ fontSize: 18 }} />} title={t("event.location")} lines={[event.location]} />
+                lines={[displayDate, displayTime]} />
+              <Section icon={<PlaceIcon sx={{ fontSize: 18 }} />} title={t("event.location")} lines={[displayLocation]} />
               <Section icon={<PersonIcon sx={{ fontSize: 18 }} />} title={t("event.organizer")}
                 lines={[event.organizer, t("event.contact", { name: event.organizerContact })]} />
               <Section icon={<PhoneIcon sx={{ fontSize: 18 }} />} title="" lines={[event.contactPhone]} />
 
               <Divider sx={{ my: 0.5 }} />
-              <Typography sx={{ fontSize: tokens.fontSize.body }}>{t("event.registrationPeriod")}：{event.registrationStart} ~ {event.registrationEnd}</Typography>
+              <Typography sx={{ fontSize: tokens.fontSize.body }}>{t("event.registrationPeriod")}：{displayRegStart} ~ {displayRegEnd}</Typography>
               <Typography sx={{ fontSize: tokens.fontSize.body }}>{t("event.registrationType")}：{event.registrationType}</Typography>
               <Typography sx={{ fontSize: tokens.fontSize.body }}>{t("event.targetAudience")}：{event.targetAudience}</Typography>
-              <Typography sx={{ fontSize: tokens.fontSize.body }}>{t("event.slots", { remaining: event.remainingSlots, total: event.capacity })}</Typography>
-              {event.meal && event.meal !== "無" && (
-                <Typography sx={{ fontSize: tokens.fontSize.body }}>{t("event.meal")}：{event.meal}</Typography>
+              <Typography sx={{ fontSize: tokens.fontSize.body }}>{t("event.slots", { remaining: displayRemaining, total: displayCapacity })}</Typography>
+              {displayMeal && displayMeal !== "無" && (
+                <Typography sx={{ fontSize: tokens.fontSize.body }}>{t("event.meal")}：{displayMeal}</Typography>
               )}
 
               {(() => {
@@ -233,25 +264,26 @@ export default function EventDetailPage() {
                 const sessions = event.sessions || [];
                 const hasFuture = eventHasFutureSession(event);
                 const ended = sessions.length > 0 && !hasFuture;
+                const disabled = ended || isRegistered;
                 return (
                   <Button
                     onClick={() => {
-                      if (ended) return;
+                      if (disabled) return;
                       if (!user) { navigate("/login"); return; }
-                      navigate(`/events/${event.id}/register`);
+                      navigate(`/events/${event.id}/register${displaySession?.id ? `?session=${displaySession.id}` : ""}`);
                     }}
-                    disabled={ended}
+                    disabled={disabled}
                     sx={{
                       mt: 1.5,
-                      bgcolor: ended ? "#9aa0a6" : "#1e1e1e",
+                      bgcolor: disabled ? "#9aa0a6" : "#1e1e1e",
                       color: "#fffefe",
                       borderRadius: "30px", height: 54, fontSize: tokens.fontSize.title, fontWeight: 700,
                       textTransform: "none",
-                      "&:hover": { bgcolor: ended ? "#9aa0a6" : "#000" },
+                      "&:hover": { bgcolor: disabled ? "#9aa0a6" : "#000" },
                       "&.Mui-disabled": { bgcolor: "#9aa0a6", color: "#fffefe" },
                     }}
                   >
-                    {ended ? t("event.endedLabel") : t("event.registerNow")}
+                    {ended ? t("event.endedLabel") : isRegistered ? t("event.registered") : t("event.registerNow")}
                   </Button>
                 );
               })()}

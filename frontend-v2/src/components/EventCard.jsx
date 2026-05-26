@@ -9,6 +9,7 @@ import PlaceIcon from "@mui/icons-material/Place";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import PeopleIcon from "@mui/icons-material/People";
 import RestaurantIcon from "@mui/icons-material/Restaurant";
+import { useAuth } from "../context/AuthContext";
 import { tokens } from "../theme";
 import { formatDate } from "../utils/format";
 
@@ -19,9 +20,11 @@ export default function EventCard({
   onCancel,
   favorited = false,
   onToggleFavorite,
+  showBookmark = true,
 }) {
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
+  const { user } = useAuth();
 
   // Status is passed in as a canonical English key (success/waitlist/cancelled)
   // by callers; legacy ZH literals are still accepted as keys for safety.
@@ -46,7 +49,7 @@ export default function EventCard({
 
   return (
     <Box
-      onClick={() => navigate(`/events/${event.id}`)}
+      onClick={() => navigate(`/events/${event.id}${event._matchedSessionId ? `?session=${event._matchedSessionId}` : ""}`)}
       sx={{
         width: "100%",
         maxWidth: { xs: "100%", md: 280 },
@@ -70,20 +73,22 @@ export default function EventCard({
           style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
         />
         {/* Heart top-left */}
-        <IconButton
-          size="small"
-          onClick={(e) => { e.stopPropagation(); onToggleFavorite?.(); }}
-          sx={{
-            position: "absolute", top: 6, left: 6,
-            bgcolor: "rgba(255,255,255,0.85)",
-            "&:hover": { bgcolor: "white" },
-            width: 30, height: 30,
-          }}
-        >
-          {favorited
-            ? <FavoriteIcon sx={{ color: tokens.color.heart, fontSize: 18 }} />
-            : <FavoriteBorderIcon sx={{ color: tokens.color.heart, fontSize: 18 }} />}
-        </IconButton>
+        {user && showBookmark && (
+          <IconButton
+            size="small"
+            onClick={(e) => { e.stopPropagation(); onToggleFavorite?.(); }}
+            sx={{
+              position: "absolute", top: 6, left: 6,
+              bgcolor: "rgba(255,255,255,0.85)",
+              "&:hover": { bgcolor: "white" },
+              width: 30, height: 30,
+            }}
+          >
+            {favorited
+              ? <FavoriteIcon sx={{ color: tokens.color.heart, fontSize: 18 }} />
+              : <FavoriteBorderIcon sx={{ color: tokens.color.heart, fontSize: 18 }} />}
+          </IconButton>
+        )}
         {/* Top-right: meal badge + category */}
         <Box sx={{ position: "absolute", top: 8, right: 8, display: "flex", gap: 0.5 }}>
           {event.mealProvided && (
@@ -210,7 +215,7 @@ export default function EventCard({
             </button>
           )}
           <button
-            onClick={(e) => { e.stopPropagation(); navigate(`/events/${event.id}`); }}
+            onClick={(e) => { e.stopPropagation(); navigate(`/events/${event.id}${event._matchedSessionId ? `?session=${event._matchedSessionId}` : ""}`); }}
             style={{
               flex: 1, padding: "7px 0", border: "none", borderRadius: 4,
               backgroundColor: tokens.color.navy, color: "white",

@@ -76,6 +76,7 @@ function mapPost(p) {
     userId: p.user_id,
     eventId: p.event_id ?? null,
     eventTitle: p.event_title || "",
+    eventOfficialCategory: p.event_official_category || null,
     groupId: p.group_id || null,
     groupName: p.group_name || null,
     isBoardPost: !!p.is_board_post,
@@ -238,14 +239,33 @@ export const boardApi = {
 export const bookmarksApi = {
   myEvents: async () => {
     const { data } = await api.get("/api/users/me/bookmarks/events");
-    return data.map(mapEvent);
+    // Each item: { bookmarked_session_id, event }. Map to a flat event object
+    // with _bookmarkedSessionId so callers can display the right session.
+    return data.map(({ bookmarked_session_id, event }) => {
+      const ev = mapEvent(event);
+      ev._bookmarkedSessionId = bookmarked_session_id;
+      if (bookmarked_session_id) {
+        const sess = (event.sessions || []).find((s) => s.id === bookmarked_session_id);
+        if (sess) {
+          ev.date = sess.date || ev.date;
+          ev.time = sess.time_range || ev.time;
+          ev.location = sess.location || ev.location;
+          ev.sessionName = sess.session_name || ev.sessionName;
+          ev._matchedSessionId = sess.id;
+        }
+      }
+      return ev;
+    });
   },
   myPosts: async () => {
     const { data } = await api.get("/api/users/me/bookmarks/posts");
     return data.map(mapPost);
   },
-  bookmarkEvent: (id) => api.post(`/api/events/${id}/bookmark`).then((r) => r.data),
-  unbookmarkEvent: (id) => api.delete(`/api/events/${id}/bookmark`).then((r) => r.data),
+  // session_id = 0 means whole-event bookmark; non-zero = specific session.
+  bookmarkEvent: (id, sessionId = 0) =>
+    api.post(`/api/events/${id}/bookmark`, { session_id: sessionId }).then((r) => r.data),
+  unbookmarkEvent: (id, sessionId = 0) =>
+    api.delete(`/api/events/${id}/bookmark`, { params: { session_id: sessionId } }).then((r) => r.data),
 };
 
 function mapMyComment(c) {

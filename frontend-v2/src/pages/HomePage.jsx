@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
@@ -8,6 +8,7 @@ import {
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import SearchIcon from "@mui/icons-material/Search";
+import ClearIcon from "@mui/icons-material/Clear";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import EventCard from "../components/EventCard";
 import { eventsApi } from "../api";
@@ -32,13 +33,13 @@ export default function HomePage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const searchQuery = searchParams.get("search") || "";
 
-  const [activeTab, setActiveTab] = useState("all");
-  const [selectedCategory, setSelectedCategory] = useState("");
+  const officialCategoryParam = searchParams.get("official_category") || "";
+  const [activeTab, setActiveTab] = useState(officialCategoryParam ? "official" : "all");
+  const [selectedCategory, setSelectedCategory] = useState(officialCategoryParam);
   const [selectedTags, setSelectedTags] = useState([]);
   const [keyword, setKeyword] = useState(searchQuery);
   const [date, setDate] = useState("");
   const [dateEnd, setDateEnd] = useState("");
-  const [location, setLocation] = useState("");
 
   const [listPage, setListPage] = useState(1);
   const [listData, setListData] = useState({ items: [], total: 0 });
@@ -50,23 +51,65 @@ export default function HomePage() {
 
   const { isEventBookmarked, toggleEventBookmark } = useData();
 
+  // Ref for the active official-category chip — used to scroll it into view on navigation.
+  const activeCategoryChipRef = useRef(null);
+  useEffect(() => {
+    if (activeTab !== "official" || !selectedCategory || !categoryOptions.length) return;
+    const timer = setTimeout(() => {
+      activeCategoryChipRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+    }, 50);
+    return () => clearTimeout(timer);
+  }, [activeTab, selectedCategory, categoryOptions]);
+
+  const getSessionOverrides = (event) => {
+    const sessions = event?.sessions || [];
+    if (!sessions.length) return { date: event?.date || "" };
+
+    let matched;
+    if (date || dateEnd) {
+      const start = date || "0000-00-00";
+      const end = dateEnd || "9999-12-31";
+      matched = sessions
+        .filter((s) => s?.date && s.date >= start && s.date <= end)
+        .sort((a, b) => String(a.date).localeCompare(String(b.date)))[0];
+    }
+    matched = matched || sessions[0];
+    return { date: matched?.date || event?.date || "", _matchedSessionId: matched?.id ?? null };
+  };
+
+  const hasDateRange = !!(date && dateEnd);
+  const hasPartialDateRange = !!(date || dateEnd) && !hasDateRange;
+
   // Derived: is any search/filter active?
-  const hasFilter = !!(keyword.trim() || date || dateEnd || location.trim() || selectedTags.length > 0 || selectedCategory || activeTab !== "all");
+  const hasFilter = !!(keyword.trim() || hasDateRange || selectedTags.length > 0 || selectedCategory || activeTab !== "all");
 
   // sync external ?search= → keyword
   useEffect(() => { setKeyword(searchQuery); }, [searchQuery]);
 
+  // sync ?official_category= → tab + category filter
+  useEffect(() => {
+    if (officialCategoryParam) {
+      setActiveTab("official");
+      setSelectedCategory(officialCategoryParam);
+    }
+  }, [officialCategoryParam]);
+
   // Reset to page 1 when filters change
   useEffect(() => {
     setListPage(1);
-  }, [activeTab, selectedCategory, JSON.stringify(selectedTags), keyword, date, dateEnd, location]);
+  }, [activeTab, selectedCategory, JSON.stringify(selectedTags), keyword, date, dateEnd]);
 
   // Build query params from current filter state
   const buildQuery = () => {
     const params = { page: listPage, size: PAGE_SIZE };
     const tab = SHORTCUT_TABS.find((t) => t.id === activeTab);
     if (tab?.kind === "shortcut" && tab.query) Object.assign(params, tab.query);
-    if (activeTab === "official" && selectedCategory) params.category = selectedCategory;
+    if (activeTab === "official" && selectedCategory) {
+      params.category = selectedCategory;
+      // Fetch all events in the category at once so we can expand sessions client-side.
+      params.size = 100;
+      params.page = 1;
+    }
     if (activeTab === "tags") {
       if (selectedTags.length === 1) {
         params.tag = selectedTags[0]; // backward compat: use single tag param
@@ -76,9 +119,10 @@ export default function HomePage() {
     }
     const kw = keyword.trim();
     if (kw) params.keyword = params.keyword ? `${params.keyword} ${kw}` : kw;
-    if (date) params.date = date;
-    if (dateEnd) params.date_to = dateEnd;
-    if (location.trim()) params.location = location.trim();
+    if (hasDateRange) {
+      params.date = date;
+      params.date_to = dateEnd;
+    }
     return params;
   };
 
@@ -98,7 +142,7 @@ export default function HomePage() {
       .catch(() => { if (live) setListData({ items: [], total: 0 }); });
     return () => { live = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab, selectedCategory, JSON.stringify(selectedTags), keyword, date, dateEnd, location, listPage, i18n.language]);
+  }, [activeTab, selectedCategory, JSON.stringify(selectedTags), keyword, date, dateEnd, listPage, i18n.language]);
 
   // Hot
   useEffect(() => {
@@ -122,6 +166,38 @@ export default function HomePage() {
     () => Math.max(1, Math.ceil(listData.total / PAGE_SIZE)),
     [listData.total]
   );
+
+  // When a specific official category chip is selected, expand each event's sessions
+  // into individual cards so users see one card per session date.
+  const expandedListItems = useMemo(() => {
+    if (activeTab !== "official" || !selectedCategory) return null;
+    return listData.items.flatMap((ev) => {
+      const sessions = ev.sessions || [];
+      if (!sessions.length) return [ev];
+      let toExpand = sessions;
+      if (date || dateEnd) {
+        const lo = date || "0000-00-00";
+        const hi = dateEnd || "9999-12-31";
+        const inRange = sessions.filter((s) => s?.date && s.date >= lo && s.date <= hi);
+        if (inRange.length) toExpand = inRange;
+      }
+      return toExpand
+        .sort((a, b) => String(a.date).localeCompare(String(b.date)))
+        .map((s) => ({
+          ...ev,
+          sessions: [],  // clear so getSessionOverrides won't override the values below
+          date: s.date || "",
+          time: s.time_range || "",
+          location: s.location || "",
+          capacity: s.capacity ?? 0,
+          remainingSlots: s.remaining_slots ?? 0,
+          sessionName: s.session_name || "",
+          _matchedSessionId: s.id,
+          _cardKey: `${ev.id}-${s.id}`,
+        }));
+    });
+  }, [listData.items, activeTab, selectedCategory, date, dateEnd]);
+
   const totalHotPages = useMemo(
     () => Math.max(1, Math.ceil(hotData.total / PAGE_SIZE)),
     [hotData.total]
@@ -217,7 +293,12 @@ export default function HomePage() {
                 </Chip>
                 {/* 母活動名は固有名詞なので i18n しない。Top 15 で frontend cap (場次数降順は backend)。 */}
                 {categoryOptions.slice(0, 15).map((opt) => (
-                  <Chip key={opt} active={selectedCategory === opt} onClick={() => setSelectedCategory(opt)}>
+                  <Chip
+                    key={opt}
+                    active={selectedCategory === opt}
+                    onClick={() => setSelectedCategory(opt)}
+                    chipRef={selectedCategory === opt ? activeCategoryChipRef : null}
+                  >
                     {opt}
                   </Chip>
                 ))}
@@ -269,6 +350,12 @@ export default function HomePage() {
             value={keyword}
             onChange={setKeyword}
             onEnter={handleKeywordEnter}
+            onClear={() => {
+              setKeyword("");
+              setSearchParams({});
+              setListPage(1);
+            }}
+            clearLabel={t("filter.clear")}
             flex={2}
           />
           <Box sx={{ flex: 1, minWidth: 200 }}>
@@ -277,50 +364,67 @@ export default function HomePage() {
             </Typography>
             <Box sx={{
               display: "flex", gap: 0.5, alignItems: "center",
-              bgcolor: "#fff", border: `1px solid ${tokens.color.border}`,
+              bgcolor: "#fff",
+              border: `1px solid ${hasPartialDateRange ? "#F59E0B" : tokens.color.border}`,
               borderRadius: 1.5, px: 1.4, height: 52,
+              transition: "border-color 0.2s",
             }}>
-              <CalendarTodayIcon sx={{ fontSize: 16, color: tokens.color.placeholder }} />
-              <input
-                type="date"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                style={{
-                  border: "none", outline: "none", background: "transparent",
-                  width: 130, fontSize: tokens.fontSize.body, color: tokens.color.text, fontFamily: "inherit",
-                }}
-              />
+              <CalendarTodayIcon sx={{ fontSize: 16, color: hasPartialDateRange ? "#F59E0B" : tokens.color.placeholder }} />
+              <Box sx={{
+                borderRadius: 1, px: 0.5, py: 0.3,
+                bgcolor: (hasPartialDateRange && !date) ? "#FFF3CD" : "transparent",
+                outline: (hasPartialDateRange && !date) ? "1.5px dashed #F59E0B" : "none",
+                transition: "background-color 0.2s",
+              }}>
+                <input
+                  type="date"
+                  value={date}
+                  onChange={(e) => setDate(e.target.value)}
+                  style={{
+                    border: "none", outline: "none", background: "transparent",
+                    width: 130, fontSize: tokens.fontSize.body, color: tokens.color.text, fontFamily: "inherit",
+                  }}
+                />
+              </Box>
               <Typography sx={{ fontSize: tokens.fontSize.caption, color: tokens.color.placeholder, mx: 0.5 }}>~</Typography>
-              <input
-                type="date"
-                value={dateEnd}
-                onChange={(e) => setDateEnd(e.target.value)}
-                style={{
-                  border: "none", outline: "none", background: "transparent",
-                  width: 130, fontSize: tokens.fontSize.body, color: tokens.color.text, fontFamily: "inherit",
-                }}
-              />
+              <Box sx={{
+                borderRadius: 1, px: 0.5, py: 0.3,
+                bgcolor: (hasPartialDateRange && !dateEnd) ? "#FFF3CD" : "transparent",
+                outline: (hasPartialDateRange && !dateEnd) ? "1.5px dashed #F59E0B" : "none",
+                transition: "background-color 0.2s",
+              }}>
+                <input
+                  type="date"
+                  value={dateEnd}
+                  onChange={(e) => setDateEnd(e.target.value)}
+                  style={{
+                    border: "none", outline: "none", background: "transparent",
+                    width: 130, fontSize: tokens.fontSize.body, color: tokens.color.text, fontFamily: "inherit",
+                  }}
+                />
+              </Box>
             </Box>
+            <Typography sx={{
+              fontSize: tokens.fontSize.caption, mt: 0.5,
+              color: hasPartialDateRange ? "#F59E0B" : tokens.color.placeholder,
+              fontWeight: hasPartialDateRange ? 600 : 400,
+            }}>
+              {hasPartialDateRange ? t("filter.dateRangeHintRequired") : t("filter.dateRangeHint")}
+            </Typography>
           </Box>
-          <FilterInput
-            label={t("filter.location")}
-            placeholder={t("filter.anyLocation")}
-            value={location}
-            onChange={setLocation}
-            onEnter={(e) => { if (e.key === "Enter") handleSearchClick(); }}
-            flex={1}
-          />
-          <IconButton
-            sx={{
-              bgcolor: tokens.color.navy, color: "#fff",
-              borderRadius: 1.5, width: 52, height: 52,
-              alignSelf: { xs: "flex-end", md: "flex-end" },
-              "&:hover": { bgcolor: tokens.color.navyDark },
-            }}
-            onClick={handleSearchClick}
-          >
-            <SearchIcon />
-          </IconButton>
+          <Box sx={{ display: "flex", flexDirection: "column" }}>
+            <Typography sx={{ fontSize: tokens.fontSize.caption, mb: 0.4, visibility: "hidden" }}>.</Typography>
+            <IconButton
+              sx={{
+                bgcolor: tokens.color.navy, color: "#fff",
+                borderRadius: 1.5, width: 52, height: 52,
+                "&:hover": { bgcolor: tokens.color.navyDark },
+              }}
+              onClick={handleSearchClick}
+            >
+              <SearchIcon />
+            </IconButton>
+          </Box>
         </Box>
 
         {/* Hot events on top — hidden when any filter is active */}
@@ -334,28 +438,32 @@ export default function HomePage() {
             setPage={setHotPage}
             isEventBookmarked={isEventBookmarked}
             toggleEventBookmark={toggleEventBookmark}
+            getEventForDisplay={getSessionOverrides}
           />
         )}
 
         {/* All / filtered events below */}
         <Section
           title={hasFilter ? t("event.searchResults") : t("event.list")}
-          items={listData.items}
-          total={listData.total}
-          page={listPage}
-          totalPages={totalListPages}
-          setPage={setListPage}
+          items={expandedListItems ?? listData.items}
+          total={expandedListItems ? expandedListItems.length : listData.total}
+          page={expandedListItems ? 1 : listPage}
+          totalPages={expandedListItems ? 1 : totalListPages}
+          setPage={expandedListItems ? () => {} : setListPage}
           isEventBookmarked={isEventBookmarked}
           toggleEventBookmark={toggleEventBookmark}
+          getEventForDisplay={getSessionOverrides}
+          expandedMode={!!expandedListItems}
         />
       </Box>
     </Box>
   );
 }
 
-function Chip({ active, onClick, children }) {
+function Chip({ active, onClick, children, chipRef }) {
   return (
     <Box
+      ref={chipRef}
       onClick={onClick}
       sx={{
         px: 1.4, py: 0.6, fontSize: tokens.fontSize.body, borderRadius: "9999px",
@@ -372,7 +480,7 @@ function Chip({ active, onClick, children }) {
   );
 }
 
-function FilterInput({ label, placeholder, value, onChange, onEnter, icon, flex = 1 }) {
+function FilterInput({ label, placeholder, value, onChange, onEnter, icon, onClear, clearLabel, flex = 1 }) {
   return (
     <Box sx={{ flex }}>
       <Typography sx={{ fontSize: tokens.fontSize.caption, color: tokens.color.placeholder, mb: 0.4 }}>
@@ -395,6 +503,16 @@ function FilterInput({ label, placeholder, value, onChange, onEnter, icon, flex 
           onKeyDown={onEnter}
           sx={{ fontSize: tokens.fontSize.body, flex: 1 }}
         />
+        {onClear && value && (
+          <IconButton
+            onClick={onClear}
+            size="small"
+            aria-label={clearLabel || "clear"}
+            sx={{ color: tokens.color.placeholder }}
+          >
+            <ClearIcon fontSize="small" />
+          </IconButton>
+        )}
       </Box>
     </Box>
   );
@@ -403,6 +521,7 @@ function FilterInput({ label, placeholder, value, onChange, onEnter, icon, flex 
 function Section({
   title, items, total, page, totalPages, setPage,
   isEventBookmarked, toggleEventBookmark,
+  getEventForDisplay, expandedMode = false,
 }) {
   const { t } = useTranslation();
   const start = (page - 1) * PAGE_SIZE;
@@ -410,6 +529,10 @@ function Section({
   const canNext = page < totalPages;
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+
+  // In expandedMode all items are already pre-processed; show full count, no arrows.
+  const displayEnd = expandedMode ? total : Math.min(start + PAGE_SIZE, total);
+  const displayStart = expandedMode ? (total > 0 ? 1 : 0) : start + 1;
 
   return (
     <Box sx={{ mb: { xs: 4, md: 5 } }}>
@@ -419,13 +542,13 @@ function Section({
         </Typography>
         {total > 0 && (
           <Typography sx={{ fontSize: tokens.fontSize.body, color: tokens.color.placeholder }}>
-            {start + 1}-{Math.min(start + PAGE_SIZE, total)} / {total}
+            {displayStart}-{displayEnd} / {total}
           </Typography>
         )}
       </Box>
 
       <Box sx={{ display: "flex", alignItems: "center", gap: { xs: 0, md: 1 } }}>
-        {!isMobile && (
+        {!isMobile && !expandedMode && (
           <IconButton disabled={!canPrev} onClick={() => setPage(page - 1)}
             sx={{ color: canPrev ? tokens.color.text : tokens.color.border }}>
             <ChevronLeftIcon sx={{ fontSize: 40 }} />
@@ -439,21 +562,24 @@ function Section({
             flex: 1,
           }}
         >
-          {items.map((ev) => (
-            <EventCard
-              key={ev.id}
-              event={ev}
-              favorited={isEventBookmarked(ev.id)}
-              onToggleFavorite={() => toggleEventBookmark(ev.id)}
-            />
-          ))}
+          {items.map((ev) => {
+            const sessionId = expandedMode ? (ev._matchedSessionId || 0) : 0;
+            return (
+              <EventCard
+                key={ev._cardKey || ev.id}
+                event={getEventForDisplay ? { ...ev, ...getEventForDisplay(ev) } : ev}
+                favorited={isEventBookmarked(ev.id, sessionId)}
+                onToggleFavorite={() => toggleEventBookmark(ev.id, sessionId)}
+              />
+            );
+          })}
           {items.length === 0 && (
             <Typography sx={{ gridColumn: "1/-1", textAlign: "center", color: tokens.color.placeholder, py: 4 }}>
               {t("event.emptyList")}
             </Typography>
           )}
         </Box>
-        {!isMobile && (
+        {!isMobile && !expandedMode && (
           <IconButton disabled={!canNext} onClick={() => setPage(page + 1)}
             sx={{ color: canNext ? tokens.color.text : tokens.color.border }}>
             <ChevronRightIcon sx={{ fontSize: 40 }} />
@@ -461,7 +587,7 @@ function Section({
         )}
       </Box>
 
-      {isMobile && (
+      {isMobile && !expandedMode && (
         <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 2, mt: 2 }}>
           <IconButton disabled={!canPrev} onClick={() => setPage(page - 1)}>
             <ChevronLeftIcon />

@@ -121,6 +121,37 @@ def widen_columns(engine: Engine) -> list[str]:
     return altered
 
 
+def migrate_event_bookmarks_session(engine: Engine) -> bool:
+    """Recreate event_bookmarks with (user_id, event_id, session_id) PK.
+
+    session_id = 0 means a whole-event bookmark (legacy rows); non-zero means
+    a specific session was bookmarked. Idempotent: no-op if already migrated.
+    """
+    inspector = inspect(engine)
+    if "event_bookmarks" not in inspector.get_table_names():
+        return False
+    cols = {c["name"] for c in inspector.get_columns("event_bookmarks")}
+    if "session_id" in cols:
+        return False  # already migrated
+    with engine.begin() as conn:
+        conn.execute(text("""
+            CREATE TABLE event_bookmarks_v2 (
+                user_id   INTEGER NOT NULL REFERENCES users(id)   ON DELETE CASCADE,
+                event_id  INTEGER NOT NULL REFERENCES events(id)  ON DELETE CASCADE,
+                session_id INTEGER NOT NULL DEFAULT 0,
+                created_at DATETIME,
+                PRIMARY KEY (user_id, event_id, session_id)
+            )
+        """))
+        conn.execute(text("""
+            INSERT INTO event_bookmarks_v2 (user_id, event_id, session_id, created_at)
+            SELECT user_id, event_id, 0, created_at FROM event_bookmarks
+        """))
+        conn.execute(text("DROP TABLE event_bookmarks"))
+        conn.execute(text("ALTER TABLE event_bookmarks_v2 RENAME TO event_bookmarks"))
+    return True
+
+
 def run_startup_migrations(engine: Engine) -> None:
     """Idempotent. ADD COLUMN failures stay best-effort; column-widening
     failures are fatal so the 02:00 cron cannot silently repeat the
@@ -128,6 +159,11 @@ def run_startup_migrations(engine: Engine) -> None:
     """
     import logging
     log = logging.getLogger("uvicorn")
+    try:
+        if migrate_event_bookmarks_session(engine):
+            log.warning("[migrate] Recreated event_bookmarks with session_id PK")
+    except Exception as e:  # noqa: BLE001
+        log.error("[migrate] migrate_event_bookmarks_session failed: %s", e)
     try:
         added = ensure_columns(engine)
         if added:

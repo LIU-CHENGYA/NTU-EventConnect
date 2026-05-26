@@ -134,12 +134,14 @@ def list_events(
         tagged = db.query(EventTag.event_id).filter(EventTag.tag == tag).subquery()
         filters.append(Event.id.in_(tagged))
     if tags:
-        # Multi-tag OR filter: events matching ANY of the listed tags.
+        # Multi-tag AND filter: events must have ALL of the listed tags.
         tag_list = [t.strip() for t in tags.split(",") if t.strip()]
         if tag_list:
             multi_tagged = (
                 db.query(EventTag.event_id)
                 .filter(EventTag.tag.in_(tag_list))
+                .group_by(EventTag.event_id)
+                .having(func.count(EventTag.event_id) >= len(tag_list))
                 .subquery()
             )
             filters.append(Event.id.in_(multi_tagged))
