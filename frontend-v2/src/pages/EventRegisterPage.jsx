@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import {
   Box, Typography, Paper, TextField, Button, Checkbox, FormControlLabel, Avatar, Chip, IconButton,
 } from "@mui/material";
@@ -15,7 +15,8 @@ export default function EventRegisterPage() {
   const { t } = useTranslation();
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user, ready } = useAuth();
+  const [searchParams] = useSearchParams();
+  const { user, ready, setUser } = useAuth();
   const [event, setEvent] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -31,6 +32,17 @@ export default function EventRegisterPage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
+    if (!user) return;
+    setForm({
+      name: user.name || "",
+      studentId: user.student_id || user.studentId || "",
+      department: user.department || "",
+      email: user.email || "",
+      phone: "",
+    });
+  }, [user]);
+
+  useEffect(() => {
     if (!ready) return;
     if (!user) { navigate("/login"); return; }
     eventsApi.get(Number(id))
@@ -41,15 +53,38 @@ export default function EventRegisterPage() {
 
   const handleChange = (field) => (e) => setForm({ ...form, [field]: e.target.value });
 
+  const sessionParam = searchParams.get("session");
+  const activeSession = (() => {
+    const sessions = event?.sessions || [];
+    if (!sessions.length) return null;
+    const sid = sessionParam ? Number(sessionParam) : null;
+    return (sid ? sessions.find((s) => s.id === sid) : null) ?? sessions[0];
+  })();
+
   const handleSubmit = async () => {
     if (!agreed) return;
-    const session = event?.sessions?.[0];
+    const session = activeSession;
     if (!session) { setError(t("registerPage.noSession")); return; }
+    const missingStudentId = !user.studentId && !form.studentId.trim();
+    const missingDepartment = !user.department && !form.department.trim();
+    if (missingStudentId || missingDepartment) {
+      setError(missingStudentId && missingDepartment
+        ? "請先輸入學號與系所，才能完成第一次報名綁定。"
+        : missingStudentId
+          ? "請先輸入學號，才能完成第一次報名綁定。"
+          : "請先輸入系所，才能完成第一次報名綁定。"
+      );
+      return;
+    }
     try {
       await api.post(`/api/sessions/${session.id}/register`);
-      // If user didn't have a student ID and one was entered, persist it to profile
-      if (!user.studentId && form.studentId) {
-        usersApi.updateMe({ student_id: form.studentId }).catch(() => {});
+      const profilePatch = {};
+      // If the profile was missing these fields, persist them after the first successful registration.
+      if (!user.studentId && form.studentId.trim()) profilePatch.student_id = form.studentId.trim();
+      if (!user.department && form.department.trim()) profilePatch.department = form.department.trim();
+      if (Object.keys(profilePatch).length > 0) {
+        const updated = await usersApi.updateMe(profilePatch);
+        setUser(updated);
       }
       setSubmitted(true);
       setTimeout(() => navigate("/my-registrations"), 1200);
@@ -126,10 +161,10 @@ export default function EventRegisterPage() {
                     {event.title}
                   </Typography>
                   <Typography sx={{ fontSize: tokens.fontSize.body, color: tokens.color.textSecondary, mb: 0.8 }}>
-                    {event.sessionName}
+                    {activeSession?.session_name || event.sessionName}
                   </Typography>
                   <Chip
-                    label={event.date}
+                    label={activeSession?.date || event.date}
                     size="small"
                     sx={{
                       bgcolor: tokens.color.bg,
@@ -152,14 +187,18 @@ export default function EventRegisterPage() {
               <Typography sx={labelSx}>{t("registerPage.name")}</Typography>
               <TextField fullWidth size="small" value={form.name} onChange={handleChange("name")} sx={fieldSx} />
 
-              <Typography sx={labelSx}>{t("registerPage.studentId")}</Typography>
+              <Typography sx={labelSx}>
+                {t("registerPage.studentId")} <Box component="span" sx={{ color: tokens.color.placeholder, fontWeight: 500 }}>{t("registerPage.firstTimeRequired")}</Box>
+              </Typography>
               <TextField fullWidth size="small" value={form.studentId} onChange={handleChange("studentId")} sx={fieldSx} />
 
-              <Typography sx={labelSx}>{t("registerPage.department")}</Typography>
+              <Typography sx={labelSx}>
+                {t("registerPage.department")} <Box component="span" sx={{ color: tokens.color.placeholder, fontWeight: 500 }}>{t("registerPage.firstTimeRequired")}</Box>
+              </Typography>
               <TextField fullWidth size="small" value={form.department} onChange={handleChange("department")} sx={fieldSx} />
 
               <Typography sx={labelSx}>{t("registerPage.email")}</Typography>
-              <TextField fullWidth size="small" value={form.email} onChange={handleChange("email")} sx={fieldSx} />
+              <TextField fullWidth size="small" value={form.email} onChange={handleChange("email")} sx={fieldSx} disabled />
 
               <Typography sx={labelSx}>{t("registerPage.phone")}</Typography>
               <TextField
@@ -175,7 +214,7 @@ export default function EventRegisterPage() {
                 {t("registerPage.notice")}
               </Typography>
               <Box component="ul" sx={{ pl: 2.5, m: 0, "& li": { mb: 0.6, color: tokens.color.textSecondary } }}>
-                <li><Typography sx={{ fontSize: tokens.fontSize.body }}>{t("event.registrationPeriod")}：{event.registrationStart} ~ {event.registrationEnd}</Typography></li>
+                <li><Typography sx={{ fontSize: tokens.fontSize.body }}>{t("event.registrationPeriod")}：{activeSession?.registration_start || event.registrationStart} ~ {activeSession?.registration_end || event.registrationEnd}</Typography></li>
                 <li><Typography sx={{ fontSize: tokens.fontSize.body }}>{t("event.targetAudience")}：{event.targetAudience}</Typography></li>
                 {event.restrictions && (
                   <li><Typography sx={{ fontSize: tokens.fontSize.body }}>{t("event.restrictions")}：{event.restrictions}</Typography></li>

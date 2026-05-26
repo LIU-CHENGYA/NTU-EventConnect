@@ -119,16 +119,16 @@ export default function Navbar() {
             <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
               <Button
                 onClick={() => navigate("/board")}
-                startIcon={<ChatBubbleOutlineIcon sx={{ fontSize: 18 }} />}
+                startIcon={<ChatBubbleOutlineIcon sx={{ fontSize: 18, color: isOnBoard ? "#fff" : tokens.color.navy }} />}
                 sx={{
                   textTransform: "none",
-                  bgcolor: isOnBoard ? "#E6ECFB" : tokens.color.bg,
-                  color: tokens.color.navy,
-                  fontWeight: 600,
+                  bgcolor: isOnBoard ? tokens.color.navy : tokens.color.bg,
+                  color: isOnBoard ? "#fff" : tokens.color.navy,
+                  fontWeight: 700,
                   borderRadius: "9999px",
                   px: 2,
                   height: 36,
-                  "&:hover": { bgcolor: "#E6ECFB" },
+                  "&:hover": { bgcolor: isOnBoard ? tokens.color.navyDark : "#E6ECFB" },
                 }}
               >
                 {t("nav.board")}

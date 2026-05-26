@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  Box, Typography, Paper, Button, Collapse, Divider, IconButton, Avatar,
+  Box, Typography, Paper, Button, Collapse, Divider, IconButton,
 } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
@@ -90,9 +90,6 @@ export default function RegistrationRecordPage() {
           <Typography sx={{ fontFamily: tokens.font.heading, fontSize: { xs: 22, md: 28 }, fontWeight: 700, color: tokens.color.navy }}>
             {t("records.pageTitle")}
           </Typography>
-          <Box sx={{ ml: "auto", display: { xs: "none", sm: "block" } }}>
-            <Avatar src={user.avatar_url || user.avatar} sx={{ width: 52, height: 52 }} />
-          </Box>
         </Box>
 
         <Box sx={{ display: "flex", gap: 1, mb: 3, flexWrap: "wrap" }}>

@@ -6,14 +6,15 @@ const DataContext = createContext(null);
 
 export function DataProvider({ children }) {
   const { user, ready } = useAuth();
-  const [bookmarkedEventIds, setBookmarkedEventIds] = useState(new Set());
+  // Keys are "${eventId}-${sessionId}" where sessionId=0 means whole-event.
+  const [bookmarkedEventKeys, setBookmarkedEventKeys] = useState(new Set());
   const [bookmarkedPostIds, setBookmarkedPostIds] = useState(new Set());
   const [drafts, setDrafts] = useState([]);
 
   // User-specific: load bookmarks + drafts on login, clear on logout
   const refreshUserData = useCallback(async () => {
     if (!user) {
-      setBookmarkedEventIds(new Set());
+      setBookmarkedEventKeys(new Set());
       setBookmarkedPostIds(new Set());
       setDrafts([]);
       return;
@@ -24,7 +25,7 @@ export function DataProvider({ children }) {
         bookmarksApi.myPosts(),
         usersApi.myDrafts(),
       ]);
-      setBookmarkedEventIds(new Set(bEvents.map((e) => e.id)));
+      setBookmarkedEventKeys(new Set(bEvents.map((e) => `${e.id}-${e._bookmarkedSessionId ?? 0}`)));
       setBookmarkedPostIds(new Set(bPosts.map((p) => p.id)));
       setDrafts(ds);
     } catch (err) {
@@ -44,27 +45,29 @@ export function DataProvider({ children }) {
     refreshUserData();
   }, [ready, refreshUserData]);
 
-  const toggleEventBookmark = async (eventId) => {
+  const toggleEventBookmark = async (eventId, sessionId = 0) => {
     if (!user) return;
-    const isOn = bookmarkedEventIds.has(eventId);
+    const key = `${eventId}-${sessionId}`;
+    const isOn = bookmarkedEventKeys.has(key);
     try {
       const r = isOn
-        ? await bookmarksApi.unbookmarkEvent(eventId)
-        : await bookmarksApi.bookmarkEvent(eventId);
-      setBookmarkedEventIds((prev) => {
+        ? await bookmarksApi.unbookmarkEvent(eventId, sessionId)
+        : await bookmarksApi.bookmarkEvent(eventId, sessionId);
+      setBookmarkedEventKeys((prev) => {
         const next = new Set(prev);
-        if (r.bookmarked) next.add(eventId);
-        else next.delete(eventId);
+        if (r.bookmarked) next.add(key);
+        else next.delete(key);
         return next;
       });
     } catch { /* keep current state on failure */ }
   };
 
-  const isEventBookmarked = (id) => bookmarkedEventIds.has(id);
+  const isEventBookmarked = (eventId, sessionId = 0) =>
+    bookmarkedEventKeys.has(`${eventId}-${sessionId}`);
   const isPostBookmarked = (id) => bookmarkedPostIds.has(id);
 
   const value = {
-    bookmarkedEventIds,
+    bookmarkedEventKeys,
     bookmarkedPostIds,
     drafts,
     toggleEventBookmark,

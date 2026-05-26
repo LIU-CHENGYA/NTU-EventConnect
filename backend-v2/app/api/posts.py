@@ -85,6 +85,7 @@ def _post_out(db: Session, p: Post, viewer: User | None = None) -> PostOut:
     if p.event_id:
         ev = db.get(Event, p.event_id)
         out.event_title = ev.title if ev else None
+        out.event_official_category = ev.official_category if ev else None
     if p.group_id:
         g = db.get(Group, p.group_id)
         out.group_name = g.name if g else None

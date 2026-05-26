@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel
 from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -16,6 +17,10 @@ from app.api.posts import _post_out, _can_view
 router = APIRouter(tags=["bookmarks"])
 
 
+class BookmarkIn(BaseModel):
+    session_id: int = 0  # 0 = whole-event; non-zero = specific session
+
+
 def _event_bookmark_count(db: Session, event_id: int) -> int:
     return db.query(func.count(EventBookmark.event_id)).filter(EventBookmark.event_id == event_id).scalar() or 0
 
@@ -23,33 +28,45 @@ def _event_bookmark_count(db: Session, event_id: int) -> int:
 @router.post("/api/events/{event_id}/bookmark")
 def bookmark_event(
     event_id: int,
+    body: BookmarkIn = BookmarkIn(),
     db: Session = Depends(get_db),
     current: User = Depends(get_current_user),
 ):
     if not db.get(Event, event_id):
         raise HTTPException(404, "Event not found")
     try:
-        db.add(EventBookmark(event_id=event_id, user_id=current.id))
+        db.add(EventBookmark(event_id=event_id, user_id=current.id, session_id=body.session_id))
         db.commit()
     except IntegrityError:
         db.rollback()
-    return {"bookmarked": True, "bookmark_count": _event_bookmark_count(db, event_id)}
+    return {"bookmarked": True, "bookmark_count": _event_bookmark_count(db, event_id), "session_id": body.session_id}
 
 
 @router.delete("/api/events/{event_id}/bookmark")
 def unbookmark_event(
     event_id: int,
+    session_id: int = Query(0),
     db: Session = Depends(get_db),
     current: User = Depends(get_current_user),
 ):
     db.query(EventBookmark).filter(
-        EventBookmark.event_id == event_id, EventBookmark.user_id == current.id
+        EventBookmark.event_id == event_id,
+        EventBookmark.user_id == current.id,
+        EventBookmark.session_id == session_id,
     ).delete()
     db.commit()
-    return {"bookmarked": False, "bookmark_count": _event_bookmark_count(db, event_id)}
+    return {"bookmarked": False, "bookmark_count": _event_bookmark_count(db, event_id), "session_id": session_id}
 
 
-@router.get("/api/users/me/bookmarks/events", response_model=list[EventDetailOut])
+class EventBookmarkItem(BaseModel):
+    bookmarked_session_id: int
+    event: EventDetailOut
+
+    class Config:
+        from_attributes = True
+
+
+@router.get("/api/users/me/bookmarks/events", response_model=list[EventBookmarkItem])
 def my_event_bookmarks(
     page: int = Query(1, ge=1),
     size: int = Query(20, ge=1, le=100),
@@ -57,22 +74,23 @@ def my_event_bookmarks(
     current: User = Depends(get_current_user),
 ):
     rows = (
-        db.query(Event)
-        .options(selectinload(Event.sessions))
-        .join(EventBookmark, EventBookmark.event_id == Event.id)
+        db.query(EventBookmark, Event)
+        .join(Event, EventBookmark.event_id == Event.id)
+        .options(selectinload(Event.sessions), selectinload(Event.tags))
         .filter(EventBookmark.user_id == current.id)
         .order_by(EventBookmark.created_at.desc())
         .offset((page - 1) * size)
         .limit(size)
         .all()
     )
-    return [
-        EventDetailOut(
+    result = []
+    for bm, e in rows:
+        event_detail = EventDetailOut(
             **EventOut.model_validate(e).model_dump(),
-            sessions=[EventSessionOut.model_validate(s) for s in e.sessions],
+            sessions=[EventSessionOut.model_validate(s) for s in (e.sessions or [])],
         )
-        for e in rows
-    ]
+        result.append(EventBookmarkItem(bookmarked_session_id=bm.session_id, event=event_detail))
+    return result
 
 
 @router.get("/api/users/me/bookmarks/posts", response_model=list[PostOut])

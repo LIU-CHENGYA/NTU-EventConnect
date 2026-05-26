@@ -89,4 +89,6 @@ class EventBookmark(Base):
     event_id: Mapped[int] = mapped_column(
         ForeignKey("events.id", ondelete="CASCADE"), primary_key=True, index=True
     )
+    # 0 = whole-event bookmark (legacy/default); non-zero = specific session ID.
+    session_id: Mapped[int] = mapped_column(default=0, primary_key=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)

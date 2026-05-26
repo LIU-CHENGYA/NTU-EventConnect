@@ -68,6 +68,7 @@ class PostOut(BaseModel):
     user_avatar: str | None = None
     event_id: int | None
     event_title: str | None = None
+    event_official_category: str | None = None
     title: str | None = None
     rating: int
     content: str

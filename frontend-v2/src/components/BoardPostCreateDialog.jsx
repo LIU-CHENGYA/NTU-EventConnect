@@ -13,6 +13,7 @@ import CheckIcon from "@mui/icons-material/Check";
 import AddPhotoAlternateIcon from "@mui/icons-material/AddPhotoAlternate";
 import CreateIcon from "@mui/icons-material/Create";
 import { usersApi, postsApi, groupsApi, uploadsApi } from "../api";
+import { useData } from "../context/DataContext";
 import { tokens } from "../theme";
 import { formatDate } from "../utils/format";
 
@@ -33,6 +34,7 @@ function endedAttendedEvents(regs) {
 
 export default function BoardPostCreateDialog({ open, onClose, onCreated }) {
   const { t } = useTranslation();
+  const { refreshUserData } = useData();
   const [registrations, setRegistrations] = useState([]);
   const [groups, setGroups] = useState([]);
 
@@ -135,6 +137,7 @@ export default function BoardPostCreateDialog({ open, onClose, onCreated }) {
         is_board_post: true,
         is_draft: asDraft,
       });
+      if (asDraft) await refreshUserData();
       onCreated?.();
       onClose?.();
       // reset

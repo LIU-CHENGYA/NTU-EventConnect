@@ -12,12 +12,14 @@ import PlaceIcon from "@mui/icons-material/Place";
 import { useTranslation } from "react-i18next";
 import { postsApi } from "../api";
 import { useAuth } from "../context/AuthContext";
+import { useData } from "../context/DataContext";
 import { tokens } from "../theme";
 
 export default function PostCreatePage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { user, ready } = useAuth();
+  const { refreshUserData } = useData();
   const [searchParams] = useSearchParams();
   const eventId = searchParams.get("eventId");
   const event = eventId ? { id: Number(eventId) } : null;
@@ -58,6 +60,7 @@ export default function PostCreatePage() {
         visibility,
         is_draft: true,
       });
+      await refreshUserData();
       navigate("/profile");
     } catch (e) {
       alert(t("post.saveDraftFailed") + ": " + (e?.response?.data?.detail || e.message));

@@ -5,6 +5,7 @@ import {
   Box, Typography, IconButton, InputBase, Avatar, Button,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
+import ClearIcon from "@mui/icons-material/Clear";
 import AddIcon from "@mui/icons-material/Add";
 import FavoriteIcon from "@mui/icons-material/Favorite";
 import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
@@ -51,14 +52,15 @@ export default function BoardPage() {
   const [keyword, setKeyword] = useState("");
 
   const [selectedCategory, setSelectedCategory] = useState("");
-  const [selectedTag, setSelectedTag] = useState("");
+  // allow multi-select tags: store as array
+  const [selectedTag, setSelectedTag] = useState([]);
   const [categoryOptions, setCategoryOptions] = useState([]);
   const [tagOptions, setTagOptions] = useState([]);
 
   // Reset secondary chip when switching the top tab away from official/tags.
   useEffect(() => {
     if (activeTab !== "official") setSelectedCategory("");
-    if (activeTab !== "tags") setSelectedTag("");
+    if (activeTab !== "tags") setSelectedTag([]);
   }, [activeTab]);
 
   const reload = () => {
@@ -68,7 +70,8 @@ export default function BoardPage() {
     const params = { ...tabQuery };
 
     if (activeTab === "official" && selectedCategory) params.category = selectedCategory;
-    if (activeTab === "tags" && selectedTag) params.tag = selectedTag;
+    // when tags are selected, send as comma-separated string (backend expects a single tag query)
+    if (activeTab === "tags" && selectedTag && selectedTag.length > 0) params.tag = selectedTag.join(",");
 
     const kw = keyword.trim();
     if (kw) {
@@ -90,6 +93,8 @@ export default function BoardPage() {
     }
     p.then(setPosts).catch(() => setPosts([]));
   };
+
+  const clearKeyword = () => setKeyword("");
 
   useEffect(() => { reload(); /* eslint-disable-next-line */ },
     [sidebarTab, activeGroupId, activeTab, keyword, selectedCategory, selectedTag]);
@@ -188,8 +193,8 @@ export default function BoardPage() {
             "&::-webkit-scrollbar-thumb": { bgcolor: tokens.color.border, borderRadius: 3 },
           }}>
             <ChipBtn
-              active={(activeTab === "official" ? selectedCategory : selectedTag) === ""}
-              onClick={() => activeTab === "official" ? setSelectedCategory("") : setSelectedTag("")}
+              active={(activeTab === "official" ? selectedCategory : (selectedTag.length === 0))}
+              onClick={() => activeTab === "official" ? setSelectedCategory("") : setSelectedTag([])}
             >
               {activeTab === "official" ? t("filter.anyCategory") : t("filter.anyTag")}
             </ChipBtn>
@@ -201,9 +206,23 @@ export default function BoardPage() {
               const cur = activeTab === "official" ? selectedCategory : selectedTag;
               const setCur = activeTab === "official" ? setSelectedCategory : setSelectedTag;
               const label = activeTab === "tags" ? translateTag(opt, i18n.language) : opt;
+              if (activeTab === "official") {
+                return (
+                  <ChipBtn key={opt} active={cur === opt} onClick={() => setCur(opt)}>
+                    {label}
+                  </ChipBtn>
+                );
+              }
+              // tags: multi-select (toggle in array)
+              const active = Array.isArray(selectedTag) && selectedTag.includes(opt);
+              const toggle = () => {
+                if (!Array.isArray(selectedTag)) setSelectedTag([opt]);
+                else if (selectedTag.includes(opt)) setSelectedTag(selectedTag.filter((x) => x !== opt));
+                else setSelectedTag([...selectedTag, opt]);
+              };
               return (
-                <ChipBtn key={opt} active={cur === opt} onClick={() => setCur(opt)}>
-                  {activeTab === "tags" ? `#${label}` : label}
+                <ChipBtn key={opt} active={active} onClick={toggle}>
+                  {`#${label}`}
                 </ChipBtn>
               );
             })}
@@ -217,7 +236,7 @@ export default function BoardPage() {
           }}
         >
           <FilterField label={t("filter.keywordLabel")} placeholder={t("filter.keyword")}
-            value={keyword} onChange={setKeyword} flex={3} />
+            value={keyword} onChange={setKeyword} onClear={clearKeyword} clearLabel={t("filter.clear")} flex={3} />
           <IconButton
             onClick={reload}
             sx={{
@@ -455,7 +474,7 @@ function ChipBtn({ active, onClick, children }) {
   );
 }
 
-function FilterField({ label, placeholder, value, onChange, icon, flex = 1 }) {
+function FilterField({ label, placeholder, value, onChange, icon, onClear, clearLabel, flex = 1 }) {
   return (
     <Box sx={{ flex }}>
       <Typography sx={{ fontSize: tokens.fontSize.caption, color: tokens.color.placeholder, mb: 0.4 }}>{label}</Typography>
@@ -473,6 +492,16 @@ function FilterField({ label, placeholder, value, onChange, icon, flex = 1 }) {
           onChange={(e) => onChange(e.target.value)}
           sx={{ fontSize: tokens.fontSize.body, flex: 1 }}
         />
+        {onClear && value && (
+          <IconButton
+            onClick={onClear}
+            size="small"
+            aria-label={clearLabel || "clear"}
+            sx={{ color: tokens.color.placeholder }}
+          >
+            <ClearIcon fontSize="small" />
+          </IconButton>
+        )}
       </Box>
     </Box>
   );
@@ -480,6 +509,7 @@ function FilterField({ label, placeholder, value, onChange, icon, flex = 1 }) {
 
 function PostListItem({ post, onClick, onToggleLike, onToggleBookmark }) {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const VIS_LABELS = {
     public: t("board.modal.visPublic"),
     private: t("board.modal.visPrivate"),
@@ -511,10 +541,24 @@ function PostListItem({ post, onClick, onToggleLike, onToggleBookmark }) {
       </Box>
 
       {post.eventTitle && (
-        <Box sx={{
-          display: "inline-block", fontSize: tokens.fontSize.caption, fontWeight: 700,
-          color: NAVY, bgcolor: "#E8EFFF", px: 0.8, py: "2px", borderRadius: 0.5, mb: 0.5,
-        }}>
+        <Box
+          onClick={(e) => {
+            e.stopPropagation();
+            if (!post.eventId) return;
+            const cat = post.eventOfficialCategory;
+            if (cat) {
+              navigate(`/?official_category=${encodeURIComponent(cat)}`);
+            } else {
+              navigate(`/events/${post.eventId}`);
+            }
+          }}
+          sx={{
+            display: "inline-block", fontSize: tokens.fontSize.caption, fontWeight: 700,
+            color: NAVY, bgcolor: "#E8EFFF", px: 0.8, py: "2px", borderRadius: 0.5, mb: 0.5,
+            cursor: "pointer",
+            "&:hover": { bgcolor: "#d0dcf7" },
+          }}
+        >
           🎟 {post.eventTitle}
         </Box>
       )}
