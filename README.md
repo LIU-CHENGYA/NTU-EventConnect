@@ -53,7 +53,7 @@
 | **Backend** | FastAPI 0.115 + SQLAlchemy 2.0 + Pydantic 2 + uvicorn + python-jose（JWT）+ passlib（bcrypt） |
 | **資料庫** | SQLite（預設）/ PostgreSQL（透過 `DATABASE_URL` 切換） |
 | **ETL** | requests + BeautifulSoup（三層爬蟲） |
-| **CI/CD** | GitHub Actions → AWS ECS（後端）/ S3 + CloudFront（前端） |
+| **CI/CD** | GitHub Actions → S3 + CloudFront（前端）/ EC2 docker-compose（後端） |
 
 ---
 
@@ -741,14 +741,12 @@ Developer Push → GitHub → Actions Workflow → AWS Deployment
 - `AWS_SECRET_ACCESS_KEY`
 - `AWS_S3_BUCKET`
 - `CLOUDFRONT_DISTRIBUTION_ID`
-- `VITE_API_URL`（例如 `https://d1tz6syfib05nx.cloudfront.net`，前端會呼叫 `${VITE_API_URL}/api/...`）
+- `VITE_API_URL`（EC2 的 HTTPS URL，例如 `https://54.175.31.32.nip.io`；瀏覽器直接呼叫 `${VITE_API_URL}/api/...`，不經 CloudFront）
 ---
 
 ### Backend（AWS EC2 + docker-compose）
 
 > v2 切換時（YOLIN, 2026-05-10）已從 ECS Fargate 改為 EC2 自架 docker-compose。理由：v1/v2 切換僅需更動環境變數 `BACKEND_DIR`，不必為了切版本另開 ECS task definition；`fetch_data/csv` 也能透過 volume 直接掛載而不必塞進 image。
-
-**後端 API URL：** 透過 CloudFront 同 domain（前端與後端共用 `${VITE_API_URL}`，CloudFront 把 `/api/*` proxy 至 EC2 ALB / 直連）。
 
 #### 自動部署流程（GitHub Actions）
 
@@ -835,76 +833,16 @@ docker compose exec backend python -m scripts.seed_events
 
 CSV 自身的爬蟲更新（`crawl_*.py`）仍需另行 cron / 手動觸發；APScheduler 只負責 CSV → DB 的最後 ingest 步驟。
 
----
-
-### 環境變數配置
-
-#### Backend (ECS Task Definition)
-
-ECS Task Definition 裡需要設定以下環境變數：
-
-| 變數 | 說明 |
-|------|------|
-| `DATABASE_URL` | PostgreSQL 連線字串（`postgresql+psycopg://...`） |
-| `JWT_SECRET` | JWT 簽名密鑰（用 `python -c "import secrets; print(secrets.token_urlsafe(48))"` 產生） |
-| `JWT_ALGORITHM` | `HS256` |
-| `JWT_EXPIRE_MINUTES` | `10080`（7 天） |
-| `CORS_ORIGINS` | 前端 domain（如 `https://d1tz6syfib05nx.cloudfront.net`） |
-
-#### Frontend (Build Time)
-
-```env
-VITE_API_URL=https://d1tz6syfib05nx.cloudfront.net
-```
-
-前端程式會呼叫 `${VITE_API_URL}/api/...`，CloudFront 再把 `/api/*` 代理到 ALB，
-這樣瀏覽器端全程走 HTTPS，不會出現 mixed content 問題。
-
----
-
-### 監控與日誌
-
-| 監控項目 | 位置 | 說明 |
-|---------|------|------|
-| **應用日誌** | EC2 內 `docker compose logs backend` | FastAPI / APScheduler 運行日誌（在地、無集中收集） |
-| **容器狀態** | `docker compose ps` | backend / postgres / caddy 是否 healthy |
-| **Health Check** | GitHub Actions deploy job | 部署後 `curl ${VITE_API_URL}/api/health` ×5 retry |
-| **前端訪問** | CloudFront Logs | CDN 訪問記錄 |
-
-**查看日誌（先 SSH 進 EC2，連線方式見上方「EC2 SSH 連線方式」）：**
-
-```bash
-ssh -i ~/.ssh/ntu-eventconnect.pem <EC2_USER>@<EC2_HOST>
-cd ~/NTU-EventConnect
-
-# 即時 tail backend 日誌
-docker compose logs backend --tail 100 --follow
-
-# 確認所有 services 健康
-docker compose ps
-
-# 進入 backend container 除錯
-docker compose exec backend bash
-
-# 確認 APScheduler 排程是否註冊
-docker compose logs backend | grep "daily_data_refresh"
-# 預期看到: APScheduler started: daily_data_refresh @ 02:00 Asia/Taipei
-
-# 重新啟動 backend（不影響 postgres）
-docker compose restart backend
-```
-
----
 
 **部署後驗證：**
 
 ```bash
-# 測試後端健康檢查（從本機，透過 CloudFront / VITE_API_URL）
+# 測試後端健康檢查（VITE_API_URL = EC2 HTTPS URL，例如 https://54.175.31.32.nip.io）
 curl ${VITE_API_URL}/api/health
 # 預期: {"status":"ok"}
 
-# 測試前端
-curl -I ${VITE_API_URL}/
+# 測試前端（CloudFront URL）
+curl -I https://d1tz6syfib05nx.cloudfront.net/
 # 預期: HTTP 200
 
 # 測試 API 連接
