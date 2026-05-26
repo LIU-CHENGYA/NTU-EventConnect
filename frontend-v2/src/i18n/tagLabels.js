@@ -18,6 +18,7 @@
 const EN_MAP = {
   "免費餐點": "Free Meal",
   "遠距參加": "Remote",
+  "遠距參與": "Remote Participation",
   "學生": "Students",
   "校外人士": "Public",
   "校友": "Alumni",
@@ -32,6 +33,7 @@ const EN_MAP = {
   "成長團體": "Growth Group",
   "其他活動": "Other Event",
   "活動": "Event",
+  "參加身分類型": "Participation Type",
 };
 
 export function translateTag(name, lang) {

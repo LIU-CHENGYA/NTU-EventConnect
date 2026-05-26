@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Box, Typography, Avatar, Button, TextField, Dialog, DialogTitle, DialogContent, DialogActions,
+  Tooltip,
 } from "@mui/material";
 import { useTranslation } from "react-i18next";
 import EventCard from "../components/EventCard";
@@ -10,12 +11,12 @@ import CancelConfirmDialog from "../components/CancelConfirmDialog";
 import { useAuth } from "../context/AuthContext";
 import { useData } from "../context/DataContext";
 import { postsApi, usersApi, bookmarksApi, uploadsApi } from "../api";
+import { mapEvent } from "../api";
 import api from "../api/client";
 import { tokens } from "../theme";
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { StaticDatePicker } from '@mui/x-date-pickers/StaticDatePicker';
-import { Badge } from '@mui/material';
+import { DateCalendar } from '@mui/x-date-pickers/DateCalendar';
 import { parseISO, isSameDay } from 'date-fns';
 
 const TAG_COLORS = {
@@ -28,18 +29,20 @@ const TAG_COLORS = {
   "求職": "rgba(255,57,159,0.42)",
 };
 
-// i18n-keyed tabs/filters. Render labels via t() at usage site.
-const TAB_KEYS = ["myPosts", "upcoming", "bookmarkedPosts", "bookmarkedEvents", "myComments"];
+// Deduplication helper
+const unique = (arr) => [...new Map(arr.map((x) => [x.id, x])).values()];
+
+// Tab keys for regular users (5 tabs) and admin users (6 tabs)
+const TAB_KEYS_USER = ["myPosts", "myRegistrations", "bookmarkedPosts", "bookmarkedEvents", "drafts"];
+const TAB_KEYS_ADMIN = ["myPosts", "myRegistrations", "bookmarkedPosts", "bookmarkedEvents", "drafts", "managedEvents"];
 const STATUS_FILTERS = ["all", "success", "waitlist", "cancelled"];
 
 export default function ProfilePage() {
   const { t } = useTranslation();
-  const [registrations, setRegistrations] = useState([]); // 存儲報名活動
-  const [selectedDate, setSelectedDate] = useState(new Date());
   const [selectedFile, setSelectedFile] = useState(null);
   const { user, ready, setUser } = useAuth();
   const navigate = useNavigate();
-  const { drafts, refreshUserData } = useData();
+  const { drafts } = useData();
   const [tab, setTab] = useState(1);
   const [statusFilter, setStatusFilter] = useState("all");
   const [editOpen, setEditOpen] = useState(false);
@@ -50,23 +53,11 @@ export default function ProfilePage() {
   const [profileStats, setProfileStats] = useState({ post_count: 0, joined_event_count: 0 });
   const [bookmarkedEvents, setBookmarkedEvents] = useState([]);
   const [bookmarkedPosts, setBookmarkedPosts] = useState([]);
-  const [myComments, setMyComments] = useState([]);
   const [pendingCancel, setPendingCancel] = useState(null);
   const [cancelLoading, setCancelLoading] = useState(false);
   const [cancelError, setCancelError] = useState("");
-
-  // 取得報名資料
-  useEffect(() => {
-    const fetchRegistrations = async () => {
-      try {
-        const data = await usersApi.myRegistrations();
-        setRegistrations(data);
-      } catch (err) {
-        console.error("無法取得報名資料", err);
-      }
-    };
-    fetchRegistrations();
-  }, []);
+  const [managedEvents, setManagedEvents] = useState([]);
+  const [calendarDate, setCalendarDate] = useState(new Date());
 
   useEffect(() => {
     if (!ready) return;
@@ -74,42 +65,48 @@ export default function ProfilePage() {
       navigate("/login");
       return;
     }
-    setEditForm({ name: user.name || "", bio: user.bio || "", avatarUrl: user.avatarUrl || ""});
+    setEditForm({ name: user.name || "", bio: user.bio || "", avatarUrl: user.avatarUrl || "" });
     Promise.all([
-      postsApi.list({ user_id: user.id }).catch(() => []),
+      postsApi.list({ user_id: user.id, is_board_post: false }).catch(() => []),
       usersApi.myRegistrations().catch(() => []),
       usersApi.get(user.id).catch(() => null),
       bookmarksApi.myEvents().catch(() => []),
       bookmarksApi.myPosts().catch(() => []),
-      usersApi.myComments().catch(() => []),
-    ]).then(([posts, regs, profile, bEv, bPo, comments]) => {
-      setMyPosts(posts);
-      setMyRegistrations(regs);
+    ]).then(([posts, regs, profile, bEv, bPo]) => {
+      setMyPosts(unique(posts));
+      setMyRegistrations(unique(regs));
       if (profile) setProfileStats(profile);
       setBookmarkedEvents(bEv);
       setBookmarkedPosts(bPo);
-      setMyComments(comments);
     });
+
+    if (user.isAdmin) {
+      api.get("/api/users/me/managed_events")
+        .then((r) => setManagedEvents((r.data.items || []).map(mapEvent)))
+        .catch(() => {});
+    }
   }, [user, ready, navigate]);
 
   if (!ready) return null;
   if (!user) return null;
 
+  const TAB_KEYS = user.isAdmin ? TAB_KEYS_ADMIN : TAB_KEYS_USER;
+
   const isUpcoming = (reg) => {
-    if (!reg.date) return true;  // unknown date → keep visible
+    if (!reg.date) return true; // unknown date → keep visible
     const eod = new Date(reg.date + "T23:59:59");
     return Date.now() <= eod.getTime();
   };
 
-  const baseRegs = tab === 1
-    ? myRegistrations.filter(isUpcoming)
-    : myRegistrations;
-  const filteredRegistrations = statusFilter === "all"
-    ? baseRegs
-    : baseRegs.filter((r) => r.status === statusFilter);
+  // For myRegistrations tab: all regs filtered by statusFilter, then split by upcoming/past
+  const statusFilteredRegs = statusFilter === "all"
+    ? myRegistrations
+    : myRegistrations.filter((r) => r.status === statusFilter);
+  const upcomingRegs = statusFilteredRegs.filter(isUpcoming);
+  const pastRegs = statusFilteredRegs.filter((r) => !isUpcoming(r));
 
   const reloadRegistrations = () =>
-    usersApi.myRegistrations().then(setMyRegistrations).catch(() => {});
+    usersApi.myRegistrations().then((regs) => setMyRegistrations(unique(regs))).catch(() => {});
 
   const handleConfirmCancel = async () => {
     if (!pendingCancel) return;
@@ -136,14 +133,12 @@ export default function ProfilePage() {
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-
-    setSelectedFile(file); 
-
+    setSelectedFile(file);
     const previewUrl = URL.createObjectURL(file);
     setEditForm({ ...editForm, avatarUrl: previewUrl });
   };
 
-  // sidebar count uses the same upcoming filter as the tab so they stay consistent.
+  // sidebar count uses upcoming filter
   const upcomingCount = myRegistrations.filter((r) => r.status === "success" && isUpcoming(r)).length;
   const stats = [
     { label: t("profile.stats.posts"), value: profileStats.post_count },
@@ -151,147 +146,198 @@ export default function ProfilePage() {
     { label: t("profile.stats.upcoming"), value: upcomingCount },
     { label: t("profile.stats.tags"), value: "" },
   ];
+
   const handleSaveEdit = async () => {
     try {
       const payload = {
         name: editForm.name,
         bio: editForm.bio,
-        avatar_url: editForm.avatarUrl.startsWith("blob:") ? undefined : editForm.avatarUrl,
+        avatar_url: editForm.avatarUrl && editForm.avatarUrl.startsWith("blob:") ? undefined : editForm.avatarUrl,
       };
-
       if (selectedFile) {
         const { url } = await uploadsApi.upload(selectedFile);
         payload.avatar_url = url;
       }
-
       const updated = await usersApi.updateMe(payload);
-      setUser(updated); // updated is already formatted by mapUser in usersApi.updateMe
+      setUser(updated);
       setEditOpen(false);
       setSelectedFile(null);
-      console.log("一次存檔成功！");
     } catch (e) {
       console.error("更新失敗", e);
     }
   };
 
+  // Helper to render an EventCard row from a registration record
+  const renderRegCard = (reg) => {
+    const event = {
+      id: reg.event_id,
+      title: reg.event_title,
+      image: reg.event_image,
+      date: reg.date,
+      location: reg.location,
+    };
+    const isPast = (() => {
+      if (!reg.date) return false;
+      const d = new Date(reg.date);
+      if (Number.isNaN(d.getTime())) return false;
+      const endOfDay = new Date(d);
+      endOfDay.setHours(23, 59, 59, 999);
+      return Date.now() > endOfDay.getTime();
+    })();
+    const canCancel = reg.status !== "cancelled" && !isPast;
+    return (
+      <EventCard
+        key={reg.id}
+        event={event}
+        showActions
+        status={reg.status}
+        onCancel={canCancel ? () => setPendingCancel(reg) : undefined}
+      />
+    );
+  };
+
   return (
     <Box sx={{ minHeight: "calc(100vh - 76px)", bgcolor: tokens.color.bg, py: 4 }}>
       <Box sx={{ maxWidth: 1280, mx: "auto", px: { xs: 2, md: 4 }, display: "grid", gridTemplateColumns: { xs: "1fr", md: "291px 1fr" }, gap: 3 }}>
+        {/* ── Sidebar ── */}
         <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
           <Box sx={sidebarCard}>
-            <Typography sx={{ fontFamily: "'Lexend',sans-serif", fontSize: 24, mb: 2 }}>Profile</Typography>
+            <Typography sx={{ fontFamily: tokens.font.heading, fontSize: tokens.fontSize.heading, mb: 2 }}>{t("profile.publicProfile")}</Typography>
             {stats.map((s) => (
               <Box key={s.label} sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", py: 0.6 }}>
-                <Typography sx={{ fontFamily: "'Lexend',sans-serif", fontSize: 16 }}>{s.label}</Typography>
-                {s.value !== "" && <Typography sx={{ fontSize: 16 }}>{s.value}</Typography>}
+                <Typography sx={{ fontFamily: tokens.font.heading, fontSize: tokens.fontSize.subtitle }}>{s.label}</Typography>
+                {s.value !== "" && <Typography sx={{ fontSize: tokens.fontSize.subtitle }}>{s.value}</Typography>}
               </Box>
             ))}
             <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.7, mt: 1 }}>
               {(user.tags || []).map((tag) => (
                 <Box key={tag} sx={{
                   bgcolor: TAG_COLORS[tag] || "rgba(0,0,0,0.1)",
-                  px: 1, py: "2px", borderRadius: "20px", fontSize: 13,
+                  px: 1, py: "2px", borderRadius: "20px", fontSize: tokens.fontSize.body,
                 }}>{tag}</Box>
               ))}
             </Box>
           </Box>
 
+          {/* ── Calendar ── */}
           <Box sx={sidebarCard}>
-          <Typography sx={{ fontFamily: "'Lexend',sans-serif", fontSize: 24, mb: 1 }}>
-            My Calendar
-          </Typography>
+            <Typography sx={{ fontFamily: tokens.font.heading, fontSize: tokens.fontSize.heading, mb: 1 }}>
+              {t("profile.calendarTitle")}
+            </Typography>
 
-          <LocalizationProvider dateAdapter={AdapterDateFns}>
-            <StaticDatePicker
-              displayStaticWrapperAs="desktop"
-              value={new Date()}
-              slotProps={{
-                actionBar: {
-                  sx: { display: 'none !important' }
-                },
-                // toolbar: hidden を解除し、年月切替を表示する（year disappearing バグ対策）
-                toolbar: { hidden: false },
-              }}
-              slots={{
-                day: (props) => {
-                  const { day, outsideCurrentMonth, ...other } = props;
-                  const hasEvent = !outsideCurrentMonth && myRegistrations.some(reg => 
-                    reg.date && isSameDay(parseISO(reg.date), day)
-                  );
+            <LocalizationProvider dateAdapter={AdapterDateFns}>
+              <DateCalendar
+                value={calendarDate}
+                onChange={setCalendarDate}
+                slots={{
+                  day: (props) => {
+                    // Strip MUI PickersDay-internal props so they are not spread
+                    // onto the plain <Box> DOM node (would cause React warnings).
+                    /* eslint-disable no-unused-vars */
+                    const {
+                      day, outsideCurrentMonth,
+                      disableHighlightToday, showDaysOutsideCurrentMonth, isAnimating,
+                      onDaySelect, today, isFirstVisibleCell, isLastVisibleCell,
+                      selected, disabled,
+                      ...other
+                    } = props;
+                    /* eslint-enable no-unused-vars */
+                    const nonCancelledRegs = myRegistrations.filter((r) => r.status !== "cancelled");
+                    const dayEvents = !outsideCurrentMonth
+                      ? nonCancelledRegs.filter((r) => r.date && isSameDay(parseISO(r.date), day))
+                      : [];
+                    const hasEvent = dayEvents.length > 0;
 
-                  return (
-                    <Box
-                      {...other}
-                      sx={{
-                        ...other.sx,
-                        // 有活動變紅粗體，沒活動維持原樣
-                        color: hasEvent ? "red !important" : "inherit",
-                        fontWeight: hasEvent ? "900 !important" : "normal",
-                        width: '32px !important',
-                        height: '32px !important',
-                        display: 'flex',
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                        margin: '0 !important',
-                      }}
-                    >
-                      {day.getDate()}
-                    </Box>
-                  );
-                }
-              }}
-              sx={{
-                width: '100% !important',
-                maxWidth: '100% !important',
-                minWidth: 'unset !important',
-                '& .MuiPickersLayout-root': { 
-                  minWidth: 'unset !important', 
+                    // Tooltip shows: name · time · location · date (spec req 6a)
+                    const tooltipContent = hasEvent
+                      ? dayEvents.map((r) => [r.event_title, r.time, r.location, r.date].filter(Boolean).join(" · ")).join("\n")
+                      : "";
+
+                    const dayBox = (
+                      <Box
+                        {...other}
+                        onClick={(e) => {
+                          if (other.onClick) other.onClick(e);
+                          if (hasEvent) navigate(`/events/${dayEvents[0].event_id}`);
+                        }}
+                        sx={{
+                          ...other.sx,
+                          color: hasEvent ? "red !important" : "inherit",
+                          fontWeight: hasEvent ? "900 !important" : "normal",
+                          width: '32px !important',
+                          height: '32px !important',
+                          display: 'flex',
+                          justifyContent: 'center',
+                          alignItems: 'center',
+                          margin: '0 !important',
+                          cursor: hasEvent ? "pointer" : "default",
+                        }}
+                      >
+                        {day.getDate()}
+                      </Box>
+                    );
+
+                    return hasEvent ? (
+                      <Tooltip title={<span style={{ whiteSpace: "pre-line" }}>{tooltipContent}</span>} arrow>
+                        {dayBox}
+                      </Tooltip>
+                    ) : dayBox;
+                  }
+                }}
+                sx={{
                   width: '100% !important',
-                },
-                '& .MuiDateCalendar-root': { 
-                  width: '100% !important', 
+                  maxWidth: '100% !important',
                   minWidth: 'unset !important',
-                  margin: '0 !important',
-                  padding: '0 !important',
-                },
-                '& .MuiDayCalendar-monthContainer': { 
-                  width: '100% !important' 
-                },
-                '& .MuiDayCalendar-header': {
-                  width: '100% !important',
-                  display: 'flex !important',
-                  justifyContent: 'space-between !important',
-                  padding: '0 !important',
-                },
-                '& .MuiDayCalendar-weekContainer': {
-                  width: '100% !important',
-                  display: 'flex !important',
-                  justifyContent: 'space-between !important',
-                  padding: '0 !important',
-                },
-                '& .MuiPickersDay-root': {
-                  width: '32px !important',
-                  height: '32px !important',
-                  margin: '0 !important',
-                },
-                '& .MuiDayCalendar-weekDayLabel': {
-                  width: '32px !important',
-                  height: '32px !important',
-                  margin: '0 !important',
-                  fontSize: '0.75rem',
-                },
-                '& .MuiPickersCalendarHeader-root': {
-                  padding: '0 !important',
-                  margin: '0 !important',
-                  width: '100% !important',
-                }
-              }}
-            />
-          </LocalizationProvider>
-        </Box>
+                  '& .MuiPickersLayout-root': {
+                    minWidth: 'unset !important',
+                    width: '100% !important',
+                  },
+                  '& .MuiDateCalendar-root': {
+                    width: '100% !important',
+                    minWidth: 'unset !important',
+                    margin: '0 !important',
+                    padding: '0 !important',
+                  },
+                  '& .MuiDayCalendar-monthContainer': {
+                    width: '100% !important'
+                  },
+                  '& .MuiDayCalendar-header': {
+                    width: '100% !important',
+                    display: 'flex !important',
+                    justifyContent: 'space-between !important',
+                    padding: '0 !important',
+                  },
+                  '& .MuiDayCalendar-weekContainer': {
+                    width: '100% !important',
+                    display: 'flex !important',
+                    justifyContent: 'space-between !important',
+                    padding: '0 !important',
+                  },
+                  '& .MuiPickersDay-root': {
+                    width: '32px !important',
+                    height: '32px !important',
+                    margin: '0 !important',
+                  },
+                  '& .MuiDayCalendar-weekDayLabel': {
+                    width: '32px !important',
+                    height: '32px !important',
+                    margin: '0 !important',
+                    fontSize: '0.75rem',
+                  },
+                  '& .MuiPickersCalendarHeader-root': {
+                    padding: '0 !important',
+                    margin: '0 !important',
+                    width: '100% !important',
+                  }
+                }}
+              />
+            </LocalizationProvider>
+          </Box>
         </Box>
 
+        {/* ── Main content ── */}
         <Box>
+          {/* Profile card + tabs */}
           <Box sx={{
             bgcolor: "#fffefe", borderRadius: "20px", boxShadow: tokens.shadow.pill,
             mb: 3, position: "relative", overflow: "hidden",
@@ -309,9 +355,9 @@ export default function ProfilePage() {
               }}
             />
             <Box sx={{ pt: 5, pb: 1, textAlign: "center" }}>
-              <Typography sx={{ fontFamily: "'Lemon',sans-serif", fontSize: 20 }}>{user.name}</Typography>
+              <Typography sx={{ fontFamily: tokens.font.heading, fontWeight: 700, fontSize: tokens.fontSize.title }}>{user.name}</Typography>
               {user.bio && (
-                <Typography sx={{ fontSize: 14, color: tokens.color.text, mt: 1, px: 4 }}>
+                <Typography sx={{ fontSize: tokens.fontSize.body, color: tokens.color.text, mt: 1, px: 4 }}>
                   {user.bio}
                 </Typography>
               )}
@@ -327,14 +373,21 @@ export default function ProfilePage() {
                   key={tk}
                   onClick={() => setTab(i)}
                   sx={{
-                    cursor: "pointer", fontSize: { xs: 14, md: 18 },
+                    cursor: "pointer", fontSize: { xs: tokens.fontSize.body, md: tokens.fontSize.subtitle },
                     color: tab === i ? tokens.color.navy : "#000",
-                    fontFamily: "'Lemon',sans-serif", pb: 0.5,
+                    fontFamily: tokens.font.base, fontWeight: 600, pb: 0.5,
                     borderBottom: tab === i ? `2px solid ${tokens.color.navy}` : "2px solid transparent",
                     whiteSpace: "nowrap",
                   }}
                 >
-                  {t(`profile.tabs.${tk}`)}
+                  {t(`profile.tabs.${tk}`, {
+                    myPosts: "我的留言",
+                    myRegistrations: "我的報名",
+                    bookmarkedPosts: "收藏留言",
+                    bookmarkedEvents: "收藏活動",
+                    drafts: "留言草稿",
+                    managedEvents: "活動管理",
+                  }[tk])}
                 </Box>
               ))}
             </Box>
@@ -343,16 +396,28 @@ export default function ProfilePage() {
               sx={{
                 position: "absolute", top: 12, right: 12,
                 bgcolor: "#39a7ff", color: "white",
-                px: 1.5, py: "5px", borderRadius: "20px", fontSize: 12,
-                cursor: "pointer", fontFamily: "'Lexend',sans-serif",
+                px: 1.5, py: "5px", borderRadius: "20px", fontSize: tokens.fontSize.caption,
+                cursor: "pointer", fontFamily: tokens.font.heading,
               }}
             >
-              Edit Profile
+              {t("profile.editProfile")}
             </Box>
           </Box>
 
+          {/* Tab 0 — 我的留言 (myPosts) */}
+          {tab === 0 && (
+            <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2,1fr)", md: "repeat(3,1fr)" }, gap: 2.5 }}>
+              {myPosts.map((p) => <PostCard key={p.id} post={p} />)}
+              {myPosts.length === 0 && (
+                <Typography sx={{ textAlign: "center", color: "#999", gridColumn: "1/-1", py: 4 }}>{t("profile.empty.noPosts", "尚無留言")}</Typography>
+              )}
+            </Box>
+          )}
+
+          {/* Tab 1 — 我的報名 (myRegistrations) split into upcoming / ended sections */}
           {tab === 1 && (
             <>
+              {/* Status filter chips */}
               <Box sx={{ display: "flex", gap: 1, mb: 2.5 }}>
                 {STATUS_FILTERS.map((s) => (
                   <Box
@@ -362,7 +427,7 @@ export default function ProfilePage() {
                       px: 1.5, py: "6px", fontSize: 14, borderRadius: "8px",
                       border: "1px solid #cac4d0",
                       bgcolor: statusFilter === s ? "rgba(57,167,255,0.42)" : "#fff",
-                      color: "#49454f", cursor: "pointer", fontFamily: "'Roboto',sans-serif",
+                      color: "#49454f", cursor: "pointer", fontFamily: tokens.font.heading,
                       fontWeight: 500,
                     }}
                   >
@@ -370,52 +435,30 @@ export default function ProfilePage() {
                   </Box>
                 ))}
               </Box>
+
+              {/* Section 1: 即將到來 */}
+              <Typography sx={{ fontFamily: tokens.font.heading, fontSize: tokens.fontSize.subtitle, fontWeight: 700, mb: 1.5 }}>
+                {t("profile.sections.upcoming", "即將到來")}
+              </Typography>
+              <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2,1fr)", md: "repeat(3,1fr)" }, gap: 2.5, mb: 3 }}>
+                {upcomingRegs.length > 0
+                  ? upcomingRegs.map(renderRegCard)
+                  : <Typography sx={{ color: "#999", gridColumn: "1/-1", py: 2 }}>{t("profile.empty.noRegistrations")}</Typography>}
+              </Box>
+
+              {/* Section 2: 已結束 */}
+              <Typography sx={{ fontFamily: tokens.font.heading, fontSize: tokens.fontSize.subtitle, fontWeight: 700, mb: 1.5 }}>
+                {t("profile.sections.ended", "已結束")}
+              </Typography>
               <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2,1fr)", md: "repeat(3,1fr)" }, gap: 2.5 }}>
-                {filteredRegistrations.map((reg) => {
-                  const event = {
-                    id: reg.event_id,
-                    title: reg.event_title,
-                    image: reg.event_image,
-                    date: reg.date,
-                    location: reg.location,
-                  };
-                  // Hide Cancel for past events (BE 409 would reject anyway).
-                  // Matches RegistrationRecordPage to keep the two surfaces in sync.
-                  const isPast = (() => {
-                    if (!reg.date) return false;
-                    const d = new Date(reg.date);
-                    if (Number.isNaN(d.getTime())) return false;
-                    const endOfDay = new Date(d);
-                    endOfDay.setHours(23, 59, 59, 999);
-                    return Date.now() > endOfDay.getTime();
-                  })();
-                  const canCancel = reg.status !== "cancelled" && !isPast;
-                  return (
-                    <EventCard
-                      key={reg.id}
-                      event={event}
-                      showActions
-                      status={reg.status}
-                      onCancel={canCancel ? () => setPendingCancel(reg) : undefined}
-                    />
-                  );
-                })}
-                {filteredRegistrations.length === 0 && (
-                  <Typography sx={{ textAlign: "center", color: "#999", gridColumn: "1/-1", py: 4 }}>{t("profile.empty.noRegistrations")}</Typography>
-                )}
+                {pastRegs.length > 0
+                  ? pastRegs.map(renderRegCard)
+                  : <Typography sx={{ color: "#999", gridColumn: "1/-1", py: 2 }}>{t("profile.empty.noRegistrations")}</Typography>}
               </Box>
             </>
           )}
 
-          {tab === 0 && (
-            <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2,1fr)", md: "repeat(3,1fr)" }, gap: 2.5 }}>
-              {[...myPosts, ...drafts].map((p) => <PostCard key={p.id} post={p} />)}
-              {myPosts.length + drafts.length === 0 && (
-                <Typography sx={{ textAlign: "center", color: "#999", gridColumn: "1/-1", py: 4 }}>{t("profile.empty.noPosts")}</Typography>
-              )}
-            </Box>
-          )}
-
+          {/* Tab 2 — 收藏留言 (bookmarkedPosts) */}
           {tab === 2 && (
             <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2,1fr)", md: "repeat(3,1fr)" }, gap: 2.5 }}>
               {bookmarkedPosts.map((p) => <PostCard key={p.id} post={p} />)}
@@ -425,6 +468,7 @@ export default function ProfilePage() {
             </Box>
           )}
 
+          {/* Tab 3 — 收藏活動 (bookmarkedEvents) */}
           {tab === 3 && (
             <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2,1fr)", md: "repeat(3,1fr)" }, gap: 2.5 }}>
               {bookmarkedEvents.map((e) => <EventCard key={e.id} event={e} favorited />)}
@@ -434,42 +478,51 @@ export default function ProfilePage() {
             </Box>
           )}
 
+          {/* Tab 4 — 留言草稿 (drafts) */}
           {tab === 4 && (
-            <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
-              {myComments.map((c) => {
-                const target = c.postIsBoardPost
-                  ? `/board/posts/${c.postId}`
-                  : `/posts/${c.postId}`;
-                const headline = c.postTitle
-                  || c.postEventTitle
-                  || (c.postExcerpt ? `${c.postExcerpt}…` : t("profile.originalPost"));
-                return (
-                  <Box
-                    key={c.id}
-                    onClick={() => navigate(target)}
-                    sx={{
-                      bgcolor: "#fffefe", borderRadius: "16px",
-                      boxShadow: tokens.shadow.pill, p: 2.5, cursor: "pointer",
-                      "&:hover": { transform: "translateY(-1px)", transition: "transform .15s" },
-                    }}
-                  >
-                    <Typography sx={{ fontSize: 14, color: tokens.color.text, mb: 0.8, whiteSpace: "pre-wrap" }}>
-                      {c.content}
-                    </Typography>
-                    <Typography sx={{ fontSize: 12, color: tokens.color.placeholder }}>
-                      {t("profile.commentOn", { title: headline })} · {(c.createdAt || "").slice(0, 10)}
-                    </Typography>
+            <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2,1fr)", md: "repeat(3,1fr)" }, gap: 2.5 }}>
+              {(drafts || []).map((p) => <PostCard key={p.id} post={p} />)}
+              {(!drafts || drafts.length === 0) && (
+                <Typography sx={{ textAlign: "center", color: "#999", gridColumn: "1/-1", py: 4 }}>{t("profile.empty.noDrafts", "尚無草稿")}</Typography>
+              )}
+            </Box>
+          )}
+
+          {/* Tab 5 — 活動管理 (managedEvents, admin only) */}
+          {tab === 5 && user.isAdmin && (
+            <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2,1fr)", md: "repeat(3,1fr)" }, gap: 2.5 }}>
+              {managedEvents.map((e) => (
+                <Box key={e.id} sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+                  <EventCard event={e} />
+                  <Box sx={{ display: "flex", gap: 1 }}>
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      onClick={() => navigate(`/events/${e.id}/edit`)}
+                      sx={{ flex: 1, textTransform: "none", borderRadius: "8px", fontSize: tokens.fontSize.body }}
+                    >
+                      {t("admin.edit")}
+                    </Button>
+                    <Button
+                      size="small"
+                      variant="contained"
+                      onClick={() => navigate(`/events/${e.id}/registrations`)}
+                      sx={{ flex: 1, textTransform: "none", borderRadius: "8px", fontSize: tokens.fontSize.body, bgcolor: tokens.color.navy, "&:hover": { bgcolor: tokens.color.navyDark } }}
+                    >
+                      {t("admin.viewRegistrations")}
+                    </Button>
                   </Box>
-                );
-              })}
-              {myComments.length === 0 && (
-                <Typography sx={{ textAlign: "center", color: "#999", py: 4 }}>{t("profile.empty.noComments")}</Typography>
+                </Box>
+              ))}
+              {managedEvents.length === 0 && (
+                <Typography sx={{ textAlign: "center", color: "#999", gridColumn: "1/-1", py: 4 }}>{t("profile.empty.noManagedEvents", "尚無管理的活動")}</Typography>
               )}
             </Box>
           )}
         </Box>
       </Box>
 
+      {/* Edit Profile Dialog */}
       <Dialog open={editOpen} onClose={() => setEditOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle sx={{ fontWeight: 700 }}>{t("profile.editTitle")}</DialogTitle>
         <DialogContent>

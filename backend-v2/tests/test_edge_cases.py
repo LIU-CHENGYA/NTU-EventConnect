@@ -90,14 +90,17 @@ def test_create_post_missing_event_allowed_as_null(client):
 def test_event_bookmark_toggle_is_idempotent(client):
     t, _ = _register(client, "a@b.com")
     eid = _make_event(client)
-    # double-bookmark
-    assert client.post(f"/api/events/{eid}/bookmark", headers=_auth(t)).status_code == 204
-    assert client.post(f"/api/events/{eid}/bookmark", headers=_auth(t)).status_code == 204
+    # double-bookmark — endpoint returns 200 + {bookmarked, bookmark_count} and is idempotent
+    r1 = client.post(f"/api/events/{eid}/bookmark", headers=_auth(t))
+    assert r1.status_code == 200 and r1.json()["bookmarked"] is True
+    r2 = client.post(f"/api/events/{eid}/bookmark", headers=_auth(t))
+    assert r2.status_code == 200 and r2.json()["bookmark_count"] == 1
     rows = client.get("/api/users/me/bookmarks/events", headers=_auth(t)).json()
     assert len(rows) == 1
     # double-unbookmark
-    assert client.delete(f"/api/events/{eid}/bookmark", headers=_auth(t)).status_code == 204
-    assert client.delete(f"/api/events/{eid}/bookmark", headers=_auth(t)).status_code == 204
+    d1 = client.delete(f"/api/events/{eid}/bookmark", headers=_auth(t))
+    assert d1.status_code == 200 and d1.json()["bookmarked"] is False
+    assert client.delete(f"/api/events/{eid}/bookmark", headers=_auth(t)).status_code == 200
     assert client.get("/api/users/me/bookmarks/events", headers=_auth(t)).json() == []
 
 

@@ -6,7 +6,7 @@ import {
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import { useTranslation } from "react-i18next";
-import { eventsApi } from "../api";
+import { eventsApi, usersApi } from "../api";
 import api from "../api/client";
 import { useAuth } from "../context/AuthContext";
 import { tokens } from "../theme";
@@ -47,6 +47,10 @@ export default function EventRegisterPage() {
     if (!session) { setError(t("registerPage.noSession")); return; }
     try {
       await api.post(`/api/sessions/${session.id}/register`);
+      // If user didn't have a student ID and one was entered, persist it to profile
+      if (!user.studentId && form.studentId) {
+        usersApi.updateMe({ student_id: form.studentId }).catch(() => {});
+      }
       setSubmitted(true);
       setTimeout(() => navigate("/my-registrations"), 1200);
     } catch (e) {
@@ -72,7 +76,7 @@ export default function EventRegisterPage() {
     boxShadow: tokens.shadow.pill,
     bgcolor: "#fffefe",
   };
-  const labelSx = { fontSize: 14, fontWeight: 600, mb: 0.7, color: tokens.color.text };
+  const labelSx = { fontSize: tokens.fontSize.body, fontWeight: 600, mb: 0.7, color: tokens.color.text };
   const fieldSx = {
     mb: 2,
     "& .MuiOutlinedInput-root": { borderRadius: "10px", bgcolor: tokens.color.bg },
@@ -86,7 +90,7 @@ export default function EventRegisterPage() {
           <IconButton onClick={() => navigate(-1)} sx={{ color: tokens.color.text }}>
             <ArrowBackIcon />
           </IconButton>
-          <Typography sx={{ fontFamily: tokens.font.logo, fontStyle: "italic", fontSize: 32, color: tokens.color.navy }}>
+          <Typography sx={{ fontFamily: tokens.font.heading, fontSize: { xs: 22, md: tokens.fontSize.heading }, fontWeight: 700, color: tokens.color.navy }}>
             {t("registerPage.pageTitle")}
           </Typography>
           <Box sx={{ ml: "auto" }}>
@@ -97,10 +101,10 @@ export default function EventRegisterPage() {
         {submitted ? (
           <Paper sx={{ ...cardSx, textAlign: "center", py: 6 }}>
             <CheckCircleIcon sx={{ fontSize: 64, color: tokens.color.success.fg, mb: 2 }} />
-            <Typography sx={{ fontSize: 20, fontWeight: 700, color: tokens.color.success.fg, mb: 1 }}>
+            <Typography sx={{ fontSize: tokens.fontSize.title, fontWeight: 700, color: tokens.color.success.fg, mb: 1 }}>
               {t("registerPage.success")}
             </Typography>
-            <Typography sx={{ fontSize: 14, color: tokens.color.placeholder }}>
+            <Typography sx={{ fontSize: tokens.fontSize.body, color: tokens.color.placeholder }}>
               {t("registerPage.redirecting")}
             </Typography>
           </Paper>
@@ -108,7 +112,7 @@ export default function EventRegisterPage() {
           <>
             {/* Event info */}
             <Paper sx={cardSx}>
-              <Typography sx={{ fontSize: 15, fontWeight: 700, mb: 2, color: tokens.color.text }}>
+              <Typography sx={{ fontSize: tokens.fontSize.body, fontWeight: 700, mb: 2, color: tokens.color.text }}>
                 {t("registerPage.registerActivity")}
               </Typography>
               <Box sx={{ display: "flex", gap: 2.5, alignItems: "center" }}>
@@ -118,10 +122,10 @@ export default function EventRegisterPage() {
                   sx={{ width: 96, height: 96, borderRadius: "12px", objectFit: "cover" }}
                 />
                 <Box sx={{ flex: 1 }}>
-                  <Typography sx={{ fontSize: 16, fontWeight: 700, color: tokens.color.text }}>
+                  <Typography sx={{ fontSize: tokens.fontSize.subtitle, fontWeight: 700, color: tokens.color.text }}>
                     {event.title}
                   </Typography>
-                  <Typography sx={{ fontSize: 13, color: tokens.color.textSecondary, mb: 0.8 }}>
+                  <Typography sx={{ fontSize: tokens.fontSize.body, color: tokens.color.textSecondary, mb: 0.8 }}>
                     {event.sessionName}
                   </Typography>
                   <Chip
@@ -130,7 +134,7 @@ export default function EventRegisterPage() {
                     sx={{
                       bgcolor: tokens.color.bg,
                       border: `1px solid ${tokens.color.border}`,
-                      fontSize: 12,
+                      fontSize: tokens.fontSize.caption,
                       height: 26,
                       borderRadius: "13px",
                     }}
@@ -141,7 +145,7 @@ export default function EventRegisterPage() {
 
             {/* Registration form */}
             <Paper sx={cardSx}>
-              <Typography sx={{ fontSize: 15, fontWeight: 700, mb: 2, color: tokens.color.text }}>
+              <Typography sx={{ fontSize: tokens.fontSize.body, fontWeight: 700, mb: 2, color: tokens.color.text }}>
                 {t("registerPage.registrationInfo")}
               </Typography>
 
@@ -167,28 +171,28 @@ export default function EventRegisterPage() {
 
             {/* Notes */}
             <Paper sx={cardSx}>
-              <Typography sx={{ fontSize: 15, fontWeight: 700, mb: 1.5, color: tokens.color.text }}>
+              <Typography sx={{ fontSize: tokens.fontSize.body, fontWeight: 700, mb: 1.5, color: tokens.color.text }}>
                 {t("registerPage.notice")}
               </Typography>
               <Box component="ul" sx={{ pl: 2.5, m: 0, "& li": { mb: 0.6, color: tokens.color.textSecondary } }}>
-                <li><Typography sx={{ fontSize: 13 }}>{t("event.registrationPeriod")}：{event.registrationStart} ~ {event.registrationEnd}</Typography></li>
-                <li><Typography sx={{ fontSize: 13 }}>{t("event.targetAudience")}：{event.targetAudience}</Typography></li>
+                <li><Typography sx={{ fontSize: tokens.fontSize.body }}>{t("event.registrationPeriod")}：{event.registrationStart} ~ {event.registrationEnd}</Typography></li>
+                <li><Typography sx={{ fontSize: tokens.fontSize.body }}>{t("event.targetAudience")}：{event.targetAudience}</Typography></li>
                 {event.restrictions && (
-                  <li><Typography sx={{ fontSize: 13 }}>{t("event.restrictions")}：{event.restrictions}</Typography></li>
+                  <li><Typography sx={{ fontSize: tokens.fontSize.body }}>{t("event.restrictions")}：{event.restrictions}</Typography></li>
                 )}
-                <li><Typography sx={{ fontSize: 13 }}>{t("registerPage.byob")}</Typography></li>
+                <li><Typography sx={{ fontSize: tokens.fontSize.body }}>{t("registerPage.byob")}</Typography></li>
               </Box>
             </Paper>
 
             {/* Agreement and submit */}
             <Paper sx={{ ...cardSx, mb: 0 }}>
               {error && (
-                <Typography sx={{ color: "#d32f2f", fontSize: 13, mb: 1 }}>{error}</Typography>
+                <Typography sx={{ color: "#d32f2f", fontSize: tokens.fontSize.body, mb: 1 }}>{error}</Typography>
               )}
               <FormControlLabel
                 control={<Checkbox checked={agreed} onChange={(e) => setAgreed(e.target.checked)} />}
                 label={
-                  <Typography sx={{ fontSize: 13, color: tokens.color.text }}>
+                  <Typography sx={{ fontSize: tokens.fontSize.body, color: tokens.color.text }}>
                     {t("registerPage.agreement")}
                   </Typography>
                 }
@@ -199,7 +203,7 @@ export default function EventRegisterPage() {
                   onClick={() => navigate(-1)}
                   sx={{
                     flex: 1, textTransform: "none",
-                    borderRadius: "27px", height: 54, fontSize: 15,
+                    borderRadius: "27px", height: 54, fontSize: tokens.fontSize.body,
                     borderColor: tokens.color.border, color: tokens.color.text,
                   }}
                 >
@@ -216,7 +220,7 @@ export default function EventRegisterPage() {
                     textTransform: "none",
                     borderRadius: "27px",
                     height: 54,
-                    fontSize: 15,
+                    fontSize: tokens.fontSize.body,
                     fontWeight: 600,
                     "&:hover": { bgcolor: tokens.color.navyDark },
                   }}

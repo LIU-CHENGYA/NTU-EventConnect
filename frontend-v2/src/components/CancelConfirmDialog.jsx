@@ -5,6 +5,7 @@ import {
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import CloseIcon from "@mui/icons-material/Close";
 import EventIcon from "@mui/icons-material/Event";
+import { tokens } from "../theme";
 
 const RED = "#FF4D4F";
 
@@ -46,10 +47,10 @@ export default function CancelConfirmDialog({
       >
         <WarningAmberIcon sx={{ color: RED }} />
         <Box sx={{ flex: 1 }}>
-          <Typography sx={{ fontWeight: 700, fontSize: 17, color: RED, lineHeight: 1.2 }}>
+          <Typography sx={{ fontWeight: 700, fontSize: tokens.fontSize.subtitle, color: RED, lineHeight: 1.2 }}>
             {t("cancelDialog.title")}
           </Typography>
-          <Typography sx={{ fontSize: 12, color: "#A8071A", mt: 0.25 }}>
+          <Typography sx={{ fontSize: tokens.fontSize.caption, color: "#A8071A", mt: 0.25 }}>
             {t("cancelDialog.subtitle")}
           </Typography>
         </Box>
@@ -80,21 +81,21 @@ export default function CancelConfirmDialog({
             )}
             <Box sx={{ minWidth: 0 }}>
               {category && (
-                <Typography sx={{ fontSize: 11, color: "#5A6B82", mb: 0.25 }}>
+                <Typography sx={{ fontSize: tokens.fontSize.caption, color: "#5A6B82", mb: 0.25 }}>
                   {category}
                 </Typography>
               )}
-              <Typography sx={{ fontWeight: 700, fontSize: 15, lineHeight: 1.3 }} noWrap>
+              <Typography sx={{ fontWeight: 700, fontSize: tokens.fontSize.body, lineHeight: 1.3 }} noWrap>
                 {event.title}
               </Typography>
-              <Typography sx={{ fontSize: 12, color: "#5A6B82" }} noWrap>
+              <Typography sx={{ fontSize: tokens.fontSize.caption, color: "#5A6B82" }} noWrap>
                 {[event.sessionName, event.date, event.location].filter(Boolean).join("・")}
               </Typography>
             </Box>
           </Box>
         )}
 
-        <Box component="ul" sx={{ pl: 2.5, m: 0, color: "#3a3a3a", fontSize: 13.5, lineHeight: 1.7 }}>
+        <Box component="ul" sx={{ pl: 2.5, m: 0, color: "#3a3a3a", fontSize: tokens.fontSize.body, lineHeight: 1.7 }}>
           <li>{t("cancelDialog.bullet1")}</li>
           <li>{t("cancelDialog.bullet2")}</li>
         </Box>
@@ -103,7 +104,7 @@ export default function CancelConfirmDialog({
           <Box sx={{
             mt: 2, px: 2, py: 1.25, borderRadius: 1.5,
             bgcolor: "#FFF1F0", border: "1px solid #FFD6D6",
-            color: "#A8071A", fontSize: 13,
+            color: "#A8071A", fontSize: tokens.fontSize.body,
           }}>
             {error}
           </Box>

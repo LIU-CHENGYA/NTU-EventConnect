@@ -69,7 +69,10 @@ def test_list_posts_filters(client):
     assert len(client.get("/api/posts").json()) == 2  # public only by default
     assert len(client.get("/api/posts", params={"user_id": u1}).json()) == 1
     assert len(client.get("/api/posts", params={"event_id": eid}).json()) == 2
-    assert len(client.get("/api/posts", params={"visibility": "private", "user_id": u1}).json()) == 1
+    # Private posts are only visible to their owner: the query must be authenticated.
+    assert len(client.get("/api/posts", headers=_auth(t1), params={"visibility": "private", "user_id": u1}).json()) == 1
+    # Anonymous callers must NOT see another user's private posts.
+    assert len(client.get("/api/posts", params={"visibility": "private", "user_id": u1}).json()) == 0
 
 
 def test_update_post_owner_only(client):
@@ -202,11 +205,16 @@ def test_new_user_has_no_bookmarks(client):
 
 def test_drafts_listing(client):
     t, _ = _register(client, "a@b.com")
-    client.post("/api/posts", headers=_auth(t), json={"content": "p1"})
-    client.post("/api/posts", headers=_auth(t), json={"content": "draft", "visibility": "private"})
+    client.post("/api/posts", headers=_auth(t), json={"content": "p1"})  # published
+    # Drafts are now keyed off `is_draft`, decoupled from visibility, so a group
+    # post can be drafted without leaking to the group until the author publishes.
+    client.post("/api/posts", headers=_auth(t), json={"content": "draft", "is_draft": True})
     drafts = client.get("/api/users/me/drafts", headers=_auth(t)).json()
     assert len(drafts) == 1
-    assert drafts[0]["visibility"] == "private"
+    assert drafts[0]["is_draft"] is True
+    # A non-draft private post must NOT appear in the drafts list.
+    client.post("/api/posts", headers=_auth(t), json={"content": "secret", "visibility": "private"})
+    assert len(client.get("/api/users/me/drafts", headers=_auth(t)).json()) == 1
 
 
 def test_is_liked_is_bookmarked_flags_anon(client):

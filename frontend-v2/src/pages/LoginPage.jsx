@@ -53,10 +53,10 @@ export default function LoginPage() {
           py: { xs: 4, sm: 6 },
         }}
       >
-        <Typography sx={{ fontSize: 28, fontWeight: 700, textAlign: "center", mb: 1, color: tokens.color.text }}>
+        <Typography sx={{ fontSize: tokens.fontSize.heading, fontWeight: 700, textAlign: "center", mb: 1, color: tokens.color.text }}>
           {t("auth.loginTitle")}
         </Typography>
-        <Typography sx={{ fontSize: 14, color: tokens.color.placeholder, textAlign: "center", mb: 3 }}>
+        <Typography sx={{ fontSize: tokens.fontSize.body, color: tokens.color.placeholder, textAlign: "center", mb: 3 }}>
           {t("auth.loginSubtitle")}
         </Typography>
 
@@ -65,16 +65,16 @@ export default function LoginPage() {
         </Box>
 
         <Divider sx={{ mb: 2.5 }}>
-          <Typography sx={{ fontSize: 13, color: tokens.color.placeholder }}>
+          <Typography sx={{ fontSize: tokens.fontSize.caption, color: tokens.color.placeholder }}>
             {t("auth.orEmailLogin")}
           </Typography>
         </Divider>
 
         {error && (
-          <Typography color="error" sx={{ mb: 2, textAlign: "center", fontSize: 13 }}>{error}</Typography>
+          <Typography color="error" sx={{ mb: 2, textAlign: "center", fontSize: tokens.fontSize.caption }}>{error}</Typography>
         )}
 
-        <Typography sx={{ fontSize: 14, fontWeight: 600, mb: 0.7 }}>
+        <Typography sx={{ fontSize: tokens.fontSize.body, fontWeight: 600, mb: 0.7 }}>
           {t("auth.email")}
         </Typography>
         <TextField
@@ -84,7 +84,7 @@ export default function LoginPage() {
           InputProps={{ startAdornment: <InputAdornment position="start"><EmailIcon sx={{ color: tokens.color.placeholder, fontSize: 20 }} /></InputAdornment> }}
         />
 
-        <Typography sx={{ fontSize: 14, fontWeight: 600, mb: 0.7 }}>
+        <Typography sx={{ fontSize: tokens.fontSize.body, fontWeight: 600, mb: 0.7 }}>
           {t("auth.password")}
         </Typography>
         <TextField
@@ -108,14 +108,14 @@ export default function LoginPage() {
           type="submit" fullWidth variant="contained"
           sx={{
             bgcolor: tokens.color.navy, py: 1.4, borderRadius: "10px",
-            textTransform: "none", fontSize: 16, fontWeight: 600, mb: 2.5,
+            textTransform: "none", fontSize: tokens.fontSize.subtitle, fontWeight: 600, mb: 2.5,
             "&:hover": { bgcolor: tokens.color.navyDark },
           }}
         >
           {t("auth.loginTitle")}
         </Button>
 
-        <Typography sx={{ fontSize: 14, textAlign: "center", color: tokens.color.text }}>
+        <Typography sx={{ fontSize: tokens.fontSize.body, textAlign: "center", color: tokens.color.text }}>
           {t("auth.noAccount")}{" "}
           <Link to="/register" style={{ color: "#1976d2", fontWeight: 600, textDecoration: "none" }}>
             {t("auth.goRegister")}

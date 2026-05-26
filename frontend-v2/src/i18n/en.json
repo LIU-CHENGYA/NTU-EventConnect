@@ -51,6 +51,7 @@
     "list": "Activities",
     "hot": "Hot",
     "new": "Latest",
+    "searchResults": "Search results",
     "details": "Activity details",
     "register": "Register",
     "registered": "Registered",
@@ -151,12 +152,12 @@
   },
   "post": {
     "loading": "Loading...",
-    "notFound": "Post not found",
+    "notFound": "Comment not found",
     "commentNotFound": "Comment not found",
     "publishFailed": "Publish failed",
     "saveDraftFailed": "Failed to save draft",
     "writeReview": "Write review",
-    "writeArticle": "Publish article",
+    "writeArticle": "Post comment",
     "contentPlaceholder": "Write something...",
     "visibility": "Visibility:",
     "visPublic": "Public",
@@ -171,9 +172,9 @@
     "updateFailed": "Update failed",
     "visGroupRestricted": "Group only{{suffix}}",
     "visGroupSuffix": " (create from board)",
-    "editTitle": "Edit post",
-    "detailTitle": "Post details",
-    "editPost": "Edit post",
+    "editTitle": "Edit comment",
+    "detailTitle": "Comment details",
+    "editPost": "Edit comment",
     "publish": "Publish",
     "saveDraft": "Save draft",
     "addImage": "+ Add image",
@@ -230,17 +231,23 @@
   },
   "profile": {
     "stats": {
-      "posts": "Posts",
+      "posts": "Comments",
       "joined": "Activities joined",
       "upcoming": "Upcoming activities",
       "tags": "Followed tags"
     },
     "tabs": {
-      "myPosts": "My posts",
-      "upcoming": "Upcoming",
-      "bookmarkedPosts": "Bookmarked posts",
+      "myPosts": "My comments",
+      "myRegistrations": "My registrations",
+      "bookmarkedPosts": "Bookmarked",
       "bookmarkedEvents": "Bookmarked activities",
+      "drafts": "Drafts",
+      "managedEvents": "Manage events",
       "myComments": "My comments"
+    },
+    "sections": {
+      "upcoming": "Upcoming",
+      "ended": "Ended"
     },
     "calendarTitle": "My Calendar",
     "editProfile": "Edit Profile",
@@ -249,31 +256,33 @@
     "displayName": "Display name",
     "bio": "Bio",
     "empty": {
-      "noPosts": "No posts yet",
-      "noBookmarkedPosts": "No bookmarked posts",
+      "noPosts": "No comments yet",
+      "noDrafts": "No drafts yet",
+      "noBookmarkedPosts": "No bookmarked comments",
       "noBookmarkedEvents": "No bookmarked activities",
       "noComments": "No comments yet",
-      "noRegistrations": "No registrations yet"
+      "noRegistrations": "No registrations yet",
+      "noManagedEvents": "No managed events yet"
     },
     "commentOn": "Commented on \"{{title}}\"",
-    "originalPost": "Original post",
+    "originalPost": "Original",
     "userNotFound": "User not found",
     "publicProfile": "Public profile",
-    "publicPosts": "Public posts",
-    "noPublicPosts": "No public posts yet"
+    "publicPosts": "Public comments",
+    "noPublicPosts": "No public comments yet"
   },
   "board": {
     "pageTitle": "Board",
-    "newPost": "New post",
+    "newPost": "New comment",
     "category": {
       "title": "Category",
-      "all": "All posts",
+      "all": "All comments",
       "hot": "Hot",
       "new": "Latest"
     },
     "mine": {
       "title": "Mine",
-      "myPosts": "My posts",
+      "myPosts": "My comments",
       "bookmarked": "Bookmarked",
       "private": "Private"
     },
@@ -282,10 +291,10 @@
       "create": "Create group"
     },
     "weeklyHot": "Hot this week",
-    "noPosts": "No posts yet",
+    "noPosts": "No comments yet",
     "backToBoard": "Back to board",
     "modal": {
-      "title": "New post",
+      "title": "New comment",
       "selectEvent": "Select activity",
       "change": "Change",
       "endedHint": "You can only post after the activity has ended.",
@@ -305,7 +314,7 @@
       "ended": "Ended",
       "noEndedActivities": "No ended activities available to share",
       "noGroupsJoined": "You haven't joined any group yet",
-      "groupMeta": "{{members}} members • {{posts}} posts"
+      "groupMeta": "{{members}} members • {{posts}} comments"
     }
   },
   "groupDialog": {
@@ -318,5 +327,68 @@
     "inviteAdd": "Add",
     "inviteHint": "Members will receive an invitation and can join after accepting.",
     "invited": "Invited members ({{count}})"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "upcomingEvents": "Upcoming activities",
+    "myPosts": "My board activity",
+    "groupPosts": "Group comments",
+    "empty": "No new notifications",
+    "location": "Location TBD"
+  },
+  "comment": {
+    "deleteConfirm": "Delete this comment?",
+    "deleteFailed": "Failed to delete",
+    "editFailed": "Failed to update",
+    "save": "Save",
+    "section": "Comments",
+    "addFailed": "Failed to post comment, please try again later",
+    "placeholder": "Leave a comment…",
+    "submit": "Submit",
+    "loginToComment": "Log in to comment"
+  },
+  "calendar": {
+    "eventTooltip": "{{date}} {{location}}"
+  },
+  "admin": {
+    "createEvent": "Create activity",
+    "editEvent": "Edit activity",
+    "adminOnly": "Admins only",
+    "eventTitle": "Activity name",
+    "eventContent": "Description",
+    "category": "Category",
+    "organizer": "Organizer",
+    "image": "Activity image",
+    "uploadImage": "Upload image",
+    "imageUrlPlaceholder": "Image URL, or click to upload",
+    "tags": "Tags",
+    "sessions": "Sessions",
+    "addSession": "Add session",
+    "removeSession": "Remove",
+    "sessionName": "Session name",
+    "date": "Date (YYYY-MM-DD)",
+    "timeRange": "Time",
+    "location": "Location",
+    "capacity": "Capacity",
+    "publish": "Publish",
+    "saveChanges": "Save changes",
+    "titleRequired": "Activity name is required",
+    "createFailed": "Failed to create activity",
+    "updateFailed": "Failed to update activity",
+    "loadFailed": "Failed to load activity",
+    "manageEvents": "Manage events",
+    "edit": "Edit",
+    "viewRegistrations": "View registrations",
+    "registrationsTitle": "Registrations",
+    "regName": "Name",
+    "regStudentId": "Student ID",
+    "regEmail": "Email",
+    "regDepartment": "Department",
+    "regSession": "Session",
+    "regStatus": "Status",
+    "regTime": "Registered at",
+    "totalRegistrations": "{{count}} registrations",
+    "noRegistrations": "No registrations yet",
+    "backToProfile": "Back to profile"
   }
 }

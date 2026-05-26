@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, Typography, Box, Avatar } from "@mui/material";
 import StarIcon from "@mui/icons-material/Star";
+import { tokens } from "../theme";
 
 export default function PostCard({ post }) {
   const navigate = useNavigate();
@@ -53,6 +54,13 @@ export default function PostCard({ post }) {
           </Box>
         )}
 
+        {/* Title */}
+        {post.title && (
+          <Typography sx={{ fontWeight: 700, fontSize: tokens.fontSize.body, mb: 0.5, color: "#1a1a2e" }} noWrap>
+            {post.title}
+          </Typography>
+        )}
+
         {/* Content */}
         <Typography
           variant="body2"
@@ -80,7 +88,7 @@ export default function PostCard({ post }) {
               bgcolor: "#e8eaf6",
               color: "#1a237e",
               borderRadius: 1,
-              fontSize: 11,
+              fontSize: tokens.fontSize.caption,
             }}
           >
             {post.eventTitle}

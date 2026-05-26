@@ -49,7 +49,7 @@ export default function EventCard({
       onClick={() => navigate(`/events/${event.id}`)}
       sx={{
         width: "100%",
-        maxWidth: { xs: "100%", md: 252 },
+        maxWidth: { xs: "100%", md: 280 },
         bgcolor: "white",
         borderRadius: "8px",
         overflow: "hidden",
@@ -63,7 +63,7 @@ export default function EventCard({
       }}
     >
       {/* Image */}
-      <Box sx={{ position: "relative", height: 180 }}>
+      <Box sx={{ position: "relative", height: 150 }}>
         <img
           src={event.image || "https://images.unsplash.com/photo-1523050854058-8df90110c476?w=800"}
           alt={event.title}
@@ -90,7 +90,7 @@ export default function EventCard({
             <Box
               sx={{
                 bgcolor: "#FFB02E", color: "#5A3A00",
-                fontSize: 11, fontWeight: 700, px: 0.85, py: "2px",
+                fontSize: tokens.fontSize.caption, fontWeight: 700, px: 0.85, py: "2px",
                 borderRadius: "4px", display: "flex", alignItems: "center", gap: 0.3,
                 boxShadow: "0 1px 2px rgba(0,0,0,0.18)",
               }}
@@ -104,7 +104,7 @@ export default function EventCard({
             <Box
               sx={{
                 bgcolor: "rgba(0,0,0,0.65)", color: "white",
-                fontSize: 11, px: 1, py: "2px", borderRadius: "4px",
+                fontSize: tokens.fontSize.caption, px: 1, py: "2px", borderRadius: "4px",
               }}
             >
               {translateTag(event.category, i18n.language)}
@@ -116,19 +116,19 @@ export default function EventCard({
       {/* Content */}
       <Box sx={{ p: 1.5, flex: 1, display: "flex", flexDirection: "column" }}>
         <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 1 }}>
-          <Typography sx={{ fontWeight: 700, fontSize: 15, color: tokens.color.text, lineHeight: 1.3 }}>
+          <Typography sx={{ fontWeight: 700, fontSize: tokens.fontSize.body, color: tokens.color.text, lineHeight: 1.3 }}>
             {event.title}
           </Typography>
           {event.rating > 0 && (
             <Box sx={{ display: "flex", alignItems: "center", gap: 0.3, flexShrink: 0 }}>
               <StarIcon sx={{ fontSize: 14, color: tokens.color.star }} />
-              <Typography sx={{ fontSize: 12, fontWeight: 600 }}>{event.rating}</Typography>
+              <Typography sx={{ fontSize: tokens.fontSize.caption, fontWeight: 600 }}>{event.rating}</Typography>
             </Box>
           )}
         </Box>
 
         {event.sessionName && (
-          <Typography sx={{ fontSize: 11, color: tokens.color.textSecondary, mt: 0.3 }}>
+          <Typography sx={{ fontSize: tokens.fontSize.caption, color: tokens.color.textSecondary, mt: 0.3 }}>
             {event.sessionName}
           </Typography>
         )}
@@ -140,7 +140,7 @@ export default function EventCard({
                 key={tag}
                 sx={{
                   bgcolor: "#EEF2FB", color: tokens.color.navy,
-                  fontSize: 10, fontWeight: 600,
+                  fontSize: tokens.fontSize.caption, fontWeight: 600,
                   px: 0.7, py: "1px", borderRadius: "3px",
                 }}
               >
@@ -152,14 +152,14 @@ export default function EventCard({
 
         <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, mt: 0.7 }}>
           <CalendarTodayIcon sx={{ fontSize: 12, color: tokens.color.textSecondary }} />
-          <Typography sx={{ fontSize: 11, color: tokens.color.textSecondary }}>
+          <Typography sx={{ fontSize: tokens.fontSize.caption, color: tokens.color.textSecondary }}>
             {formatDate(event.date)}
           </Typography>
         </Box>
         {event.location && (
           <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, mt: 0.3 }}>
             <PlaceIcon sx={{ fontSize: 12, color: tokens.color.textSecondary }} />
-            <Typography sx={{ fontSize: 11, color: tokens.color.textSecondary, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            <Typography sx={{ fontSize: tokens.fontSize.caption, color: tokens.color.textSecondary, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
               {event.location}
             </Typography>
           </Box>
@@ -167,7 +167,7 @@ export default function EventCard({
         {event.capacity && (
           <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, mt: 0.3 }}>
             <PeopleIcon sx={{ fontSize: 12, color: tokens.color.textSecondary }} />
-            <Typography sx={{ fontSize: 11, color: tokens.color.textSecondary }}>
+            <Typography sx={{ fontSize: tokens.fontSize.caption, color: tokens.color.textSecondary }}>
               {t("event.capacityShort", { remaining: event.remainingSlots, total: event.capacity })}
             </Typography>
           </Box>
@@ -181,7 +181,7 @@ export default function EventCard({
                 display: "inline-block",
                 bgcolor: statusColors[status]?.bg || "#eee",
                 color: statusColors[status]?.color || "#333",
-                fontSize: 11,
+                fontSize: tokens.fontSize.caption,
                 fontWeight: 600,
                 px: 1,
                 py: "2px",
@@ -203,7 +203,7 @@ export default function EventCard({
               style={{
                 flex: "0 0 auto", padding: "7px 12px", border: "none",
                 borderRadius: 4, backgroundColor: "#e0e0e0", color: "#333",
-                fontWeight: 600, fontSize: 12, cursor: "pointer",
+                fontWeight: 600, fontSize: tokens.fontSize.caption, cursor: "pointer",
               }}
             >
               {t("common.cancel")}
@@ -214,7 +214,7 @@ export default function EventCard({
             style={{
               flex: 1, padding: "7px 0", border: "none", borderRadius: 4,
               backgroundColor: tokens.color.navy, color: "white",
-              fontWeight: 600, fontSize: 12, cursor: "pointer",
+              fontWeight: 600, fontSize: tokens.fontSize.caption, cursor: "pointer",
             }}
           >
             {t("event.viewDetails")}

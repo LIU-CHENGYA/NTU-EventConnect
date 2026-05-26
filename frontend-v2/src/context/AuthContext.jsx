@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import i18n from "../i18n";
-import { authApi, mapUser } from "../api";
+import { authApi } from "../api";
 
 const AuthContext = createContext(null);
 

@@ -102,6 +102,7 @@ export default function BoardPage() {
   const filteredPosts = posts;
 
   const onToggleLike = async (post) => {
+    if (!user) { navigate("/login"); return; }
     try {
       const r = post.isLiked
         ? await postsApi.unlike(post.id)
@@ -113,6 +114,7 @@ export default function BoardPage() {
   };
 
   const onToggleBookmark = async (post) => {
+    if (!user) { navigate("/login"); return; }
     try {
       const r = post.isBookmarked
         ? await postsApi.unbookmark(post.id)
@@ -140,7 +142,7 @@ export default function BoardPage() {
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 sx={{
-                  px: 1.6, py: 1.2, fontSize: 14,
+                  px: 1.6, py: 1.2, fontSize: tokens.fontSize.body,
                   fontWeight: active ? 700 : 500,
                   color: active ? NAVY : tokens.color.text,
                   borderBottom: active ? `2px solid ${NAVY}` : "2px solid transparent",
@@ -155,7 +157,7 @@ export default function BoardPage() {
 
         {(activeTab === "official" || activeTab === "tags") && (
           <Typography sx={{
-            fontSize: 12, color: tokens.color.placeholder,
+            fontSize: tokens.fontSize.caption, color: tokens.color.placeholder,
             maxWidth: 1280, mx: "auto", mt: 1,
           }}>
             {activeTab === "official" ? t("filter.officialHint") : t("filter.tagsHint")}
@@ -250,7 +252,7 @@ export default function BoardPage() {
                 onClick={() => { setEditingGroupId(null); setGroupEditOpen(true); }}
                 sx={{
                   display: "flex", alignItems: "center", gap: 0.75,
-                  px: 1, py: 0.75, fontSize: 13,
+                  px: 1, py: 0.75, fontSize: tokens.fontSize.body,
                   color: NAVY, fontWeight: 600, cursor: "pointer",
                   borderRadius: 1, "&:hover": { bgcolor: tokens.color.bg },
                 }}
@@ -269,7 +271,7 @@ export default function BoardPage() {
           {user && (
             <Box sx={{ display: { xs: "block", md: "none" }, mb: 0.5 }}>
               <Typography sx={{
-                fontSize: 11, fontWeight: 700, color: tokens.color.placeholder,
+                fontSize: tokens.fontSize.caption, fontWeight: 700, color: tokens.color.placeholder,
                 textTransform: "uppercase", letterSpacing: 0.5, mb: 0.5,
               }}>
                 {t("board.groups.title")}
@@ -319,12 +321,12 @@ export default function BoardPage() {
 
           {/* Floating create button */}
           <Button
-            onClick={() => setCreateOpen(true)}
+            onClick={() => user ? setCreateOpen(true) : navigate("/login")}
             startIcon={<AddIcon />}
             sx={{
               position: "fixed", bottom: 32, right: 32,
               bgcolor: NAVY, color: "#fff", borderRadius: "9999px",
-              px: 2.5, py: 1.4, fontSize: 14, fontWeight: 700,
+              px: 2.5, py: 1.4, fontSize: tokens.fontSize.body, fontWeight: 700,
               textTransform: "none", boxShadow: "0 8px 24px rgba(0,0,0,0.18)",
               "&:hover": { bgcolor: tokens.color.navyDark },
               zIndex: 1200,
@@ -336,7 +338,7 @@ export default function BoardPage() {
 
         {/* === Right rail: weekly hot === */}
         <Box sx={{ display: { xs: "none", md: "block" } }}>
-          <Typography sx={{ fontSize: 14, fontWeight: 700, color: NAVY, mb: 1 }}>
+          <Typography sx={{ fontSize: tokens.fontSize.body, fontWeight: 700, color: NAVY, mb: 1 }}>
             {t("board.weeklyHot")}
           </Typography>
           <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
@@ -350,12 +352,12 @@ export default function BoardPage() {
                   "&:hover": { borderColor: NAVY },
                 }}
               >
-                <Typography sx={{ fontSize: 13, fontWeight: 700, mb: 0.4 }} noWrap>
+                <Typography sx={{ fontSize: tokens.fontSize.body, fontWeight: 700, mb: 0.4 }} noWrap>
                   {p.title || p.content?.slice(0, 30)}
                 </Typography>
                 <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
                   <FavoriteIcon sx={{ fontSize: 12, color: "#FF4D4F" }} />
-                  <Typography sx={{ fontSize: 11, color: tokens.color.placeholder }}>
+                  <Typography sx={{ fontSize: tokens.fontSize.caption, color: tokens.color.placeholder }}>
                     {p.likeCount}
                   </Typography>
                 </Box>
@@ -384,7 +386,7 @@ function SidebarSection({ title, children }) {
   return (
     <Box sx={{ mb: 2 }}>
       <Typography sx={{
-        fontSize: 11, fontWeight: 700, color: tokens.color.placeholder,
+        fontSize: tokens.fontSize.caption, fontWeight: 700, color: tokens.color.placeholder,
         textTransform: "uppercase", letterSpacing: 0.5, px: 1, mb: 0.5,
       }}>{title}</Typography>
       <Box sx={{ display: "flex", flexDirection: "column" }}>{children}</Box>
@@ -398,7 +400,7 @@ function SideItem({ label, count, active, onClick, onEdit }) {
       onClick={onClick}
       sx={{
         display: "flex", alignItems: "center", gap: 0.75,
-        px: 1, py: 0.75, fontSize: 13.5,
+        px: 1, py: 0.75, fontSize: tokens.fontSize.body,
         color: active ? NAVY : tokens.color.text,
         bgcolor: active ? "#EEF2FB" : "transparent",
         fontWeight: active ? 700 : 500,
@@ -408,12 +410,12 @@ function SideItem({ label, count, active, onClick, onEdit }) {
     >
       <Box sx={{ flex: 1 }}>{label}</Box>
       {typeof count === "number" && (
-        <Box sx={{ fontSize: 11, color: tokens.color.placeholder }}>{count}</Box>
+        <Box sx={{ fontSize: tokens.fontSize.caption, color: tokens.color.placeholder }}>{count}</Box>
       )}
       {onEdit && (
         <Box
           onClick={(e) => { e.stopPropagation(); onEdit(); }}
-          sx={{ fontSize: 11, color: tokens.color.placeholder, "&:hover": { color: NAVY } }}
+          sx={{ fontSize: tokens.fontSize.caption, color: tokens.color.placeholder, "&:hover": { color: NAVY } }}
         >
           ⋮
         </Box>
@@ -427,7 +429,7 @@ function ChipBtn({ active, onClick, children }) {
     <Box
       onClick={onClick}
       sx={{
-        px: 1.4, py: 0.6, fontSize: 13, fontWeight: active ? 700 : 500,
+        px: 1.4, py: 0.6, fontSize: tokens.fontSize.body, fontWeight: active ? 700 : 500,
         color: active ? "#fff" : tokens.color.text,
         bgcolor: active ? NAVY : "#fff",
         border: `1px solid ${active ? NAVY : tokens.color.border}`,
@@ -443,7 +445,7 @@ function ChipBtn({ active, onClick, children }) {
 function FilterField({ label, placeholder, value, onChange, icon, flex = 1 }) {
   return (
     <Box sx={{ flex }}>
-      <Typography sx={{ fontSize: 12, color: tokens.color.placeholder, mb: 0.4 }}>{label}</Typography>
+      <Typography sx={{ fontSize: tokens.fontSize.caption, color: tokens.color.placeholder, mb: 0.4 }}>{label}</Typography>
       <Box sx={{
         display: "flex", alignItems: "center",
         bgcolor: "#fff",
@@ -456,7 +458,7 @@ function FilterField({ label, placeholder, value, onChange, icon, flex = 1 }) {
           placeholder={placeholder}
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          sx={{ fontSize: 14, flex: 1 }}
+          sx={{ fontSize: tokens.fontSize.body, flex: 1 }}
         />
       </Box>
     </Box>
@@ -484,20 +486,20 @@ function PostListItem({ post, onClick, onToggleLike, onToggleBookmark }) {
       <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
         <Avatar src={post.userAvatar} sx={{ width: 36, height: 36 }} />
         <Box sx={{ flex: 1 }}>
-          <Typography sx={{ fontSize: 13, fontWeight: 700 }}>{post.userName}</Typography>
-          <Typography sx={{ fontSize: 11, color: tokens.color.placeholder }}>
+          <Typography sx={{ fontSize: tokens.fontSize.body, fontWeight: 700 }}>{post.userName}</Typography>
+          <Typography sx={{ fontSize: tokens.fontSize.caption, color: tokens.color.placeholder }}>
             {formatDate(post.createdAt)}
           </Typography>
         </Box>
         <Box sx={{
-          fontSize: 11, fontWeight: 700, px: 1, py: "2px",
+          fontSize: tokens.fontSize.caption, fontWeight: 700, px: 1, py: "2px",
           bgcolor: `${visColor}1A`, color: visColor, borderRadius: 0.6,
         }}>{visLabel}</Box>
       </Box>
 
       {post.eventTitle && (
         <Box sx={{
-          display: "inline-block", fontSize: 11, fontWeight: 700,
+          display: "inline-block", fontSize: tokens.fontSize.caption, fontWeight: 700,
           color: NAVY, bgcolor: "#E8EFFF", px: 0.8, py: "2px", borderRadius: 0.5, mb: 0.5,
         }}>
           🎟 {post.eventTitle}
@@ -505,10 +507,10 @@ function PostListItem({ post, onClick, onToggleLike, onToggleBookmark }) {
       )}
 
       {post.title && (
-        <Typography sx={{ fontWeight: 700, fontSize: 16, mb: 0.5 }}>{post.title}</Typography>
+        <Typography sx={{ fontWeight: 700, fontSize: tokens.fontSize.subtitle, mb: 0.5 }}>{post.title}</Typography>
       )}
       <Typography
-        sx={{ fontSize: 14, color: "#444", lineHeight: 1.6, whiteSpace: "pre-wrap",
+        sx={{ fontSize: tokens.fontSize.body, color: "#444", lineHeight: 1.6, whiteSpace: "pre-wrap",
           display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden",
         }}
       >
@@ -535,7 +537,7 @@ function PostListItem({ post, onClick, onToggleLike, onToggleBookmark }) {
           {post.isLiked
             ? <FavoriteIcon sx={{ fontSize: 18 }} />
             : <FavoriteBorderIcon sx={{ fontSize: 18 }} />}
-          <Typography sx={{ fontSize: 12 }}>{post.likeCount}</Typography>
+          <Typography sx={{ fontSize: tokens.fontSize.caption }}>{post.likeCount}</Typography>
         </Box>
         <Box
           onClick={(e) => { e.stopPropagation(); onToggleBookmark(); }}
@@ -544,7 +546,7 @@ function PostListItem({ post, onClick, onToggleLike, onToggleBookmark }) {
           {post.isBookmarked
             ? <BookmarkIcon sx={{ fontSize: 18 }} />
             : <BookmarkBorderIcon sx={{ fontSize: 18 }} />}
-          <Typography sx={{ fontSize: 12 }}>{post.bookmarkCount}</Typography>
+          <Typography sx={{ fontSize: tokens.fontSize.caption }}>{post.bookmarkCount}</Typography>
         </Box>
       </Box>
     </Box>

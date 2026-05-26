@@ -8,6 +8,7 @@ import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import EventDetailPage from "./pages/EventDetailPage";
 import EventRegisterPage from "./pages/EventRegisterPage";
 import EventCreatePage from "./pages/EventCreatePage";
+import EventRegistrationsPage from "./pages/EventRegistrationsPage";
 import ProfilePage from "./pages/ProfilePage";
 import OtherProfilePage from "./pages/OtherProfilePage";
 import PostCreatePage from "./pages/PostCreatePage";
@@ -29,6 +30,8 @@ function App() {
         <Route path="/events/:id" element={<EventDetailPage />} />
         <Route path="/events/:id/register" element={<EventRegisterPage />} />
         <Route path="/events/create" element={<ProtectedRoute><EventCreatePage /></ProtectedRoute>} />
+        <Route path="/events/:id/edit" element={<ProtectedRoute><EventCreatePage /></ProtectedRoute>} />
+        <Route path="/events/:id/registrations" element={<ProtectedRoute><EventRegistrationsPage /></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
         <Route path="/profile/:userId" element={<OtherProfilePage />} />
         <Route path="/posts/create" element={<ProtectedRoute><PostCreatePage /></ProtectedRoute>} />

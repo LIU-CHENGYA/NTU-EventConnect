@@ -109,7 +109,7 @@ def my_drafts(
     rows = (
         db.query(Post)
         .options(selectinload(Post.user))
-        .filter(Post.user_id == current.id, Post.visibility == "private")
+        .filter(Post.user_id == current.id, Post.is_draft == True)  # noqa: E712
         .order_by(Post.id.desc())
         .offset((page - 1) * size)
         .limit(size)

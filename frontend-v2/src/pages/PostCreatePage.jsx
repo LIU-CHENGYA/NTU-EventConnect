@@ -55,7 +55,8 @@ export default function PostCreatePage() {
         rating,
         content,
         images: [],
-        visibility: "private",
+        visibility,
+        is_draft: true,
       });
       navigate("/profile");
     } catch (e) {
@@ -81,12 +82,9 @@ export default function PostCreatePage() {
           <IconButton onClick={() => navigate(-1)} sx={{ color: tokens.color.text }}>
             <ArrowBackIcon />
           </IconButton>
-          <Typography sx={{ fontFamily: tokens.font.logo, fontStyle: "italic", fontSize: { xs: 24, md: 32 }, color: tokens.color.navy }}>
+          <Typography sx={{ fontFamily: tokens.font.heading, fontSize: { xs: 22, md: 28 }, fontWeight: 700, color: tokens.color.navy }}>
             {event ? t("post.writeReview") : t("post.writeArticle")}
           </Typography>
-          <Box sx={{ ml: "auto", display: { xs: "none", sm: "block" } }}>
-            <Avatar src={user.avatar} sx={{ width: 52, height: 52 }} />
-          </Box>
         </Box>
 
         <Box sx={{ display: "flex", flexDirection: { xs: "column", md: "row" }, gap: 2.5, alignItems: "flex-start" }}>
@@ -116,7 +114,7 @@ export default function PostCreatePage() {
               onChange={(e) => setContent(e.target.value)}
               sx={fieldSx}
             />
-            <Typography sx={{ fontSize: 12, color: tokens.color.placeholder, mt: 0.5 }}>
+            <Typography sx={{ fontSize: tokens.fontSize.caption, color: tokens.color.placeholder, mt: 0.5 }}>
               {t("post.charCount", { n: content.length })}
             </Typography>
 
@@ -130,20 +128,20 @@ export default function PostCreatePage() {
               }}
             >
               <AddPhotoAlternateIcon sx={{ fontSize: 32, color: tokens.color.placeholder }} />
-              <Typography sx={{ fontSize: 13, color: tokens.color.textSecondary }}>
+              <Typography sx={{ fontSize: tokens.fontSize.body, color: tokens.color.textSecondary }}>
                 {t("post.addImage")}
               </Typography>
             </Box>
 
             <Box sx={{ mt: 3, display: "flex", alignItems: "center", gap: 1 }}>
-              <Typography sx={{ fontSize: 14, fontWeight: 600, color: tokens.color.text }}>{t("post.visibility")}</Typography>
+              <Typography sx={{ fontSize: tokens.fontSize.body, fontWeight: 600, color: tokens.color.text }}>{t("post.visibility")}</Typography>
               {/* Group posts go through BoardPostCreateDialog (which has the
                   group picker). On this page we only offer public/private to
                   avoid posting visibility=group without a group_id, which the
                   backend (correctly) refuses. */}
               <RadioGroup row value={visibility} onChange={(e) => setVisibility(e.target.value)}>
-                <FormControlLabel value="public" control={<Radio size="small" />} label={<Typography sx={{ fontSize: 13 }}>{t("post.visPublic")}</Typography>} />
-                <FormControlLabel value="private" control={<Radio size="small" />} label={<Typography sx={{ fontSize: 13 }}>{t("post.visPrivate")}</Typography>} />
+                <FormControlLabel value="public" control={<Radio size="small" />} label={<Typography sx={{ fontSize: tokens.fontSize.body }}>{t("post.visPublic")}</Typography>} />
+                <FormControlLabel value="private" control={<Radio size="small" />} label={<Typography sx={{ fontSize: tokens.fontSize.body }}>{t("post.visPrivate")}</Typography>} />
               </RadioGroup>
             </Box>
 
@@ -153,7 +151,7 @@ export default function PostCreatePage() {
                 onClick={handleSaveDraft}
                 sx={{
                   flex: 1, textTransform: "none",
-                  borderRadius: "27px", height: 54, fontSize: 15,
+                  borderRadius: "27px", height: 54, fontSize: tokens.fontSize.body,
                   borderColor: tokens.color.border, color: tokens.color.text,
                 }}
               >
@@ -167,7 +165,7 @@ export default function PostCreatePage() {
                   flex: 1,
                   bgcolor: tokens.color.black, color: "#fff",
                   textTransform: "none",
-                  borderRadius: "27px", height: 54, fontSize: 15, fontWeight: 600,
+                  borderRadius: "27px", height: 54, fontSize: tokens.fontSize.body, fontWeight: 600,
                   "&:hover": { bgcolor: tokens.color.navyDark },
                 }}
               >
@@ -184,18 +182,18 @@ export default function PostCreatePage() {
                 src={event.image}
                 sx={{ width: "100%", height: 140, borderRadius: "12px", objectFit: "cover", mb: 1.5 }}
               />
-              <Typography sx={{ fontSize: 15, fontWeight: 700, color: tokens.color.text, mb: 1 }}>
+              <Typography sx={{ fontSize: tokens.fontSize.body, fontWeight: 700, color: tokens.color.text, mb: 1 }}>
                 {event.title}
               </Typography>
               <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, mb: 0.7 }}>
                 <CalendarTodayIcon sx={{ fontSize: 14, color: tokens.color.textSecondary }} />
-                <Typography sx={{ fontSize: 12, color: tokens.color.textSecondary }}>
+                <Typography sx={{ fontSize: tokens.fontSize.caption, color: tokens.color.textSecondary }}>
                   {event.date} {event.time}
                 </Typography>
               </Box>
               <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
                 <PlaceIcon sx={{ fontSize: 14, color: tokens.color.textSecondary }} />
-                <Typography sx={{ fontSize: 12, color: tokens.color.textSecondary }}>
+                <Typography sx={{ fontSize: tokens.fontSize.caption, color: tokens.color.textSecondary }}>
                   {event.location}
                 </Typography>
               </Box>

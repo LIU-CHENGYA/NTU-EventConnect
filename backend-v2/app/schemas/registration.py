@@ -21,4 +21,19 @@ class RegistrationDetailOut(RegistrationOut):
     official_category: str | None = None
     session_name: str | None = None
     date: str | None = None
+    time: str | None = None
     location: str | None = None
+
+
+class EventRegistrationOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    registration_id: int
+    user_id: int
+    user_name: str | None = None
+    user_email: str | None = None
+    student_id: str | None = None
+    department: str | None = None
+    session_id: int
+    session_name: str | None = None
+    status: str
+    registered_at: datetime

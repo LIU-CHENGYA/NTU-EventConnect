@@ -1,15 +1,21 @@
+import uuid
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import or_, func
 from sqlalchemy.orm import Session, selectinload
 from app.models.post import EventBookmark
 
+from app.core.deps import get_current_user
 from app.db.session import get_db
 from app.models.event import Event, EventSession, EventTag
+from app.models.user import User
 from app.schemas.event import (
+    EventCreateIn,
     EventDetailOut,
     EventListResponse,
     EventOut,
     EventSessionOut,
+    EventUpdateIn,
     TagOut,
 )
 
@@ -76,8 +82,11 @@ def _to_detail(e: Event, lang: str = "zh") -> EventDetailOut:
 def list_events(
     category: str | None = Query(None),
     tag: str | None = Query(None),
+    tags: str | None = Query(None, description="Comma-separated tag list; events matching ANY of these tags"),
     keyword: str | None = Query(None),
     date: str | None = Query(None, description="YYYY-MM-DD; events with any session on or after this date"),
+    date_to: str | None = Query(None, description="YYYY-MM-DD upper bound; events with session on or before this date"),
+    location: str | None = Query(None, description="Filter by session location (case-insensitive contains)"),
     sort: str = Query("id", pattern="^(id|hot)$"),
     page: int = Query(1, ge=1),
     size: int = Query(20, ge=1, le=100),
@@ -124,16 +133,37 @@ def list_events(
         # Tag list comes from a finite seed; exact match by design.
         tagged = db.query(EventTag.event_id).filter(EventTag.tag == tag).subquery()
         filters.append(Event.id.in_(tagged))
-    if date:
-        # `date` is a YYYY-MM-DD threshold. Match events with at least one
-        # session on or after that day. EventSession.date is stored as a string
-        # in YYYY-MM-DD format so lexicographic >= behaves as a date compare.
-        on_or_after = (
+    if tags:
+        # Multi-tag OR filter: events matching ANY of the listed tags.
+        tag_list = [t.strip() for t in tags.split(",") if t.strip()]
+        if tag_list:
+            multi_tagged = (
+                db.query(EventTag.event_id)
+                .filter(EventTag.tag.in_(tag_list))
+                .subquery()
+            )
+            filters.append(Event.id.in_(multi_tagged))
+    if date or date_to:
+        # Find events with at least one session that falls within [date, date_to].
+        # Using a single subquery ensures the same session satisfies both bounds.
+        session_q = db.query(EventSession.event_id).filter(EventSession.date.isnot(None))
+        if date:
+            session_q = session_q.filter(EventSession.date >= date)
+        if date_to:
+            session_q = session_q.filter(EventSession.date <= date_to)
+        filters.append(Event.id.in_(session_q.subquery()))
+    if location:
+        # Case-insensitive location contains filter across sessions.
+        loc_like = f"%{location.lower()}%"
+        with_location = (
             db.query(EventSession.event_id)
-            .filter(EventSession.date.isnot(None), EventSession.date >= date)
+            .filter(
+                EventSession.location.isnot(None),
+                func.lower(EventSession.location).like(loc_like),
+            )
             .subquery()
         )
-        filters.append(Event.id.in_(on_or_after))
+        filters.append(Event.id.in_(with_location))
 
     total = (
         db.query(func.count(Event.id)).filter(*filters).scalar() or 0
@@ -216,6 +246,172 @@ def list_tags(db: Session = Depends(get_db)):
         .all()
     )
     return [TagOut(name=name, count=count) for name, count in rows]
+
+
+@router.get("/managed", response_model=EventListResponse)
+def managed_events(
+    page: int = Query(1, ge=1),
+    size: int = Query(20),
+    db: Session = Depends(get_db),
+    current: User = Depends(get_current_user),
+):
+    """Events created by the current admin user."""
+    if not current.is_admin:
+        raise HTTPException(403, "Admin only")
+    total = (
+        db.query(func.count(Event.id))
+        .filter(Event.created_by_user_id == current.id)
+        .scalar() or 0
+    )
+    items = (
+        db.query(Event)
+        .options(selectinload(Event.sessions), selectinload(Event.tags))
+        .filter(Event.created_by_user_id == current.id)
+        .order_by(Event.id.desc())
+        .offset((page - 1) * size)
+        .limit(size)
+        .all()
+    )
+    return EventListResponse(
+        items=[_to_detail(e, "zh") for e in items],
+        total=total,
+        page=page,
+        size=size,
+    )
+
+
+@router.post("", response_model=EventDetailOut, status_code=201)
+def create_event(
+    payload: EventCreateIn,
+    db: Session = Depends(get_db),
+    current: User = Depends(get_current_user),
+):
+    if not current.is_admin:
+        raise HTTPException(403, "Admin only")
+
+    # Generate a unique source_url for admin-created events (not scraped from NTU).
+    admin_source_url = f"admin://{uuid.uuid4()}"
+
+    event = Event(
+        source_url=admin_source_url,
+        title=payload.title,
+        content=payload.content,
+        category=payload.category,
+        organizer=payload.organizer,
+        image_url=payload.image_url,
+        created_by_user_id=current.id,
+    )
+    db.add(event)
+    db.flush()  # get event.id before inserting tags/sessions
+
+    for tag_name in payload.tags:
+        db.add(EventTag(event_id=event.id, tag=tag_name))
+
+    for s in payload.sessions:
+        session_source_url = f"admin://{uuid.uuid4()}"
+        db.add(EventSession(
+            event_id=event.id,
+            source_url=session_source_url,
+            session_name=s.session_name,
+            date=s.date,
+            time_range=s.time_range,
+            location=s.location,
+            capacity=s.capacity,
+            remaining_slots=s.capacity,
+        ))
+
+    db.commit()
+    db.refresh(event)
+
+    # Reload with relationships.
+    event = (
+        db.query(Event)
+        .options(selectinload(Event.sessions), selectinload(Event.tags))
+        .filter(Event.id == event.id)
+        .first()
+    )
+    return _to_detail(event, "zh")
+
+
+@router.patch("/{event_id}", response_model=EventDetailOut)
+def update_event(
+    event_id: int,
+    payload: EventUpdateIn,
+    db: Session = Depends(get_db),
+    current: User = Depends(get_current_user),
+):
+    if not current.is_admin:
+        raise HTTPException(403, "Admin only")
+
+    event = db.get(Event, event_id)
+    if not event:
+        raise HTTPException(404, "Event not found")
+    if event.created_by_user_id != current.id:
+        raise HTTPException(403, "Not your event")
+
+    # Apply scalar fields only when explicitly provided.
+    scalar_fields = {"title", "content", "category", "organizer", "image_url"}
+    for field, value in payload.model_dump(exclude_unset=True).items():
+        if field in scalar_fields:
+            setattr(event, field, value)
+
+    # Replace all tags when `tags` is provided.
+    if payload.tags is not None:
+        db.query(EventTag).filter(EventTag.event_id == event_id).delete(
+            synchronize_session=False
+        )
+        for tag_name in payload.tags:
+            db.add(EventTag(event_id=event_id, tag=tag_name))
+
+    # Upsert sessions when `sessions` is provided; unlisted sessions are untouched.
+    if payload.sessions is not None:
+        for s in payload.sessions:
+            if s.id is not None:
+                # Update existing session that belongs to this event.
+                existing_sess = (
+                    db.query(EventSession)
+                    .filter(EventSession.id == s.id, EventSession.event_id == event_id)
+                    .first()
+                )
+                if not existing_sess:
+                    raise HTTPException(
+                        404, f"Session {s.id} not found for event {event_id}"
+                    )
+                sess_fields = s.model_dump(exclude_unset=True)
+                sess_fields.pop("id", None)
+                for field, value in sess_fields.items():
+                    if field == "capacity":
+                        # Adjust remaining_slots by the capacity delta, clamped to >= 0.
+                        old_capacity = existing_sess.capacity
+                        delta = value - old_capacity
+                        new_remaining = max(0, existing_sess.remaining_slots + delta)
+                        existing_sess.remaining_slots = new_remaining
+                    setattr(existing_sess, field, value)
+            else:
+                # Insert new session.
+                session_source_url = f"admin://{uuid.uuid4()}"
+                new_capacity = s.capacity if s.capacity is not None else 0
+                db.add(EventSession(
+                    event_id=event_id,
+                    source_url=session_source_url,
+                    session_name=s.session_name,
+                    date=s.date,
+                    time_range=s.time_range,
+                    location=s.location,
+                    capacity=new_capacity,
+                    remaining_slots=new_capacity,
+                ))
+
+    db.commit()
+
+    # Reload with relationships.
+    event = (
+        db.query(Event)
+        .options(selectinload(Event.sessions), selectinload(Event.tags))
+        .filter(Event.id == event_id)
+        .first()
+    )
+    return _to_detail(event, "zh")
 
 
 @router.get("/{event_id}", response_model=EventDetailOut)

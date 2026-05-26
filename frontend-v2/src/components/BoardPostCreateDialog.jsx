@@ -128,9 +128,12 @@ export default function BoardPostCreateDialog({ open, onClose, onCreated }) {
         rating,
         content: content.trim(),
         images,
-        visibility: asDraft ? "private" : visibility,
+        // A draft keeps its intended visibility/group so it can be published
+        // later without losing the target group; is_draft hides it from feeds.
+        visibility,
         group_id: visibility === "group" ? groupId : null,
         is_board_post: true,
+        is_draft: asDraft,
       });
       onCreated?.();
       onClose?.();
@@ -153,7 +156,7 @@ export default function BoardPostCreateDialog({ open, onClose, onCreated }) {
     >
       <Box sx={{ px: 3, py: 2, display: "flex", alignItems: "center", borderBottom: `1px solid ${tokens.color.border}` }}>
         <CreateIcon sx={{ color: NAVY, mr: 1 }} />
-        <Typography sx={{ fontWeight: 700, fontSize: 17, flex: 1 }}>
+        <Typography sx={{ fontWeight: 700, fontSize: tokens.fontSize.subtitle, flex: 1 }}>
           {t("board.modal.title")}
         </Typography>
         <IconButton size="small" onClick={onClose} disabled={submitting}>
@@ -163,7 +166,7 @@ export default function BoardPostCreateDialog({ open, onClose, onCreated }) {
 
       <DialogContent sx={{ p: 3 }}>
         {/* Event picker */}
-        <Typography sx={{ fontSize: 13, fontWeight: 600, mb: 0.5 }}>
+        <Typography sx={{ fontSize: tokens.fontSize.body, fontWeight: 600, mb: 0.5 }}>
           {t("board.modal.selectEvent")} <Box component="span" sx={{ color: RED }}>*</Box>
         </Typography>
         <Box
@@ -181,34 +184,38 @@ export default function BoardPostCreateDialog({ open, onClose, onCreated }) {
             <>
               <Avatar variant="rounded" sx={{ bgcolor: "#FCE7C8", color: "#9A6700", width: 32, height: 32 }}>🎨</Avatar>
               <Box sx={{ flex: 1, minWidth: 0 }}>
-                <Typography sx={{ fontWeight: 700, fontSize: 14, color: NAVY }} noWrap>
+                <Typography sx={{ fontWeight: 700, fontSize: tokens.fontSize.body, color: NAVY }} noWrap>
                   {event.event_title}
                 </Typography>
-                <Typography sx={{ fontSize: 12, color: tokens.color.textSecondary }} noWrap>
+                <Typography sx={{ fontSize: tokens.fontSize.caption, color: tokens.color.textSecondary }} noWrap>
                   {[event.category, t("board.modal.ended"), formatDate(event.date)].filter(Boolean).join(" • ")}
                 </Typography>
               </Box>
-              <Typography sx={{ fontSize: 13, color: NAVY, fontWeight: 600 }}>
+              <Typography sx={{ fontSize: tokens.fontSize.body, color: NAVY, fontWeight: 600 }}>
                 {t("board.modal.change")}
               </Typography>
             </>
           ) : (
             <>
               <EventIcon sx={{ color: tokens.color.placeholder }} />
-              <Typography sx={{ flex: 1, fontSize: 14, color: tokens.color.placeholder }}>
+              <Typography sx={{ flex: 1, fontSize: tokens.fontSize.body, color: tokens.color.placeholder }}>
                 {t("board.modal.selectEvent")}
               </Typography>
             </>
           )}
         </Box>
-        <Typography sx={{ fontSize: 12, color: RED, mt: 0.5, mb: 2.5 }}>
-          🚫 {t("board.modal.endedHint")}
-        </Typography>
+        <Box sx={{ mt: 0.5, mb: 2.5 }}>
+          {!event && (
+            <Typography sx={{ fontSize: tokens.fontSize.caption, color: RED }}>
+              🚫 {t("board.modal.endedHint")}
+            </Typography>
+          )}
+        </Box>
 
         <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 240px" }, gap: 2.5 }}>
           {/* Left: rating + title + content */}
           <Box>
-            <Typography sx={{ fontSize: 13, fontWeight: 600, mb: 0.5 }}>{t("board.modal.rating")}</Typography>
+            <Typography sx={{ fontSize: tokens.fontSize.body, fontWeight: 600, mb: 0.5 }}>{t("board.modal.rating")}</Typography>
             <Box sx={{ display: "flex", alignItems: "center", gap: 0.25, mb: 2 }}>
               {[1, 2, 3, 4, 5].map((n) => (
                 <IconButton key={n} size="small" onClick={() => setRating(n)} sx={{ p: 0.25 }}>
@@ -217,12 +224,12 @@ export default function BoardPostCreateDialog({ open, onClose, onCreated }) {
                     : <StarBorderIcon sx={{ color: "#D9DEE7", fontSize: 26 }} />}
                 </IconButton>
               ))}
-              <Typography sx={{ fontSize: 13, color: tokens.color.textSecondary, ml: 1 }}>
+              <Typography sx={{ fontSize: tokens.fontSize.body, color: tokens.color.textSecondary, ml: 1 }}>
                 {rating} / 5
               </Typography>
             </Box>
 
-            <Typography sx={{ fontSize: 13, fontWeight: 600, mb: 0.5 }}>
+            <Typography sx={{ fontSize: tokens.fontSize.body, fontWeight: 600, mb: 0.5 }}>
               {t("board.modal.titleField")} <Box component="span" sx={{ color: RED }}>*</Box>
             </Typography>
             <TextField
@@ -233,7 +240,7 @@ export default function BoardPostCreateDialog({ open, onClose, onCreated }) {
               sx={{ mb: 2, "& .MuiOutlinedInput-root": { borderRadius: "10px", bgcolor: tokens.color.bg } }}
             />
 
-            <Typography sx={{ fontSize: 13, fontWeight: 600, mb: 0.5 }}>
+            <Typography sx={{ fontSize: tokens.fontSize.body, fontWeight: 600, mb: 0.5 }}>
               {t("board.modal.content")} <Box component="span" sx={{ color: RED }}>*</Box>
             </Typography>
             <TextField
@@ -244,7 +251,7 @@ export default function BoardPostCreateDialog({ open, onClose, onCreated }) {
               inputProps={{ maxLength: 2000 }}
               sx={{ "& .MuiOutlinedInput-root": { borderRadius: "10px", bgcolor: tokens.color.bg } }}
             />
-            <Typography sx={{ fontSize: 11, color: tokens.color.placeholder, textAlign: "right", mt: 0.4 }}>
+            <Typography sx={{ fontSize: tokens.fontSize.caption, color: tokens.color.placeholder, textAlign: "right", mt: 0.4 }}>
               {t("post.charLimit", { n: content.length })}
             </Typography>
           </Box>
@@ -255,16 +262,16 @@ export default function BoardPostCreateDialog({ open, onClose, onCreated }) {
               <Box sx={{ p: 1.5, bgcolor: tokens.color.bg, borderRadius: 2, mb: 1.5 }}>
                 <Box sx={{
                   display: "inline-block", bgcolor: "#E8EFFF", color: NAVY,
-                  fontSize: 11, fontWeight: 700, px: 1, py: "2px", borderRadius: "4px", mb: 0.75,
+                  fontSize: tokens.fontSize.caption, fontWeight: 700, px: 1, py: "2px", borderRadius: "4px", mb: 0.75,
                 }}>
                   {event.category}
                 </Box>
-                <Typography sx={{ fontWeight: 700, fontSize: 14 }}>{event.event_title}</Typography>
-                <Typography sx={{ fontSize: 12, color: tokens.color.textSecondary, mt: 0.4 }}>
+                <Typography sx={{ fontWeight: 700, fontSize: tokens.fontSize.body }}>{event.event_title}</Typography>
+                <Typography sx={{ fontSize: tokens.fontSize.caption, color: tokens.color.textSecondary, mt: 0.4 }}>
                   {formatDate(event.date)}
                 </Typography>
                 {event.session_name && (
-                  <Typography sx={{ fontSize: 12, color: tokens.color.textSecondary }}>
+                  <Typography sx={{ fontSize: tokens.fontSize.caption, color: tokens.color.textSecondary }}>
                     {event.session_name}
                   </Typography>
                 )}
@@ -282,8 +289,8 @@ export default function BoardPostCreateDialog({ open, onClose, onCreated }) {
               }}
             >
               <AddPhotoAlternateIcon sx={{ color: tokens.color.placeholder, fontSize: 26 }} />
-              <Typography sx={{ fontSize: 13, fontWeight: 600 }}>{t("board.modal.addImage")}</Typography>
-              <Typography sx={{ fontSize: 11, color: tokens.color.placeholder }}>
+              <Typography sx={{ fontSize: tokens.fontSize.body, fontWeight: 600 }}>{t("board.modal.addImage")}</Typography>
+              <Typography sx={{ fontSize: tokens.fontSize.caption, color: tokens.color.placeholder }}>
                 {t("board.modal.imageHint")}
               </Typography>
               <input type="file" accept="image/png,image/jpeg" hidden onChange={handleImageUpload} />
@@ -304,7 +311,7 @@ export default function BoardPostCreateDialog({ open, onClose, onCreated }) {
         </Box>
 
         {error && (
-          <Typography sx={{ color: RED, fontSize: 13, mt: 2 }}>{error}</Typography>
+          <Typography sx={{ color: RED, fontSize: tokens.fontSize.body, mt: 2 }}>{error}</Typography>
         )}
 
         <Box
@@ -314,7 +321,7 @@ export default function BoardPostCreateDialog({ open, onClose, onCreated }) {
           }}
         >
           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-            <Typography sx={{ fontSize: 13, color: tokens.color.textSecondary }}>
+            <Typography sx={{ fontSize: tokens.fontSize.body, color: tokens.color.textSecondary }}>
               {t("board.modal.visibility")}：
             </Typography>
             <RadioGroup row value={visibility} onChange={(e) => setVisibility(e.target.value)}>
@@ -326,7 +333,7 @@ export default function BoardPostCreateDialog({ open, onClose, onCreated }) {
               <Box
                 onClick={(e) => setGroupAnchor(e.currentTarget)}
                 sx={{
-                  cursor: "pointer", fontSize: 13, color: NAVY,
+                  cursor: "pointer", fontSize: tokens.fontSize.body, color: NAVY,
                   px: 1, py: 0.5, border: `1px solid ${tokens.color.border}`, borderRadius: 1,
                 }}
               >
@@ -372,9 +379,9 @@ export default function BoardPostCreateDialog({ open, onClose, onCreated }) {
         PaperProps={{ sx: { width: 380, maxHeight: 420, borderRadius: 2 } }}
       >
         <Box sx={{ p: 1.5, borderBottom: `1px solid ${tokens.color.border}`, display: "flex", alignItems: "center", gap: 1 }}>
-          <Typography sx={{ fontWeight: 700, fontSize: 14, flex: 1 }}>{t("board.modal.selectEvent")}</Typography>
+          <Typography sx={{ fontWeight: 700, fontSize: tokens.fontSize.body, flex: 1 }}>{t("board.modal.selectEvent")}</Typography>
           <Box sx={{
-            display: "flex", alignItems: "center", gap: 0.5, fontSize: 11, color: RED,
+            display: "flex", alignItems: "center", gap: 0.5, fontSize: tokens.fontSize.caption, color: RED,
             bgcolor: "#FFE6E6", px: 1, py: 0.4, borderRadius: 1,
           }}>
             🚫 {t("board.modal.endedOnly")}
@@ -392,13 +399,13 @@ export default function BoardPostCreateDialog({ open, onClose, onCreated }) {
         </Box>
         <Box sx={{ overflowY: "auto", maxHeight: 320 }}>
           {Object.keys(eventsByCategory).length === 0 ? (
-            <Typography sx={{ p: 2, fontSize: 13, color: tokens.color.placeholder, textAlign: "center" }}>
+            <Typography sx={{ p: 2, fontSize: tokens.fontSize.body, color: tokens.color.placeholder, textAlign: "center" }}>
               {t("board.modal.noEndedActivities")}
             </Typography>
           ) : Object.entries(eventsByCategory).map(([cat, regs]) => (
             <Box key={cat}>
               <Typography sx={{
-                fontSize: 12, fontWeight: 700, color: tokens.color.textSecondary,
+                fontSize: tokens.fontSize.caption, fontWeight: 700, color: tokens.color.textSecondary,
                 px: 1.5, py: 0.5, bgcolor: tokens.color.bg,
               }}>
                 {cat}
@@ -420,19 +427,19 @@ export default function BoardPostCreateDialog({ open, onClose, onCreated }) {
                       🎨
                     </Avatar>
                     <Box sx={{ flex: 1, minWidth: 0 }}>
-                      <Typography sx={{ fontSize: 13, fontWeight: 700 }} noWrap>{r.event_title}</Typography>
+                      <Typography sx={{ fontSize: tokens.fontSize.body, fontWeight: 700 }} noWrap>{r.event_title}</Typography>
                       <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, mt: 0.25 }}>
                         <Box sx={{
-                          fontSize: 10, fontWeight: 700, px: 0.6, py: "1px",
+                          fontSize: tokens.fontSize.caption, fontWeight: 700, px: 0.6, py: "1px",
                           bgcolor: "#E8EFFF", color: NAVY, borderRadius: 0.5,
                         }}>
                           {r.category || "活動"}
                         </Box>
-                        <Typography sx={{ fontSize: 11, color: tokens.color.textSecondary }}>
+                        <Typography sx={{ fontSize: tokens.fontSize.caption, color: tokens.color.textSecondary }}>
                           {r.session_name && `${r.session_name} • `}{formatDate(r.date)}
                         </Typography>
                         <Box sx={{
-                          fontSize: 10, fontWeight: 700, px: 0.6, py: "1px",
+                          fontSize: tokens.fontSize.caption, fontWeight: 700, px: 0.6, py: "1px",
                           bgcolor: "#FFE6E6", color: RED, borderRadius: 0.5, ml: "auto",
                         }}>
                           {t("board.modal.ended")}
@@ -468,7 +475,7 @@ export default function BoardPostCreateDialog({ open, onClose, onCreated }) {
         </Box>
         <Box sx={{ overflowY: "auto", maxHeight: 280, pb: 1 }}>
           {filteredGroups.length === 0 ? (
-            <Typography sx={{ p: 2, fontSize: 13, color: tokens.color.placeholder, textAlign: "center" }}>
+            <Typography sx={{ p: 2, fontSize: tokens.fontSize.body, color: tokens.color.placeholder, textAlign: "center" }}>
               {t("board.modal.noGroupsJoined")}
             </Typography>
           ) : filteredGroups.map((g) => {
@@ -487,8 +494,8 @@ export default function BoardPostCreateDialog({ open, onClose, onCreated }) {
               >
                 <Avatar sx={{ bgcolor: "#3F6BE0", width: 32, height: 32, fontSize: 14 }}>{initial}</Avatar>
                 <Box sx={{ flex: 1 }}>
-                  <Typography sx={{ fontSize: 14, fontWeight: 700 }}>{g.name}</Typography>
-                  <Typography sx={{ fontSize: 11, color: tokens.color.textSecondary }}>
+                  <Typography sx={{ fontSize: tokens.fontSize.body, fontWeight: 700 }}>{g.name}</Typography>
+                  <Typography sx={{ fontSize: tokens.fontSize.caption, color: tokens.color.textSecondary }}>
                     {t("board.modal.groupMeta", { members: g.memberCount, posts: g.postCount })}
                   </Typography>
                 </Box>

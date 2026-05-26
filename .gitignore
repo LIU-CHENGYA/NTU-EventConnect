@@ -44,6 +44,7 @@ CLAUDE.md
 
 # 執行時上傳檔案
 backend/uploads/
+backend-v2/uploads/
 
 # 個人筆記 / 測試計畫（不進 repo）
 problem.md

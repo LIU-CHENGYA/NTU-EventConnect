@@ -17,6 +17,7 @@ EXPECTED_COLUMNS = [
     ("posts",  "title",             "VARCHAR(200)"),
     ("posts",  "group_id",          "INTEGER"),
     ("posts",  "is_board_post",     "BOOLEAN NOT NULL DEFAULT 0"),
+    ("posts",  "is_draft",          "BOOLEAN NOT NULL DEFAULT 0"),
     ("events", "official_category", "VARCHAR(500)"),
     # English variants seeded from fetch_data/csv/events_en.csv. Nullable; API
     # falls back to ZH when absent.
@@ -35,6 +36,7 @@ EXPECTED_COLUMNS = [
     ("event_sessions", "instructor_en",         "VARCHAR(500)"),
     ("event_sessions", "location_en",           "VARCHAR(300)"),
     ("event_sessions", "meal_en",               "VARCHAR(100)"),
+    ("events",         "created_by_user_id",    "INTEGER"),
 ]
 
 

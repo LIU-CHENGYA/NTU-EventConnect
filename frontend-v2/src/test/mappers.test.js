@@ -6,7 +6,7 @@ describe("mapEvent", () => {
     const e = mapEvent({
       id: 1,
       title: "T",
-      image_url: "img",
+      image_url: "/uploads/img.png",
       organizer: "O",
       sessions: [
         { date: "2026-06-01", time_range: "10:00", location: "L",
@@ -16,7 +16,8 @@ describe("mapEvent", () => {
     });
     expect(e.id).toBe(1);
     expect(e.title).toBe("T");
-    expect(e.image).toBe("img");
+    // Relative upload paths are resolved against the API base origin.
+    expect(e.image).toBe("http://localhost:8010/uploads/img.png");
     expect(e.date).toBe("2026-06-01");
     expect(e.time).toBe("10:00");
     expect(e.location).toBe("L");

@@ -84,7 +84,7 @@ export default function EventDetailPage() {
           <IconButton onClick={() => navigate(-1)} sx={{ border: "1.5px solid #333", width: 38, height: 38 }}>
             <ArrowBackIosNewIcon sx={{ fontSize: 18 }} />
           </IconButton>
-          <Typography sx={{ fontFamily: tokens.font.logo, fontStyle: "italic", fontSize: 28, color: "#000" }}>
+          <Typography sx={{ fontFamily: tokens.font.heading, fontSize: { xs: 22, md: tokens.fontSize.heading }, fontWeight: 700, color: "#000" }}>
             {t("event.details")}
           </Typography>
         </Box>
@@ -103,20 +103,20 @@ export default function EventDetailPage() {
 
             {/* Content card */}
             <Card sx={{ p: 3 }}>
-              <Typography sx={{ fontWeight: 700, fontSize: 18, mb: 1 }}>{t("event.content")}</Typography>
-              <Typography sx={{ fontSize: 14, color: "#444", lineHeight: 1.8, mb: 2, whiteSpace: "pre-wrap" }}>
+              <Typography sx={{ fontWeight: 700, fontSize: tokens.fontSize.subtitle, mb: 1 }}>{t("event.content")}</Typography>
+              <Typography sx={{ fontSize: tokens.fontSize.body, color: "#444", lineHeight: 1.8, mb: 2, whiteSpace: "pre-wrap" }}>
                 {(event.content || "").replace(/\\n/g, "\n")}
               </Typography>
               {event.instructor && (
                 <>
-                  <Typography sx={{ fontWeight: 700, fontSize: 15, mb: 0.5 }}>{t("event.instructor")}</Typography>
-                  <Typography sx={{ fontSize: 14, color: "#444", mb: 2 }}>{event.instructor}</Typography>
+                  <Typography sx={{ fontWeight: 700, fontSize: tokens.fontSize.body, mb: 0.5 }}>{t("event.instructor")}</Typography>
+                  <Typography sx={{ fontSize: tokens.fontSize.body, color: "#444", mb: 2 }}>{event.instructor}</Typography>
                 </>
               )}
 
               <Divider sx={{ my: 2 }} />
               <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
-                <Typography sx={{ fontWeight: 700, fontSize: 16 }}>{t("event.commentsAndShares", { count: reviews.length })}</Typography>
+                <Typography sx={{ fontWeight: 700, fontSize: tokens.fontSize.subtitle }}>{t("event.commentsAndShares", { count: reviews.length })}</Typography>
                 {user && (
                   <Button
                     onClick={() => navigate("/board")}
@@ -124,7 +124,7 @@ export default function EventDetailPage() {
                       textTransform: "none", color: tokens.color.navy,
                       border: `1px solid ${tokens.color.navy}`,
                       bgcolor: "transparent",
-                      borderRadius: "20px", px: 2, fontSize: 13,
+                      borderRadius: "20px", px: 2, fontSize: tokens.fontSize.body,
                       "&:hover": { bgcolor: "#EEF2FB" },
                     }}
                     title={t("event.commentsLegacyTooltip")}
@@ -139,16 +139,16 @@ export default function EventDetailPage() {
                     <Avatar src={r.userAvatar} sx={{ width: 36, height: 36, cursor: "pointer" }}
                       onClick={() => navigate(`/profile/${r.userId}`)} />
                     <Box>
-                      <Typography sx={{ fontSize: 14, fontWeight: 600 }}>{r.userName}</Typography>
+                      <Typography sx={{ fontSize: tokens.fontSize.body, fontWeight: 600 }}>{r.userName}</Typography>
                       <Box sx={{ display: "flex" }}>
                         {[1,2,3,4,5].map(s => (
                           <StarIcon key={s} sx={{ fontSize: 14, color: s <= r.rating ? tokens.color.star : "#e0e0e0" }} />
                         ))}
                       </Box>
                     </Box>
-                    <Typography sx={{ ml: "auto", fontSize: 12, color: "#999" }}>{r.createdAt}</Typography>
+                    <Typography sx={{ ml: "auto", fontSize: tokens.fontSize.caption, color: "#999" }}>{r.createdAt}</Typography>
                   </Box>
-                  <Typography sx={{ fontSize: 14, mb: 1 }}>{r.content}</Typography>
+                  <Typography sx={{ fontSize: tokens.fontSize.body, mb: 1 }}>{r.content}</Typography>
                   {r.images?.length > 0 && (
                     <Box sx={{ display: "flex", gap: 1 }}>
                       {r.images.map((img, i) => (
@@ -196,10 +196,10 @@ export default function EventDetailPage() {
           <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
             {/* Title pill */}
             <Card sx={{ p: 2.5, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <Typography sx={{ fontSize: 18, fontWeight: 700, color: "#000", flex: 1 }}>
+              <Typography sx={{ fontSize: tokens.fontSize.subtitle, fontWeight: 700, color: "#000", flex: 1 }}>
                 {event.title}
               </Typography>
-              <Box sx={{ bgcolor: "#1e1e1e", color: "#fffefe", px: 1.5, py: 0.5, borderRadius: "20px", fontSize: 12, ml: 1 }}>
+              <Box sx={{ bgcolor: "#1e1e1e", color: "#fffefe", px: 1.5, py: 0.5, borderRadius: "20px", fontSize: tokens.fontSize.caption, ml: 1 }}>
                 {translateTag(event.category, i18n.language)}
               </Box>
             </Card>
@@ -217,12 +217,12 @@ export default function EventDetailPage() {
               <Section icon={<PhoneIcon sx={{ fontSize: 18 }} />} title="" lines={[event.contactPhone]} />
 
               <Divider sx={{ my: 0.5 }} />
-              <Typography sx={{ fontSize: 13 }}>{t("event.registrationPeriod")}：{event.registrationStart} ~ {event.registrationEnd}</Typography>
-              <Typography sx={{ fontSize: 13 }}>{t("event.registrationType")}：{event.registrationType}</Typography>
-              <Typography sx={{ fontSize: 13 }}>{t("event.targetAudience")}：{event.targetAudience}</Typography>
-              <Typography sx={{ fontSize: 13 }}>{t("event.slots", { remaining: event.remainingSlots, total: event.capacity })}</Typography>
+              <Typography sx={{ fontSize: tokens.fontSize.body }}>{t("event.registrationPeriod")}：{event.registrationStart} ~ {event.registrationEnd}</Typography>
+              <Typography sx={{ fontSize: tokens.fontSize.body }}>{t("event.registrationType")}：{event.registrationType}</Typography>
+              <Typography sx={{ fontSize: tokens.fontSize.body }}>{t("event.targetAudience")}：{event.targetAudience}</Typography>
+              <Typography sx={{ fontSize: tokens.fontSize.body }}>{t("event.slots", { remaining: event.remainingSlots, total: event.capacity })}</Typography>
               {event.meal && event.meal !== "無" && (
-                <Typography sx={{ fontSize: 13 }}>{t("event.meal")}：{event.meal}</Typography>
+                <Typography sx={{ fontSize: tokens.fontSize.body }}>{t("event.meal")}：{event.meal}</Typography>
               )}
 
               {(() => {
@@ -235,13 +235,17 @@ export default function EventDetailPage() {
                 const ended = sessions.length > 0 && !hasFuture;
                 return (
                   <Button
-                    onClick={() => !ended && navigate(`/events/${event.id}/register`)}
+                    onClick={() => {
+                      if (ended) return;
+                      if (!user) { navigate("/login"); return; }
+                      navigate(`/events/${event.id}/register`);
+                    }}
                     disabled={ended}
                     sx={{
                       mt: 1.5,
                       bgcolor: ended ? "#9aa0a6" : "#1e1e1e",
                       color: "#fffefe",
-                      borderRadius: "30px", height: 54, fontSize: 22, fontWeight: 700,
+                      borderRadius: "30px", height: 54, fontSize: tokens.fontSize.title, fontWeight: 700,
                       textTransform: "none",
                       "&:hover": { bgcolor: ended ? "#9aa0a6" : "#000" },
                       "&.Mui-disabled": { bgcolor: "#9aa0a6", color: "#fffefe" },
@@ -264,8 +268,8 @@ function Section({ icon, title, lines }) {
     <Box sx={{ display: "flex", gap: 1, alignItems: "flex-start" }}>
       <Box sx={{ color: "#666", mt: "2px" }}>{icon}</Box>
       <Box>
-        {title && <Typography sx={{ fontSize: 12, color: "#999" }}>{title}</Typography>}
-        {lines.map((l, i) => <Typography key={i} sx={{ fontSize: 14, color: "#222" }}>{l}</Typography>)}
+        {title && <Typography sx={{ fontSize: tokens.fontSize.caption, color: "#999" }}>{title}</Typography>}
+        {lines.map((l, i) => <Typography key={i} sx={{ fontSize: tokens.fontSize.body, color: "#222" }}>{l}</Typography>)}
       </Box>
     </Box>
   );

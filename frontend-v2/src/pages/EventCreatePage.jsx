@@ -1,183 +1,243 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { Box, Typography, InputBase, Button, MenuItem, Select } from "@mui/material";
+import { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import {
+  Box, Typography, TextField, Button, IconButton, Chip, Paper,
+} from "@mui/material";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "../context/AuthContext";
-import { categories } from "../mock/data";
+import { eventsApi, uploadsApi } from "../api";
 import { tokens } from "../theme";
 
-const TAG_COLORS = {
-  "英文": "rgba(255,57,57,0.42)",
-  "運動": "rgba(57,167,255,0.42)",
-  "便當": "rgba(0,0,0,0.1)",
-  "就業": "rgba(0,0,0,0.11)",
-};
-
-const LEFT_FIELDS = [
-  "活動名稱", "場次名稱", "場次內容", "授課人", "活動地點", "場次時間",
-  "報名時間", "承辦單位", "承辦人", "報名類型", "參加對象", "其他限制條件",
-];
-const RIGHT_FIELDS = [
-  "報名費", "人數名額", "用餐", "是否提供公務人員學習時數",
-  "研習總時數", "學習類別", "學位學分", "期別", "活動縣市", "附件", "備註",
-];
-
-function PillInput({ value, onChange, placeholder, width = 291 }) {
-  return (
-    <Box sx={{
-      bgcolor: "#fffefe", borderRadius: "20px", boxShadow: tokens.shadow.pill,
-      height: 30, width, px: 2, display: "flex", alignItems: "center",
-    }}>
-      <InputBase
-        fullWidth value={value} onChange={onChange} placeholder={placeholder}
-        sx={{ fontSize: 14, color: tokens.color.text }}
-      />
-    </Box>
-  );
-}
-
-function FieldRow({ label, children }) {
-  return (
-    <Box sx={{ display: "flex", alignItems: "center", height: 45, gap: 2 }}>
-      <Typography sx={{ fontFamily: "'Lexend',sans-serif", fontSize: 18, width: 160 }}>{label}</Typography>
-      {children}
-    </Box>
-  );
-}
+const emptySession = () => ({
+  id: null, session_name: "", date: "", time_range: "", location: "", capacity: 0,
+});
 
 export default function EventCreatePage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
+  const { id } = useParams();           // present => edit mode
+  const isEdit = Boolean(id);
   const { user, ready } = useAuth();
-  const [form, setForm] = useState({});
-  const [tags, setTags] = useState(["運動"]);
+
+  const [title, setTitle] = useState("");
+  const [content, setContent] = useState("");
+  const [category, setCategory] = useState("");
+  const [organizer, setOrganizer] = useState("");
+  const [imageUrl, setImageUrl] = useState("");
+  const [tags, setTags] = useState([]);
+  const [tagOptions, setTagOptions] = useState([]);
+  const [sessions, setSessions] = useState([emptySession()]);
+  const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [loading, setLoading] = useState(isEdit);
+
+  // Tag suggestions for the chip picker.
+  useEffect(() => {
+    eventsApi.tags().then((rows) => setTagOptions(rows.map((r) => r.name))).catch(() => {});
+  }, []);
+
+  // Edit mode: hydrate the form from the existing event.
+  useEffect(() => {
+    if (!isEdit) return;
+    let live = true;
+    eventsApi.get(Number(id)).then((e) => {
+      if (!live || !e) return;
+      setTitle(e.title || "");
+      setContent(e.content || "");
+      setCategory(e.category || "");
+      setOrganizer(e.organizer || "");
+      setImageUrl(e.image || "");
+      setTags(e.tags || []);
+      setSessions(
+        (e.sessions || []).length
+          ? e.sessions.map((s) => ({
+              id: s.id,
+              session_name: s.session_name || "",
+              date: s.date || "",
+              time_range: s.time_range || "",
+              location: s.location || "",
+              capacity: s.capacity ?? 0,
+            }))
+          : [emptySession()]
+      );
+      setLoading(false);
+    }).catch(() => { if (live) { setError(t("admin.loadFailed")); setLoading(false); } });
+    return () => { live = false; };
+  }, [id, isEdit, t]);
 
   if (!ready) return null;
   if (!user) { navigate("/login"); return null; }
+  if (!user.isAdmin) {
+    return (
+      <Box sx={{ p: 6, textAlign: "center", bgcolor: tokens.color.bg, minHeight: "calc(100vh - 76px)" }}>
+        <Typography sx={{ fontSize: tokens.fontSize.subtitle, color: tokens.color.textSecondary }}>{t("admin.adminOnly")}</Typography>
+      </Box>
+    );
+  }
+  if (loading) return <Box sx={{ p: 6, textAlign: "center" }}>{t("common.loading")}</Box>;
 
-  const set = (k) => (e) => setForm({ ...form, [k]: e.target.value });
-  const toggleTag = (t) => setTags(tags.includes(t) ? tags.filter(x => x !== t) : [...tags, t]);
+  const toggleTag = (tag) =>
+    setTags((prev) => prev.includes(tag) ? prev.filter((x) => x !== tag) : [...prev, tag]);
+
+  const updateSession = (idx, key, value) =>
+    setSessions((prev) => prev.map((s, i) => i === idx ? { ...s, [key]: value } : s));
+
+  const addSession = () => setSessions((prev) => [...prev, emptySession()]);
+  const removeSession = (idx) => setSessions((prev) => prev.filter((_, i) => i !== idx));
+
+  const handleImageUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const res = await uploadsApi.upload(file);
+      if (res?.url) setImageUrl(res.url);
+    } catch { /* ignore upload error; admin can paste a URL */ }
+  };
+
+  const handleSubmit = async () => {
+    setError("");
+    if (!title.trim()) { setError(t("admin.titleRequired")); return; }
+    setSubmitting(true);
+    // Backend ignores empty session rows poorly, so drop fully-empty ones.
+    const cleanSessions = sessions
+      .filter((s) => s.session_name.trim() || s.date.trim() || s.location.trim() || s.capacity)
+      .map((s) => ({
+        ...(s.id ? { id: s.id } : {}),
+        session_name: s.session_name.trim() || null,
+        date: s.date.trim() || null,
+        time_range: s.time_range.trim() || null,
+        location: s.location.trim() || null,
+        capacity: Number(s.capacity) || 0,
+      }));
+    const payload = {
+      title: title.trim(),
+      content: content.trim() || null,
+      category: category.trim() || null,
+      organizer: organizer.trim() || null,
+      image_url: imageUrl || null,
+      tags,
+      sessions: cleanSessions,
+    };
+    try {
+      if (isEdit) {
+        await eventsApi.update(Number(id), payload);
+        navigate(`/events/${id}`);
+      } else {
+        const created = await eventsApi.create(payload);
+        navigate(created?.id ? `/events/${created.id}` : "/");
+      }
+    } catch (e) {
+      setError((isEdit ? t("admin.updateFailed") : t("admin.createFailed")) +
+        ": " + (e?.response?.data?.detail || e.message));
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const labelSx = { fontSize: tokens.fontSize.body, fontWeight: 700, color: tokens.color.text, mb: 0.5, mt: 2 };
+  const fieldSx = { "& .MuiOutlinedInput-root": { borderRadius: "10px", bgcolor: "#fff" } };
 
   return (
     <Box sx={{ minHeight: "calc(100vh - 76px)", bgcolor: tokens.color.bg, py: 4 }}>
-      <Box sx={{ maxWidth: 1280, mx: "auto", px: { xs: 2, md: 6 } }}>
-        <Typography sx={{ fontFamily: "'Lexend',sans-serif", fontSize: { xs: 24, md: 32 }, mb: 4 }}>
-          發布新的活動
+      <Box sx={{ maxWidth: 880, mx: "auto", px: { xs: 2, md: 3 } }}>
+        <Typography sx={{ fontFamily: tokens.font.heading, fontSize: { xs: 22, md: 28 }, fontWeight: 700, color: tokens.color.navy, mb: 3 }}>
+          {isEdit ? t("admin.editEvent") : t("admin.createEvent")}
         </Typography>
 
-        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: { xs: 3, md: 8 }, alignItems: "start" }}>
-          {/* LEFT column */}
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-            {LEFT_FIELDS.map((label) => (
-              <FieldRow key={label} label={label}>
-                <PillInput value={form[label] || ""} onChange={set(label)} />
-              </FieldRow>
+        <Paper sx={{ p: { xs: 2, md: 3 }, borderRadius: "16px", boxShadow: tokens.shadow.pill }}>
+          <Typography sx={labelSx}>{t("admin.eventTitle")} <Box component="span" sx={{ color: tokens.color.heart }}>*</Box></Typography>
+          <TextField fullWidth size="small" value={title} onChange={(e) => setTitle(e.target.value)} sx={fieldSx} />
+
+          <Typography sx={labelSx}>{t("admin.eventContent")}</Typography>
+          <TextField fullWidth size="small" multiline minRows={4} value={content} onChange={(e) => setContent(e.target.value)} sx={fieldSx} />
+
+          <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 2 }}>
+            <Box>
+              <Typography sx={labelSx}>{t("admin.category")}</Typography>
+              <TextField fullWidth size="small" value={category} onChange={(e) => setCategory(e.target.value)} sx={fieldSx} />
+            </Box>
+            <Box>
+              <Typography sx={labelSx}>{t("admin.organizer")}</Typography>
+              <TextField fullWidth size="small" value={organizer} onChange={(e) => setOrganizer(e.target.value)} sx={fieldSx} />
+            </Box>
+          </Box>
+
+          <Typography sx={labelSx}>{t("admin.image")}</Typography>
+          <Box sx={{ display: "flex", gap: 1, alignItems: "center", flexWrap: "wrap" }}>
+            <TextField
+              size="small" sx={{ ...fieldSx, flex: 1, minWidth: 220 }}
+              placeholder={t("admin.imageUrlPlaceholder")}
+              value={imageUrl} onChange={(e) => setImageUrl(e.target.value)}
+            />
+            <Button component="label" variant="outlined" sx={{ textTransform: "none", borderRadius: "10px" }}>
+              {t("admin.uploadImage")}
+              <input type="file" accept="image/png,image/jpeg" hidden onChange={handleImageUpload} />
+            </Button>
+          </Box>
+          {imageUrl && (
+            <Box component="img" src={imageUrl} alt="" sx={{ mt: 1.5, width: 220, height: 120, objectFit: "cover", borderRadius: "10px" }} />
+          )}
+
+          <Typography sx={labelSx}>{t("admin.tags")}</Typography>
+          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.8 }}>
+            {tagOptions.map((tag) => (
+              <Chip
+                key={tag}
+                label={tag}
+                onClick={() => toggleTag(tag)}
+                color={tags.includes(tag) ? "primary" : "default"}
+                variant={tags.includes(tag) ? "filled" : "outlined"}
+                size="small"
+                sx={{ cursor: "pointer" }}
+              />
             ))}
           </Box>
 
-          {/* RIGHT column */}
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-            {RIGHT_FIELDS.map((label) => {
-              if (label === "用餐" || label === "是否提供公務人員學習時數") {
-                return (
-                  <FieldRow key={label} label={label}>
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 3, fontSize: 16 }}>
-                      <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, cursor: "pointer" }}
-                           onClick={() => setForm({ ...form, [label]: "是" })}>
-                        <Box sx={{
-                          width: 16, height: 16, borderRadius: "50%",
-                          border: "1.5px solid #444",
-                          bgcolor: form[label] === "是" ? tokens.color.navy : "transparent",
-                        }} />
-                        是
-                      </Box>
-                      <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, cursor: "pointer" }}
-                           onClick={() => setForm({ ...form, [label]: "否" })}>
-                        <Box sx={{
-                          width: 16, height: 16, borderRadius: "50%",
-                          border: "1.5px solid #444",
-                          bgcolor: form[label] === "否" ? tokens.color.navy : "transparent",
-                        }} />
-                        否
-                      </Box>
-                    </Box>
-                  </FieldRow>
-                );
-              }
-              if (label === "學習類別") {
-                return (
-                  <FieldRow key={label} label={label}>
-                    <Select
-                      value={form[label] || ""}
-                      onChange={set(label)}
-                      displayEmpty
-                      sx={{
-                        bgcolor: "#fffefe", borderRadius: "20px", boxShadow: tokens.shadow.pill,
-                        height: 30, width: 291, fontSize: 14,
-                        "& .MuiOutlinedInput-notchedOutline": { border: "none" },
-                      }}
-                    >
-                      <MenuItem value="">請選擇</MenuItem>
-                      {categories.filter(c => c !== "全部").map((c) => (
-                        <MenuItem key={c} value={c}>{c}</MenuItem>
-                      ))}
-                    </Select>
-                  </FieldRow>
-                );
-              }
-              return (
-                <FieldRow key={label} label={label}>
-                  <PillInput value={form[label] || ""} onChange={set(label)} />
-                </FieldRow>
-              );
-            })}
-
-            {/* Tag chips row */}
-            <FieldRow label="標籤">
-              <Box sx={{ display: "flex", gap: 0.7 }}>
-                {Object.keys(TAG_COLORS).map((t) => (
-                  <Box
-                    key={t}
-                    onClick={() => toggleTag(t)}
-                    sx={{
-                      px: 1.2, py: "2px", borderRadius: "20px", fontSize: 13,
-                      bgcolor: tags.includes(t) ? TAG_COLORS[t] : "rgba(0,0,0,0.05)",
-                      cursor: "pointer", fontFamily: "'Lemon',sans-serif",
-                    }}
-                  >
-                    {t}
-                  </Box>
-                ))}
-              </Box>
-            </FieldRow>
+          {/* Sessions */}
+          <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mt: 3 }}>
+            <Typography sx={{ fontSize: tokens.fontSize.body, fontWeight: 700, color: tokens.color.text }}>{t("admin.sessions")}</Typography>
+            <Button onClick={addSession} startIcon={<AddCircleIcon />} sx={{ textTransform: "none" }}>
+              {t("admin.addSession")}
+            </Button>
           </Box>
-        </Box>
+          {sessions.map((s, idx) => (
+            <Paper key={idx} variant="outlined" sx={{ p: 2, mt: 1.5, borderRadius: "12px" }}>
+              <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
+                {sessions.length > 1 && (
+                  <IconButton size="small" onClick={() => removeSession(idx)} sx={{ color: tokens.color.heart }}>
+                    <DeleteOutlineIcon fontSize="small" />
+                  </IconButton>
+                )}
+              </Box>
+              <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 1.5 }}>
+                <TextField size="small" label={t("admin.sessionName")} value={s.session_name} onChange={(e) => updateSession(idx, "session_name", e.target.value)} sx={fieldSx} />
+                <TextField size="small" label={t("admin.date")} value={s.date} onChange={(e) => updateSession(idx, "date", e.target.value)} sx={fieldSx} />
+                <TextField size="small" label={t("admin.timeRange")} value={s.time_range} onChange={(e) => updateSession(idx, "time_range", e.target.value)} sx={fieldSx} />
+                <TextField size="small" label={t("admin.location")} value={s.location} onChange={(e) => updateSession(idx, "location", e.target.value)} sx={fieldSx} />
+                <TextField size="small" type="number" label={t("admin.capacity")} value={s.capacity} onChange={(e) => updateSession(idx, "capacity", e.target.value)} sx={fieldSx} />
+              </Box>
+            </Paper>
+          ))}
 
-        {/* Image upload card */}
-        <Box sx={{
-          mt: 4, bgcolor: "#fffefe", borderRadius: "20px", boxShadow: tokens.shadow.pill,
-          width: { xs: "100%", md: "60%" }, maxWidth: 600, ml: { xs: 0, md: "auto" }, p: { xs: 2, md: 4 },
-          display: "flex", alignItems: "center", justifyContent: "center", gap: 2,
-          cursor: "pointer",
-        }}>
-          <AddCircleIcon sx={{ fontSize: 46, color: tokens.color.text }} />
-          <Typography sx={{ fontFamily: "'Lexend',sans-serif", fontSize: 24 }}>新增圖片</Typography>
-        </Box>
+          {error && <Typography sx={{ color: tokens.color.heart, fontSize: tokens.fontSize.caption, mt: 2 }}>{error}</Typography>}
 
-        {/* Publish button */}
-        <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 3 }}>
-          <Button
-            onClick={() => { alert("活動已發布！(Mock)"); navigate("/"); }}
-            sx={{
-              bgcolor: "#39a7ff", color: "#000",
-              borderRadius: "10px", height: 51, width: 110,
-              fontFamily: "'Lexend',sans-serif", fontSize: 24,
-              textTransform: "none",
-              "&:hover": { bgcolor: "#1e88e5", color: "white" },
-            }}
-          >
-            發布
-          </Button>
-        </Box>
+          <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 3 }}>
+            <Button
+              variant="contained"
+              onClick={handleSubmit}
+              disabled={submitting}
+              sx={{
+                bgcolor: tokens.color.navy, color: "#fff", textTransform: "none",
+                borderRadius: "10px", px: 4, height: 46, fontSize: tokens.fontSize.body, fontWeight: 700,
+                "&:hover": { bgcolor: tokens.color.navyDark },
+              }}
+            >
+              {isEdit ? t("admin.saveChanges") : t("admin.publish")}
+            </Button>
+          </Box>
+        </Paper>
       </Box>
     </Box>
   );

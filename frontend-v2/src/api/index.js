@@ -178,6 +178,18 @@ export const eventsApi = {
     });
     return mapEvent(data);
   },
+  create: async (payload) => {
+    const { data } = await api.post("/api/events", payload);
+    return mapEvent(data);
+  },
+  update: async (id, payload) => {
+    const { data } = await api.patch(`/api/events/${id}`, payload);
+    return mapEvent(data);
+  },
+  registrations: async (id) => {
+    const { data } = await api.get(`/api/events/${id}/registrations`);
+    return data; // [{ registration_id, user_name, user_email, student_id, department, session_id, session_name, status, registered_at }]
+  },
   categories: async () => {
     const { data } = await api.get("/api/events/categories", {
       params: { lang: currentLang() },
@@ -265,6 +277,15 @@ export const usersApi = {
     const { data } = await api.get("/api/users/me/comments");
     return data.map(mapMyComment);
   },
+  managedEvents: async (params = {}) => {
+    const { data } = await api.get("/api/users/me/managed_events", { params });
+    return { ...data, items: (data.items || []).map(mapEvent) };
+  },
+};
+
+export const commentsApi = {
+  update: (id, content) => api.patch(`/api/comments/${id}`, { content }).then((r) => r.data),
+  remove: (id) => api.delete(`/api/comments/${id}`),
 };
 
 export const uploadsApi = {

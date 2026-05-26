@@ -12,6 +12,7 @@
 
 ## 目錄
 
+- [v2 Updates](#v2-updates)
 - [功能](#功能)
 - [技術棧](#技術棧)
 - [架構](#架構)
@@ -29,6 +30,25 @@
 - [套件版本鎖定規則](#套件版本鎖定規則)
 - [部署](#部署)
 - [疑難排解](#疑難排解)
+
+---
+
+## v2 Updates
+
+Latest features layered on the v1 baseline. All changes live in `frontend-v2/` and `backend-v2/`; the v1 `frontend/` and `backend/` are untouched.
+
+**Frontend**
+- Admin tooling: a navbar "Create activity" button, an event create/edit page, a per-event registration list, and a "Manage events" profile tab.
+- Profile: renamed tabs (My comments / My registrations), a comment-drafts tab, registrations split into upcoming vs. ended, and a calendar with prev/next month arrows, hover tooltips (name · time · location · date), click-to-event, and cancelled-event marker cleanup.
+- Home: multi-select tag filtering, "hot" events shown on top, search results that hide the hot section, date-range + location filters, and a single unified search box.
+- Board: own-comment edit/delete (CRUD), comment-to-event links, an image lightbox, and login redirects for logged-out actions.
+- i18n: full English coverage and unified "post" → "comment" wording, with a consistent font and type scale.
+
+**Backend**
+- `is_draft` decoupled from post visibility, with a dedicated `/api/users/me/drafts` endpoint.
+- Last-slot registration races handled atomically (`UPDATE ... WHERE remaining_slots > 0`).
+- Admin endpoints for event create/edit and per-event registration lists.
+- Registration details now expose the session `time`; private posts are gated behind authentication.
 
 ---
 

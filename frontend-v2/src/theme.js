@@ -26,6 +26,16 @@ export const tokens = {
     base: "'Inter','Noto Sans TC',sans-serif",
     heading: "'Roboto','Noto Sans TC',sans-serif",
   },
+  // Canonical text size scale. Use these for ALL text so each page keeps a
+  // clear, limited hierarchy (caption < body < subtitle < title < heading).
+  // NOTE: these are for TEXT only — never use them to size MUI icons.
+  fontSize: {
+    caption: 12,   // timestamps, hints, counts, small meta labels
+    body: 14,      // default body / content text
+    subtitle: 16,  // emphasized body, field labels, list items
+    title: 20,     // card & section titles, user names, dialog titles
+    heading: 28,   // page-level headings (use { xs: 22, md: 28 } when responsive)
+  },
   radius: {
     sm: 8,
     md: 12,

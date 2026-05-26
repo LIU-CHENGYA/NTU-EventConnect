@@ -141,7 +141,7 @@ export default function GroupEditDialog({ open, onClose, groupId, onSaved }) {
       PaperProps={{ sx: { borderRadius: 2 } }}
     >
       <Box sx={{ px: 3, py: 2, display: "flex", alignItems: "center", borderBottom: `1px solid ${tokens.color.border}` }}>
-        <Typography sx={{ fontWeight: 700, fontSize: 17, flex: 1 }}>
+        <Typography sx={{ fontWeight: 700, fontSize: tokens.fontSize.subtitle, flex: 1 }}>
           {t("groupDialog.title")}
         </Typography>
         <IconButton size="small" onClick={onClose} disabled={loading}>
@@ -150,7 +150,7 @@ export default function GroupEditDialog({ open, onClose, groupId, onSaved }) {
       </Box>
 
       <DialogContent sx={{ p: 3 }}>
-        <Typography sx={{ fontSize: 13, fontWeight: 600, mb: 0.5 }}>
+        <Typography sx={{ fontSize: tokens.fontSize.caption, fontWeight: 600, mb: 0.5 }}>
           {t("groupDialog.name")} <Box component="span" sx={{ color: "#FF4D4F" }}>*</Box>
         </Typography>
         <TextField
@@ -161,7 +161,7 @@ export default function GroupEditDialog({ open, onClose, groupId, onSaved }) {
           sx={{ mb: 2.5, "& .MuiOutlinedInput-root": { borderRadius: "10px", bgcolor: tokens.color.bg } }}
         />
 
-        <Typography sx={{ fontSize: 13, fontWeight: 600, mb: 0.5 }}>
+        <Typography sx={{ fontSize: tokens.fontSize.caption, fontWeight: 600, mb: 0.5 }}>
           {t("groupDialog.invite")}
         </Typography>
         <Box sx={{ display: "flex", gap: 1, mb: 0.5 }}>
@@ -185,11 +185,11 @@ export default function GroupEditDialog({ open, onClose, groupId, onSaved }) {
             {t("groupDialog.inviteAdd")}
           </Button>
         </Box>
-        <Typography sx={{ fontSize: 12, color: tokens.color.placeholder, mb: 2.5 }}>
+        <Typography sx={{ fontSize: tokens.fontSize.caption, color: tokens.color.placeholder, mb: 2.5 }}>
           {t("groupDialog.inviteHint")}
         </Typography>
 
-        <Typography sx={{ fontSize: 13, fontWeight: 600, mb: 1 }}>
+        <Typography sx={{ fontSize: tokens.fontSize.caption, fontWeight: 600, mb: 1 }}>
           {t("groupDialog.invited", { count: allInvites.length })}
         </Typography>
 
@@ -209,10 +209,10 @@ export default function GroupEditDialog({ open, onClose, groupId, onSaved }) {
                 }}
               >
                 <Avatar sx={{ width: 28, height: 28, bgcolor: colorFor(seed), fontSize: 13 }}>{initial}</Avatar>
-                <Typography sx={{ flex: 1, fontSize: 13 }} noWrap>
+                <Typography sx={{ flex: 1, fontSize: tokens.fontSize.caption }} noWrap>
                   {inv.email}
                   {!inv.isMember && (
-                    <Box component="span" sx={{ ml: 1, fontSize: 11, color: "#A8071A" }}>
+                    <Box component="span" sx={{ ml: 1, fontSize: tokens.fontSize.caption, color: "#A8071A" }}>
                       ({inv.raw.status === "staged" ? t("errors.stagedNotSent") : inv.raw.status})
                     </Box>
                   )}
@@ -228,14 +228,14 @@ export default function GroupEditDialog({ open, onClose, groupId, onSaved }) {
             );
           })}
           {allInvites.length === 0 && (
-            <Typography sx={{ fontSize: 13, color: tokens.color.placeholder, textAlign: "center", py: 1 }}>
+            <Typography sx={{ fontSize: tokens.fontSize.caption, color: tokens.color.placeholder, textAlign: "center", py: 1 }}>
               {t("groupDialog.noInvitees")}
             </Typography>
           )}
         </Box>
 
         {error && (
-          <Typography sx={{ color: "#FF4D4F", fontSize: 12, mt: 1 }}>{error}</Typography>
+          <Typography sx={{ color: "#FF4D4F", fontSize: tokens.fontSize.caption, mt: 1 }}>{error}</Typography>
         )}
 
         <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 1.25, mt: 3 }}>

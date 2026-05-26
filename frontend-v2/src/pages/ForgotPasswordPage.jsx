@@ -40,26 +40,26 @@ export default function ForgotPasswordPage() {
           py: { xs: 4, sm: 6 },
         }}
       >
-        <Typography sx={{ fontSize: 28, fontWeight: 700, textAlign: "center", mb: 1, color: tokens.color.text }}>
+        <Typography sx={{ fontSize: tokens.fontSize.heading, fontWeight: 700, textAlign: "center", mb: 1, color: tokens.color.text }}>
           {t("auth.forgotPasswordTitle")}
         </Typography>
-        <Typography sx={{ fontSize: 14, color: tokens.color.placeholder, textAlign: "center", mb: 4 }}>
+        <Typography sx={{ fontSize: tokens.fontSize.body, color: tokens.color.placeholder, textAlign: "center", mb: 4 }}>
           {t("auth.forgotSubtitle")}
         </Typography>
 
         {sent ? (
           <Box sx={{ textAlign: "center", py: 3 }}>
             <CheckCircleIcon sx={{ fontSize: 56, color: tokens.color.success.fg, mb: 1.5 }} />
-            <Typography sx={{ fontSize: 16, fontWeight: 600, color: tokens.color.success.fg, mb: 1 }}>
+            <Typography sx={{ fontSize: tokens.fontSize.subtitle, fontWeight: 600, color: tokens.color.success.fg, mb: 1 }}>
               {t("auth.resetLinkSent")}
             </Typography>
-            <Typography sx={{ fontSize: 13, color: tokens.color.placeholder, mb: 3 }}>
+            <Typography sx={{ fontSize: tokens.fontSize.caption, color: tokens.color.placeholder, mb: 3 }}>
               {t("auth.checkInbox")}
             </Typography>
           </Box>
         ) : (
           <>
-            <Typography sx={{ fontSize: 14, fontWeight: 600, mb: 0.7 }}>Email</Typography>
+            <Typography sx={{ fontSize: tokens.fontSize.body, fontWeight: 600, mb: 0.7 }}>Email</Typography>
             <TextField
               fullWidth size="small" placeholder={t("auth.emailPlaceholderShort")}
               value={email} onChange={(e) => setEmail(e.target.value)}
@@ -71,7 +71,7 @@ export default function ForgotPasswordPage() {
               type="submit" fullWidth variant="contained"
               sx={{
                 bgcolor: tokens.color.navy, py: 1.4, borderRadius: "10px",
-                textTransform: "none", fontSize: 16, fontWeight: 600, mb: 3,
+                textTransform: "none", fontSize: tokens.fontSize.subtitle, fontWeight: 600, mb: 3,
                 "&:hover": { bgcolor: tokens.color.navyDark },
               }}
             >
@@ -80,7 +80,7 @@ export default function ForgotPasswordPage() {
           </>
         )}
 
-        <Typography sx={{ fontSize: 14, textAlign: "center", color: tokens.color.text }}>
+        <Typography sx={{ fontSize: tokens.fontSize.body, textAlign: "center", color: tokens.color.text }}>
           <Link to="/login" style={{ color: "#1976d2", fontWeight: 600, textDecoration: "none" }}>
             {t("auth.backToLoginShort")}
           </Link>

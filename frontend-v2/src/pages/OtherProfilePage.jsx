@@ -5,7 +5,6 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import { useTranslation } from "react-i18next";
 import PostCard from "../components/PostCard";
 import { usersApi, postsApi } from "../api";
-import { useAuth } from "../context/AuthContext";
 import { tokens } from "../theme";
 
 const TAG_COLORS = {
@@ -22,7 +21,6 @@ export default function OtherProfilePage() {
   const { t } = useTranslation();
   const { userId } = useParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
   const [profileUser, setProfileUser] = useState(null);
   const [publicPosts, setPublicPosts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -72,32 +70,27 @@ export default function OtherProfilePage() {
           <IconButton onClick={() => navigate(-1)} sx={{ color: tokens.color.text }}>
             <ArrowBackIcon />
           </IconButton>
-          <Typography sx={{ fontFamily: tokens.font.logo, fontStyle: "italic", fontSize: { xs: 24, md: 32 }, color: tokens.color.navy }}>
+          <Typography sx={{ fontFamily: tokens.font.heading, fontSize: { xs: 22, md: 28 }, fontWeight: 700, color: tokens.color.navy }}>
             {t("profile.publicProfile")}
           </Typography>
-          {user && (
-            <Box sx={{ ml: "auto", display: { xs: "none", sm: "block" } }}>
-              <Avatar src={user.avatarUrl} sx={{ width: 52, height: 52 }} />
-            </Box>
-          )}
         </Box>
 
         <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "291px 1fr" }, gap: 3 }}>
           {/* Sidebar */}
           <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
             <Box sx={sidebarCard}>
-              <Typography sx={{ fontFamily: "'Lexend',sans-serif", fontSize: 24, mb: 2 }}>Profile</Typography>
+              <Typography sx={{ fontFamily: tokens.font.heading, fontSize: tokens.fontSize.heading, mb: 2 }}>{t("profile.publicProfile")}</Typography>
               {stats.map((s) => (
                 <Box key={s.label} sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", py: 0.6 }}>
-                  <Typography sx={{ fontFamily: "'Lexend',sans-serif", fontSize: 16 }}>{s.label}</Typography>
-                  {s.value !== "" && <Typography sx={{ fontSize: 16 }}>{s.value}</Typography>}
+                  <Typography sx={{ fontFamily: tokens.font.heading, fontSize: tokens.fontSize.subtitle }}>{s.label}</Typography>
+                  {s.value !== "" && <Typography sx={{ fontSize: tokens.fontSize.subtitle }}>{s.value}</Typography>}
                 </Box>
               ))}
               <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.7, mt: 1 }}>
                 {profileUser.tags?.map((tag) => (
                   <Box key={tag} sx={{
                     bgcolor: TAG_COLORS[tag] || "rgba(0,0,0,0.1)",
-                    px: 1, py: "2px", borderRadius: "20px", fontSize: 13,
+                    px: 1, py: "2px", borderRadius: "20px", fontSize: tokens.fontSize.body,
                   }}>
                     {tag}
                   </Box>
@@ -126,20 +119,20 @@ export default function OtherProfilePage() {
                 }}
               />
               <Box sx={{ pt: 5, pb: 1, textAlign: "center" }}>
-                <Typography sx={{ fontFamily: "'Lemon',sans-serif", fontSize: 20 }}>{profileUser.name}</Typography>
+                <Typography sx={{ fontFamily: tokens.font.heading, fontSize: tokens.fontSize.title }}>{profileUser.name}</Typography>
                 {profileUser.department && (
-                  <Typography sx={{ fontSize: 13, color: tokens.color.placeholder }}>{profileUser.department}</Typography>
+                  <Typography sx={{ fontSize: tokens.fontSize.body, color: tokens.color.placeholder }}>{profileUser.department}</Typography>
                 )}
                 {profileUser.bio && (
-                  <Typography sx={{ fontSize: 14, color: tokens.color.text, mt: 1, px: 4 }}>
+                  <Typography sx={{ fontSize: tokens.fontSize.body, color: tokens.color.text, mt: 1, px: 4 }}>
                     {profileUser.bio}
                   </Typography>
                 )}
               </Box>
               <Box sx={{ display: "flex", justifyContent: "center", pb: 2 }}>
                 <Box sx={{
-                  fontFamily: "'Lemon',sans-serif",
-                  fontSize: 18, color: tokens.color.navy,
+                  fontFamily: tokens.font.base,
+                  fontSize: tokens.fontSize.subtitle, color: tokens.color.navy,
                   borderBottom: `2px solid ${tokens.color.navy}`, pb: 0.5,
                 }}>
                   {t("profile.publicPosts")}

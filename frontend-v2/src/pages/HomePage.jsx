@@ -34,9 +34,11 @@ export default function HomePage() {
 
   const [activeTab, setActiveTab] = useState("all");
   const [selectedCategory, setSelectedCategory] = useState("");
-  const [selectedTag, setSelectedTag] = useState("");
+  const [selectedTags, setSelectedTags] = useState([]);
   const [keyword, setKeyword] = useState(searchQuery);
   const [date, setDate] = useState("");
+  const [dateEnd, setDateEnd] = useState("");
+  const [location, setLocation] = useState("");
 
   const [listPage, setListPage] = useState(1);
   const [listData, setListData] = useState({ items: [], total: 0 });
@@ -48,13 +50,16 @@ export default function HomePage() {
 
   const { isEventBookmarked, toggleEventBookmark } = useData();
 
+  // Derived: is any search/filter active?
+  const hasFilter = !!(keyword.trim() || date || dateEnd || location.trim() || selectedTags.length > 0 || selectedCategory || activeTab !== "all");
+
   // sync external ?search= → keyword
   useEffect(() => { setKeyword(searchQuery); }, [searchQuery]);
 
   // Reset to page 1 when filters change
   useEffect(() => {
     setListPage(1);
-  }, [activeTab, selectedCategory, selectedTag, keyword, date]);
+  }, [activeTab, selectedCategory, JSON.stringify(selectedTags), keyword, date, dateEnd, location]);
 
   // Build query params from current filter state
   const buildQuery = () => {
@@ -62,10 +67,18 @@ export default function HomePage() {
     const tab = SHORTCUT_TABS.find((t) => t.id === activeTab);
     if (tab?.kind === "shortcut" && tab.query) Object.assign(params, tab.query);
     if (activeTab === "official" && selectedCategory) params.category = selectedCategory;
-    if (activeTab === "tags" && selectedTag) params.tag = selectedTag;
+    if (activeTab === "tags") {
+      if (selectedTags.length === 1) {
+        params.tag = selectedTags[0]; // backward compat: use single tag param
+      } else if (selectedTags.length > 1) {
+        params.tags = selectedTags.join(","); // new multi-tag param (backend supports this)
+      }
+    }
     const kw = keyword.trim();
     if (kw) params.keyword = params.keyword ? `${params.keyword} ${kw}` : kw;
     if (date) params.date = date;
+    if (dateEnd) params.date_to = dateEnd;
+    if (location.trim()) params.location = location.trim();
     return params;
   };
 
@@ -85,7 +98,7 @@ export default function HomePage() {
       .catch(() => { if (live) setListData({ items: [], total: 0 }); });
     return () => { live = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab, selectedCategory, selectedTag, keyword, date, listPage, i18n.language]);
+  }, [activeTab, selectedCategory, JSON.stringify(selectedTags), keyword, date, dateEnd, location, listPage, i18n.language]);
 
   // Hot
   useEffect(() => {
@@ -117,7 +130,13 @@ export default function HomePage() {
   const handleKeywordEnter = (e) => {
     if (e.key === "Enter") {
       setSearchParams(keyword ? { search: keyword } : {});
+      setListPage(1);
     }
+  };
+
+  const handleSearchClick = () => {
+    setSearchParams(keyword ? { search: keyword } : {});
+    setListPage(1);
   };
 
   return (
@@ -145,12 +164,12 @@ export default function HomePage() {
                 onClick={() => {
                   setActiveTab(tab.id);
                   if (tab.id !== "official") setSelectedCategory("");
-                  if (tab.id !== "tags") setSelectedTag("");
+                  if (tab.id !== "tags") setSelectedTags([]);
                 }}
                 sx={{
                   px: 1.6,
                   py: 1,
-                  fontSize: 14,
+                  fontSize: tokens.fontSize.body,
                   fontWeight: active ? 700 : 500,
                   color: active ? tokens.color.navy : tokens.color.text,
                   borderBottom: active ? `2px solid ${tokens.color.navy}` : "2px solid transparent",
@@ -167,7 +186,7 @@ export default function HomePage() {
 
         {/* === Secondary chip row (官方分類 = 母活動名 / #標籤) === */}
         {(activeTab === "official" || activeTab === "tags") && (
-          <Typography sx={{ fontSize: 12, color: tokens.color.placeholder, mb: 0.5 }}>
+          <Typography sx={{ fontSize: tokens.fontSize.caption, color: tokens.color.placeholder, mb: 0.5 }}>
             {activeTab === "official" ? t("filter.officialHint") : t("filter.tagsHint")}
           </Typography>
         )}
@@ -188,30 +207,54 @@ export default function HomePage() {
               "&::-webkit-scrollbar-thumb": { bgcolor: tokens.color.border, borderRadius: 3 },
             }}
           >
-            <Chip
-              active={(activeTab === "official" ? selectedCategory : selectedTag) === ""}
-              onClick={() => activeTab === "official" ? setSelectedCategory("") : setSelectedTag("")}
-            >
-              {activeTab === "official" ? t("filter.anyCategory") : t("filter.anyTag")}
-            </Chip>
-            {/* 母活動名は固有名詞なので i18n しない。Top 15 で frontend cap (場次数降順は backend)。 */}
-            {(activeTab === "official"
-              ? categoryOptions.slice(0, 15)
-              : tagOptions
-            ).map((opt) => {
-              const cur = activeTab === "official" ? selectedCategory : selectedTag;
-              const setCur = activeTab === "official" ? setSelectedCategory : setSelectedTag;
-              const label = activeTab === "tags" ? translateTag(opt, i18n.language) : opt;
-              return (
-                <Chip key={opt} active={cur === opt} onClick={() => setCur(opt)}>
-                  {activeTab === "tags" ? `#${label}` : label}
+            {activeTab === "official" ? (
+              <>
+                <Chip
+                  active={selectedCategory === ""}
+                  onClick={() => setSelectedCategory("")}
+                >
+                  {t("filter.anyCategory")}
                 </Chip>
-              );
-            })}
+                {/* 母活動名は固有名詞なので i18n しない。Top 15 で frontend cap (場次数降順は backend)。 */}
+                {categoryOptions.slice(0, 15).map((opt) => (
+                  <Chip key={opt} active={selectedCategory === opt} onClick={() => setSelectedCategory(opt)}>
+                    {opt}
+                  </Chip>
+                ))}
+              </>
+            ) : (
+              <>
+                <Chip
+                  active={selectedTags.length === 0}
+                  onClick={() => setSelectedTags([])}
+                >
+                  {t("filter.anyTag")}
+                </Chip>
+                {tagOptions.map((opt) => {
+                  const label = translateTag(opt, i18n.language);
+                  const isTagActive = selectedTags.includes(opt);
+                  return (
+                    <Chip
+                      key={opt}
+                      active={isTagActive}
+                      onClick={() => {
+                        if (isTagActive) {
+                          setSelectedTags(selectedTags.filter((tg) => tg !== opt));
+                        } else {
+                          setSelectedTags([...selectedTags, opt]);
+                        }
+                      }}
+                    >
+                      {`#${label}`}
+                    </Chip>
+                  );
+                })}
+              </>
+            )}
           </Box>
         )}
 
-        {/* === Filter input row: keyword / date / location === */}
+        {/* === Filter input row: keyword / date range / location === */}
         <Box
           sx={{
             display: "flex",
@@ -228,14 +271,14 @@ export default function HomePage() {
             onEnter={handleKeywordEnter}
             flex={2}
           />
-          <Box sx={{ flex: 1, minWidth: 160 }}>
-            <Typography sx={{ fontSize: 12, color: tokens.color.placeholder, mb: 0.4 }}>
+          <Box sx={{ flex: 1, minWidth: 200 }}>
+            <Typography sx={{ fontSize: tokens.fontSize.caption, color: tokens.color.placeholder, mb: 0.4 }}>
               {t("filter.dateRangeLabel")}
             </Typography>
             <Box sx={{
-              display: "flex", alignItems: "center", bgcolor: "#fff",
-              border: `1px solid ${tokens.color.border}`, borderRadius: 1.5,
-              px: 1.4, height: 56, gap: 0.75,
+              display: "flex", gap: 0.5, alignItems: "center",
+              bgcolor: "#fff", border: `1px solid ${tokens.color.border}`,
+              borderRadius: 1.5, px: 1.4, height: 52,
             }}>
               <CalendarTodayIcon sx={{ fontSize: 16, color: tokens.color.placeholder }} />
               <input
@@ -244,41 +287,64 @@ export default function HomePage() {
                 onChange={(e) => setDate(e.target.value)}
                 style={{
                   border: "none", outline: "none", background: "transparent",
-                  flex: 1, fontSize: 14, color: tokens.color.text, fontFamily: "inherit",
+                  width: 130, fontSize: tokens.fontSize.body, color: tokens.color.text, fontFamily: "inherit",
+                }}
+              />
+              <Typography sx={{ fontSize: tokens.fontSize.caption, color: tokens.color.placeholder, mx: 0.5 }}>~</Typography>
+              <input
+                type="date"
+                value={dateEnd}
+                onChange={(e) => setDateEnd(e.target.value)}
+                style={{
+                  border: "none", outline: "none", background: "transparent",
+                  width: 130, fontSize: tokens.fontSize.body, color: tokens.color.text, fontFamily: "inherit",
                 }}
               />
             </Box>
           </Box>
+          <FilterInput
+            label={t("filter.location")}
+            placeholder={t("filter.anyLocation")}
+            value={location}
+            onChange={setLocation}
+            onEnter={(e) => { if (e.key === "Enter") handleSearchClick(); }}
+            flex={1}
+          />
           <IconButton
             sx={{
               bgcolor: tokens.color.navy, color: "#fff",
-              borderRadius: 1.5, width: 56, height: 56,
+              borderRadius: 1.5, width: 52, height: 52,
               alignSelf: { xs: "flex-end", md: "flex-end" },
               "&:hover": { bgcolor: tokens.color.navyDark },
             }}
-            onClick={() => setSearchParams(keyword ? { search: keyword } : {})}
+            onClick={handleSearchClick}
           >
             <SearchIcon />
           </IconButton>
         </Box>
 
+        {/* Hot events on top — hidden when any filter is active */}
+        {!hasFilter && (
+          <Section
+            title={t("event.hot")}
+            items={hotData.items}
+            total={hotData.total}
+            page={hotPage}
+            totalPages={totalHotPages}
+            setPage={setHotPage}
+            isEventBookmarked={isEventBookmarked}
+            toggleEventBookmark={toggleEventBookmark}
+          />
+        )}
+
+        {/* All / filtered events below */}
         <Section
-          title={t("event.list")}
+          title={hasFilter ? t("event.searchResults") : t("event.list")}
           items={listData.items}
           total={listData.total}
           page={listPage}
           totalPages={totalListPages}
           setPage={setListPage}
-          isEventBookmarked={isEventBookmarked}
-          toggleEventBookmark={toggleEventBookmark}
-        />
-        <Section
-          title={t("event.hot")}
-          items={hotData.items}
-          total={hotData.total}
-          page={hotPage}
-          totalPages={totalHotPages}
-          setPage={setHotPage}
           isEventBookmarked={isEventBookmarked}
           toggleEventBookmark={toggleEventBookmark}
         />
@@ -292,7 +358,7 @@ function Chip({ active, onClick, children }) {
     <Box
       onClick={onClick}
       sx={{
-        px: 1.4, py: 0.6, fontSize: 13, borderRadius: "9999px",
+        px: 1.4, py: 0.6, fontSize: tokens.fontSize.body, borderRadius: "9999px",
         bgcolor: active ? tokens.color.navy : "#F2F4F8",
         color: active ? "#fff" : tokens.color.text,
         cursor: "pointer", whiteSpace: "nowrap", userSelect: "none",
@@ -309,7 +375,7 @@ function Chip({ active, onClick, children }) {
 function FilterInput({ label, placeholder, value, onChange, onEnter, icon, flex = 1 }) {
   return (
     <Box sx={{ flex }}>
-      <Typography sx={{ fontSize: 12, color: tokens.color.placeholder, mb: 0.4 }}>
+      <Typography sx={{ fontSize: tokens.fontSize.caption, color: tokens.color.placeholder, mb: 0.4 }}>
         {label}
       </Typography>
       <Box
@@ -317,7 +383,7 @@ function FilterInput({ label, placeholder, value, onChange, onEnter, icon, flex 
           display: "flex", alignItems: "center",
           bgcolor: "#fff",
           border: `1px solid ${tokens.color.border}`,
-          borderRadius: 1.5, px: 1.4, height: 44, gap: 0.75,
+          borderRadius: 1.5, px: 1.4, height: 52, gap: 0.75,
         }}
       >
         {icon}
@@ -327,7 +393,7 @@ function FilterInput({ label, placeholder, value, onChange, onEnter, icon, flex 
           value={value}
           onChange={(e) => onChange(e.target.value)}
           onKeyDown={onEnter}
-          sx={{ fontSize: 14, flex: 1 }}
+          sx={{ fontSize: tokens.fontSize.body, flex: 1 }}
         />
       </Box>
     </Box>
@@ -348,11 +414,11 @@ function Section({
   return (
     <Box sx={{ mb: { xs: 4, md: 5 } }}>
       <Box sx={{ display: "flex", alignItems: "baseline", gap: 1.5, mb: 2 }}>
-        <Typography sx={{ fontFamily: tokens.font.heading, fontWeight: 500, fontSize: { xs: 20, md: 24 }, color: tokens.color.text }}>
+        <Typography sx={{ fontFamily: tokens.font.heading, fontWeight: 500, fontSize: { xs: tokens.fontSize.title, md: tokens.fontSize.heading }, color: tokens.color.text }}>
           {title}
         </Typography>
         {total > 0 && (
-          <Typography sx={{ fontSize: 13, color: tokens.color.placeholder }}>
+          <Typography sx={{ fontSize: tokens.fontSize.body, color: tokens.color.placeholder }}>
             {start + 1}-{Math.min(start + PAGE_SIZE, total)} / {total}
           </Typography>
         )}
@@ -369,7 +435,7 @@ function Section({
           sx={{
             display: "grid",
             gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)", md: "repeat(3, 1fr)", lg: "repeat(3, 1fr)" },
-            gap: { xs: 2, md: 2.5 },
+            gap: { xs: 1, md: 1.5 },
             flex: 1,
           }}
         >
@@ -400,7 +466,7 @@ function Section({
           <IconButton disabled={!canPrev} onClick={() => setPage(page - 1)}>
             <ChevronLeftIcon />
           </IconButton>
-          <Typography sx={{ fontSize: 14 }}>{page} / {totalPages}</Typography>
+          <Typography sx={{ fontSize: tokens.fontSize.body }}>{page} / {totalPages}</Typography>
           <IconButton disabled={!canNext} onClick={() => setPage(page + 1)}>
             <ChevronRightIcon />
           </IconButton>

@@ -42,6 +42,9 @@ def _is_group_member(db: Session, user: User | None, group_id: int) -> bool:
 
 
 def _can_view(db: Session, post: Post, viewer: User | None) -> bool:
+    # Drafts are visible only to their author, regardless of visibility/group.
+    if post.is_draft:
+        return bool(viewer and viewer.id == post.user_id)
     if post.visibility == "public":
         return True
     if post.visibility == "private":
@@ -146,6 +149,9 @@ def list_posts(
     current: User | None = Depends(get_current_user_optional),
 ):
     q = db.query(Post).options(selectinload(Post.user))
+
+    # Drafts never appear in any feed; they are reached only via /me/drafts.
+    q = q.filter(Post.is_draft == False)  # noqa: E712
 
     # Visibility gating: anonymous viewers see only public; authed see public + own private + group posts where they're a member or owner
     if not current:
@@ -268,6 +274,7 @@ def create_post(
         visibility=payload.visibility,
         group_id=payload.group_id if payload.visibility == "group" else None,
         is_board_post=payload.is_board_post,
+        is_draft=payload.is_draft,
     )
     db.add(p)
     db.commit()
@@ -312,12 +319,20 @@ def update_post(
     if post.user_id != current.id:
         raise HTTPException(403, "Not your post")
     data = payload.model_dump(exclude_unset=True)
-    if data.get("visibility") == "group":
-        gid = data.get("group_id", post.group_id)
-        if gid is None:
+    # Validate the FINAL visibility/group state, not just the fields present in
+    # this PATCH. Otherwise patching group_id alone on an existing group post
+    # could move it into a group the user isn't a member of, leaking it there.
+    final_visibility = data.get("visibility", post.visibility)
+    final_group_id = data.get("group_id", post.group_id)
+    if final_visibility == "group":
+        if final_group_id is None:
             raise HTTPException(400, "group_id required when visibility=group")
-        if not _is_group_member(db, current, gid):
+        if not _is_group_member(db, current, final_group_id):
             raise HTTPException(403, "Not a member of the target group")
+        data["group_id"] = final_group_id
+    else:
+        # A non-group post must never retain a dangling group_id.
+        data["group_id"] = None
     for k, v in data.items():
         setattr(post, k, v)
     db.commit()
@@ -395,6 +410,11 @@ def unlike_post(
     db: Session = Depends(get_db),
     current: User = Depends(get_current_user),
 ):
+    # Mirror like_post: don't let callers probe existence/counts of posts they
+    # cannot see (drafts, private, non-member group posts).
+    post = db.get(Post, post_id)
+    if not post or not _can_view(db, post, current):
+        raise HTTPException(404, "Post not found")
     db.query(PostLike).filter(
         PostLike.post_id == post_id, PostLike.user_id == current.id
     ).delete()
@@ -428,6 +448,10 @@ def unbookmark_post(
     db: Session = Depends(get_db),
     current: User = Depends(get_current_user),
 ):
+    # Mirror bookmark_post: don't leak existence/counts of non-viewable posts.
+    post = db.get(Post, post_id)
+    if not post or not _can_view(db, post, current):
+        raise HTTPException(404, "Post not found")
     db.query(PostBookmark).filter(
         PostBookmark.post_id == post_id, PostBookmark.user_id == current.id
     ).delete()

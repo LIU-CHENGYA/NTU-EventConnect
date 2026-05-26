@@ -14,6 +14,7 @@ class PostCreate(BaseModel):
     visibility: str = Field("public", pattern=_VISIBILITY)
     group_id: int | None = None
     is_board_post: bool = False
+    is_draft: bool = False
 
     @model_validator(mode="after")
     def _check_group(self):
@@ -31,6 +32,7 @@ class PostUpdate(BaseModel):
     images: list[str] | None = None
     visibility: str | None = Field(None, pattern=_VISIBILITY)
     group_id: int | None = None
+    is_draft: bool | None = None
 
     @model_validator(mode="after")
     def _check_group(self):
@@ -74,6 +76,7 @@ class PostOut(BaseModel):
     group_id: int | None = None
     group_name: str | None = None
     is_board_post: bool = False
+    is_draft: bool = False
     like_count: int = 0
     bookmark_count: int = 0
     comment_count: int = 0

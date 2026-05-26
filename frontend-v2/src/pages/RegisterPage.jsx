@@ -63,10 +63,10 @@ export default function RegisterPage() {
           py: { xs: 4, sm: 6 },
         }}
       >
-        <Typography sx={{ fontSize: 28, fontWeight: 700, textAlign: "center", mb: 1, color: tokens.color.text }}>
+        <Typography sx={{ fontSize: tokens.fontSize.heading, fontWeight: 700, textAlign: "center", mb: 1, color: tokens.color.text }}>
           {t("auth.registerTitle")}
         </Typography>
-        <Typography sx={{ fontSize: 14, color: tokens.color.placeholder, textAlign: "center", mb: 3 }}>
+        <Typography sx={{ fontSize: tokens.fontSize.body, color: tokens.color.placeholder, textAlign: "center", mb: 3 }}>
           {t("auth.registerSubtitle")}
         </Typography>
 
@@ -76,16 +76,16 @@ export default function RegisterPage() {
         </Box>
 
         <Divider sx={{ mb: 2.5 }}>
-          <Typography sx={{ fontSize: 13, color: tokens.color.placeholder }}>
+          <Typography sx={{ fontSize: tokens.fontSize.caption, color: tokens.color.placeholder }}>
             {t("auth.orEmail")}
           </Typography>
         </Divider>
 
         {error && (
-          <Typography color="error" sx={{ mb: 2, textAlign: "center", fontSize: 13 }}>{error}</Typography>
+          <Typography color="error" sx={{ mb: 2, textAlign: "center", fontSize: tokens.fontSize.caption }}>{error}</Typography>
         )}
 
-        <Typography sx={{ fontSize: 14, fontWeight: 600, mb: 0.7 }}>
+        <Typography sx={{ fontSize: tokens.fontSize.body, fontWeight: 600, mb: 0.7 }}>
           {t("auth.username")} <Box component="span" sx={{ color: "#FF4D4F" }}>*</Box>
         </Typography>
         <TextField
@@ -95,7 +95,7 @@ export default function RegisterPage() {
           InputProps={{ startAdornment: <InputAdornment position="start"><PersonIcon sx={{ color: tokens.color.placeholder, fontSize: 20 }} /></InputAdornment> }}
         />
 
-        <Typography sx={{ fontSize: 14, fontWeight: 600, mb: 0.7 }}>
+        <Typography sx={{ fontSize: tokens.fontSize.body, fontWeight: 600, mb: 0.7 }}>
           {t("auth.email")} <Box component="span" sx={{ color: "#FF4D4F" }}>*</Box>
         </Typography>
         <TextField
@@ -105,7 +105,7 @@ export default function RegisterPage() {
           InputProps={{ startAdornment: <InputAdornment position="start"><EmailIcon sx={{ color: tokens.color.placeholder, fontSize: 20 }} /></InputAdornment> }}
         />
 
-        <Typography sx={{ fontSize: 14, fontWeight: 600, mb: 0.7 }}>
+        <Typography sx={{ fontSize: tokens.fontSize.body, fontWeight: 600, mb: 0.7 }}>
           {t("auth.password")} <Box component="span" sx={{ color: "#FF4D4F" }}>*</Box>
         </Typography>
         <TextField
@@ -118,11 +118,11 @@ export default function RegisterPage() {
             endAdornment: <InputAdornment position="end"><IconButton size="small" onClick={() => setShowPassword(!showPassword)}>{showPassword ? <VisibilityOffIcon fontSize="small" /> : <VisibilityIcon fontSize="small" />}</IconButton></InputAdornment>,
           }}
         />
-        <Typography sx={{ fontSize: 12, color: tokens.color.placeholder, mb: 2, display: "block" }}>
+        <Typography sx={{ fontSize: tokens.fontSize.caption, color: tokens.color.placeholder, mb: 2, display: "block" }}>
           {t("auth.passwordHint")}
         </Typography>
 
-        <Typography sx={{ fontSize: 14, fontWeight: 600, mb: 0.7 }}>
+        <Typography sx={{ fontSize: tokens.fontSize.body, fontWeight: 600, mb: 0.7 }}>
           {t("auth.confirmPassword")} <Box component="span" sx={{ color: "#FF4D4F" }}>*</Box>
         </Typography>
         <TextField
@@ -138,14 +138,14 @@ export default function RegisterPage() {
           sx={{
             bgcolor: "#0F172A", color: "#fff",
             py: 1.4, borderRadius: "10px",
-            textTransform: "none", fontSize: 16, fontWeight: 600, mb: 2.5,
+            textTransform: "none", fontSize: tokens.fontSize.subtitle, fontWeight: 600, mb: 2.5,
             "&:hover": { bgcolor: "#1E293B" },
           }}
         >
           {t("auth.createAccount")}
         </Button>
 
-        <Typography sx={{ fontSize: 14, textAlign: "center", color: tokens.color.text }}>
+        <Typography sx={{ fontSize: tokens.fontSize.body, textAlign: "center", color: tokens.color.text }}>
           {t("auth.haveAccount")}{" "}
           <Link to="/login" style={{ color: "#1976d2", fontWeight: 600, textDecoration: "none" }}>
             {t("auth.backToLogin")}

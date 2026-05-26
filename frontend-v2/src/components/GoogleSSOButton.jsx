@@ -65,7 +65,7 @@ export default function GoogleSSOButton({ onError, onSuccess, width = 360 }) {
       <Box
         sx={{
           width: "100%", py: 1.4, border: `1px dashed ${tokens.color.border}`,
-          borderRadius: "10px", textAlign: "center", color: tokens.color.placeholder, fontSize: 12,
+          borderRadius: "10px", textAlign: "center", color: tokens.color.placeholder, fontSize: tokens.fontSize.caption,
         }}
       >
         {t("auth.googleNotConfigured")}

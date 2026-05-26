@@ -1,4 +1,4 @@
-from pydantic import BaseModel, ConfigDict ,field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class EventSessionOut(BaseModel):
@@ -62,3 +62,40 @@ class EventListResponse(BaseModel):
     total: int
     page: int
     size: int
+
+
+class EventSessionCreateIn(BaseModel):
+    session_name: str | None = None
+    date: str | None = None
+    time_range: str | None = None
+    location: str | None = None
+    capacity: int = Field(0, ge=0)
+
+
+class EventCreateIn(BaseModel):
+    title: str
+    content: str | None = None
+    category: str | None = None
+    organizer: str | None = None
+    image_url: str | None = None
+    tags: list[str] = []
+    sessions: list[EventSessionCreateIn] = []
+
+
+class EventSessionUpdateIn(BaseModel):
+    id: int | None = None          # existing session if set; new session if None
+    session_name: str | None = None
+    date: str | None = None
+    time_range: str | None = None
+    location: str | None = None
+    capacity: int | None = Field(None, ge=0)
+
+
+class EventUpdateIn(BaseModel):
+    title: str | None = None
+    content: str | None = None
+    category: str | None = None
+    organizer: str | None = None
+    image_url: str | None = None
+    tags: list[str] | None = None              # if not None: replace ALL tags
+    sessions: list[EventSessionUpdateIn] | None = None  # upsert by id; unlisted sessions untouched

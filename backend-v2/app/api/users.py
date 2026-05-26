@@ -1,8 +1,9 @@
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, ConfigDict, Field
-from sqlalchemy.orm import Session
+from sqlalchemy import func
+from sqlalchemy.orm import Session, selectinload
 
 from app.core.deps import get_current_user
 from app.db.session import get_db
@@ -10,6 +11,7 @@ from app.models.event import Event
 from app.models.post import Comment, Post
 from app.models.registration import Registration
 from app.models.user import User
+from app.schemas.event import EventDetailOut, EventListResponse
 from app.schemas.user import UserOut
 
 router = APIRouter(prefix="/api/users", tags=["users"])
@@ -71,7 +73,8 @@ def list_my_comments(
         db.query(Comment, Post, Event)
         .join(Post, Post.id == Comment.post_id)
         .outerjoin(Event, Event.id == Post.event_id)
-        .filter(Comment.user_id == current.id)
+        # Never surface metadata of a post that has since become a draft.
+        .filter(Comment.user_id == current.id, Post.is_draft == False)  # noqa: E712
         .order_by(Comment.created_at.desc())
         .all()
     )
@@ -93,13 +96,44 @@ def list_my_comments(
     return out
 
 
+@router.get("/me/managed_events", response_model=EventListResponse)
+def my_managed_events(
+    page: int = Query(1, ge=1),
+    size: int = Query(20),
+    db: Session = Depends(get_db),
+    current: User = Depends(get_current_user),
+):
+    """Events created by the current admin."""
+    from app.api.events import _to_detail
+    total = (
+        db.query(func.count(Event.id))
+        .filter(Event.created_by_user_id == current.id)
+        .scalar() or 0
+    )
+    items = (
+        db.query(Event)
+        .options(selectinload(Event.sessions), selectinload(Event.tags))
+        .filter(Event.created_by_user_id == current.id)
+        .order_by(Event.id.desc())
+        .offset((page - 1) * size)
+        .limit(size)
+        .all()
+    )
+    return EventListResponse(
+        items=[_to_detail(e, "zh") for e in items],
+        total=total,
+        page=page,
+        size=size,
+    )
+
+
 @router.get("/{user_id}", response_model=UserProfileOut)
 def get_user(user_id: int, db: Session = Depends(get_db)):
     user = db.get(User, user_id)
     if not user:
         raise HTTPException(404, "User not found")
     post_count = db.query(Post).filter(
-        Post.user_id == user_id, Post.visibility == "public"
+        Post.user_id == user_id, Post.visibility == "public", Post.is_draft == False  # noqa: E712
     ).count()
     joined = db.query(Registration).filter(
         Registration.user_id == user_id, Registration.status == "success"

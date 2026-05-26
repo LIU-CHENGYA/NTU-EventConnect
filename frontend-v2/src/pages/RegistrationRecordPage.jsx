@@ -87,7 +87,7 @@ export default function RegistrationRecordPage() {
           <IconButton onClick={() => navigate(-1)} sx={{ color: tokens.color.text }}>
             <ArrowBackIcon />
           </IconButton>
-          <Typography sx={{ fontFamily: tokens.font.logo, fontStyle: "italic", fontSize: { xs: 24, md: 32 }, color: tokens.color.navy }}>
+          <Typography sx={{ fontFamily: tokens.font.heading, fontSize: { xs: 22, md: 28 }, fontWeight: 700, color: tokens.color.navy }}>
             {t("records.pageTitle")}
           </Typography>
           <Box sx={{ ml: "auto", display: { xs: "none", sm: "block" } }}>
@@ -101,7 +101,7 @@ export default function RegistrationRecordPage() {
               key={s}
               onClick={() => setFilter(s)}
               sx={{
-                px: 1.8, py: "6px", fontSize: 14, borderRadius: "8px",
+                px: 1.8, py: "6px", fontSize: tokens.fontSize.body, borderRadius: "8px",
                 border: "1px solid #cac4d0",
                 bgcolor: filter === s ? "rgba(57,167,255,0.42)" : "#fff",
                 color: tokens.color.text, cursor: "pointer",
@@ -133,10 +133,10 @@ export default function RegistrationRecordPage() {
                   sx={{ width: 72, height: 72, borderRadius: "12px", objectFit: "cover", mr: 2 }}
                 />
                 <Box sx={{ flex: 1 }}>
-                  <Typography sx={{ fontSize: 15, fontWeight: 700, color: tokens.color.text }}>
+                  <Typography sx={{ fontSize: tokens.fontSize.body, fontWeight: 700, color: tokens.color.text }}>
                     {reg.event_title}
                   </Typography>
-                  <Typography sx={{ fontSize: 12, color: tokens.color.textSecondary, mt: 0.3 }}>
+                  <Typography sx={{ fontSize: tokens.fontSize.caption, color: tokens.color.textSecondary, mt: 0.3 }}>
                     {reg.session_name} · {reg.date}
                   </Typography>
                 </Box>
@@ -145,7 +145,7 @@ export default function RegistrationRecordPage() {
                     px: 1.5, py: "5px", borderRadius: "20px",
                     bgcolor: statusColors[statusKey]?.bg,
                     color: statusColors[statusKey]?.color,
-                    fontSize: 12, fontWeight: 700, mr: 1,
+                    fontSize: tokens.fontSize.caption, fontWeight: 700, mr: 1,
                   }}
                 >
                   {t(`event.status.${statusKey}`, { defaultValue: statusKey })}
@@ -164,8 +164,8 @@ export default function RegistrationRecordPage() {
                       [t("records.session"), reg.session_name || "—"],
                     ].map(([k, v]) => (
                       <Box key={k}>
-                        <Typography sx={{ fontSize: 12, color: tokens.color.placeholder }}>{k}</Typography>
-                        <Typography sx={{ fontSize: 14, color: tokens.color.text, fontWeight: 500 }}>{v}</Typography>
+                        <Typography sx={{ fontSize: tokens.fontSize.caption, color: tokens.color.placeholder }}>{k}</Typography>
+                        <Typography sx={{ fontSize: tokens.fontSize.body, color: tokens.color.text, fontWeight: 500 }}>{v}</Typography>
                       </Box>
                     ))}
                   </Box>
@@ -176,7 +176,7 @@ export default function RegistrationRecordPage() {
                       onClick={() => navigate(`/events/${reg.event_id}`)}
                       sx={{
                         textTransform: "none", borderRadius: "22px", height: 44, px: 2.5,
-                        borderColor: tokens.color.border, color: tokens.color.text, fontSize: 14,
+                        borderColor: tokens.color.border, color: tokens.color.text, fontSize: tokens.fontSize.body,
                       }}
                     >
                       {t("records.viewActivity")}
@@ -201,7 +201,7 @@ export default function RegistrationRecordPage() {
                           sx={{
                             textTransform: "none", borderRadius: "22px", height: 44, px: 2.5,
                             bgcolor: tokens.color.black,
-                            color: "#fff", fontSize: 14, fontWeight: 600,
+                            color: "#fff", fontSize: tokens.fontSize.body, fontWeight: 600,
                             "&:hover": { bgcolor: tokens.color.navyDark },
                           }}
                         >
@@ -241,7 +241,7 @@ export default function RegistrationRecordPage() {
           sx={{
             position: "fixed", bottom: 24, left: "50%", transform: "translateX(-50%)",
             bgcolor: "#FF4D4F", color: "#fff", px: 2.5, py: 1, borderRadius: 2,
-            fontSize: 14, zIndex: 1500, boxShadow: 4,
+            fontSize: tokens.fontSize.body, zIndex: 1500, boxShadow: 4,
           }}
         >
           {cancelError}

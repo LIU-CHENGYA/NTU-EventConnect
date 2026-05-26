@@ -3,11 +3,11 @@ import { useNavigate, Link, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
   AppBar, Toolbar, IconButton, Box, Button,
-  Avatar, Menu, MenuItem, InputBase,
+  Avatar, Menu, MenuItem,
   Drawer, List, ListItemButton, ListItemText, Divider,
   useMediaQuery, useTheme,
+  Popover, Badge, Typography, CircularProgress,
 } from "@mui/material";
-import SearchIcon from "@mui/icons-material/Search";
 import CloseIcon from "@mui/icons-material/Close";
 import MenuIcon from "@mui/icons-material/Menu";
 import NotificationsNoneIcon from "@mui/icons-material/NotificationsNone";
@@ -17,6 +17,7 @@ import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutline";
 import { useAuth } from "../context/AuthContext";
 import { tokens } from "../theme";
 import LocaleSwitcher from "./LocaleSwitcher";
+import { usersApi, postsApi } from "../api";
 
 export default function Navbar() {
   const { user, logout } = useAuth();
@@ -24,26 +25,39 @@ export default function Navbar() {
   const navigate = useNavigate();
   const location = useLocation();
   const [anchorEl, setAnchorEl] = useState(null);
-  const [searchQuery, setSearchQuery] = useState("");
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
+
+  // Notification bell state
+  const [notifAnchor, setNotifAnchor] = useState(null);
+  const [upcomingRegs, setUpcomingRegs] = useState([]);
+  const [groupPosts, setGroupPosts] = useState([]);
+  const [notifLoading, setNotifLoading] = useState(false);
 
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
 
-  const handleSearch = (e) => {
-    if (e.key === "Enter") {
-      navigate(`/?search=${encodeURIComponent(searchQuery.trim())}`);
-      setMobileSearchOpen(false);
-      setDrawerOpen(false);
-    }
-  };
-
-  const handleSearchClick = () => {
-    if (searchQuery.trim()) {
-      navigate(`/?search=${encodeURIComponent(searchQuery.trim())}`);
-      setMobileSearchOpen(false);
-      setDrawerOpen(false);
+  const handleBellClick = async (e) => {
+    setNotifAnchor(e.currentTarget);
+    if (!user) return;
+    setNotifLoading(true);
+    try {
+      const [regs, posts] = await Promise.all([
+        usersApi.myRegistrations().catch(() => []),
+        // Group-post notifications: recent posts in the user's groups (by others).
+        postsApi.list({ visibility: "group", size: 10 }).catch(() => []),
+      ]);
+      // Filter upcoming registrations in next 7 days
+      const now = new Date();
+      const in7days = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+      const upcoming = regs.filter((r) => {
+        if (!r.date || r.status !== "success") return false;
+        const d = new Date(r.date);
+        return d >= now && d <= in7days;
+      });
+      setUpcomingRegs(upcoming);
+      setGroupPosts(posts.filter((p) => p.userId !== user.id).slice(0, 5));
+    } finally {
+      setNotifLoading(false);
     }
   };
 
@@ -100,7 +114,7 @@ export default function Navbar() {
             NTU EventConnect
           </Box>
 
-          {/* Board + Locale (desktop, left of search) */}
+          {/* Board + Locale + Admin Create Event (desktop, left side) */}
           {!isMobile && (
             <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
               <Button
@@ -120,53 +134,40 @@ export default function Navbar() {
                 {t("nav.board")}
               </Button>
               <LocaleSwitcher />
+              {user?.isAdmin && (
+                <Button
+                  startIcon={<AddCircleIcon sx={{ color: "white" }} />}
+                  onClick={() => navigate("/events/create")}
+                  sx={{
+                    bgcolor: tokens.color.black,
+                    color: "#f3f3f5",
+                    textTransform: "none",
+                    borderRadius: "20px",
+                    px: 2,
+                    height: 36,
+                    boxShadow: tokens.shadow.pill,
+                    fontSize: tokens.fontSize.body,
+                    "&:hover": { bgcolor: "#222" },
+                  }}
+                >
+                  {t("nav2.createEvent")}
+                </Button>
+              )}
             </Box>
           )}
 
           <Box sx={{ flex: 1 }} />
 
-          {/* ===== Desktop ===== */}
+          {/* ===== Desktop right area ===== */}
           {!isMobile && (
             <>
-              {/* Search pill */}
-              <Box
-                sx={{
-                  display: "flex",
-                  alignItems: "center",
-                  bgcolor: tokens.color.bg,
-                  border: `1px solid ${tokens.color.border}`,
-                  borderRadius: "9999px",
-                  height: 45,
-                  px: 2,
-                  width: 280,
-                  mr: 2,
-                }}
-              >
-                <InputBase
-                  placeholder={t("nav.search")}
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyDown={handleSearch}
-                  sx={{
-                    fontSize: 16,
-                    flex: 1,
-                    color: tokens.color.text,
-                    "& input::placeholder": { color: tokens.color.placeholder, opacity: 1 },
-                  }}
-                />
-                <SearchIcon
-                  onClick={handleSearchClick}
-                  sx={{ color: tokens.color.placeholder, fontSize: 20, cursor: "pointer" }}
-                />
-              </Box>
-
               {!user ? (
                 <>
                   <Button
                     onClick={() => navigate("/register")}
                     sx={{
                       color: tokens.color.placeholder,
-                      fontSize: 22,
+                      fontSize: tokens.fontSize.title,
                       fontWeight: 500,
                       textTransform: "none",
                       minWidth: 0,
@@ -179,7 +180,7 @@ export default function Navbar() {
                     onClick={() => navigate("/login")}
                     sx={{
                       color: tokens.color.placeholder,
-                      fontSize: 22,
+                      fontSize: tokens.fontSize.title,
                       fontWeight: 500,
                       textTransform: "none",
                       minWidth: 0,
@@ -190,37 +191,111 @@ export default function Navbar() {
                 </>
               ) : (
                 <>
-                  {user.isAdmin && (
-                    <Button
-                      startIcon={<AddCircleIcon sx={{ color: "white" }} />}
-                      onClick={() => navigate("/events/create")}
-                      sx={{
-                        bgcolor: tokens.color.black,
-                        color: "#f3f3f5",
-                        textTransform: "none",
-                        borderRadius: "20px",
-                        px: 2,
-                        height: 37,
-                        boxShadow: tokens.shadow.pill,
-                        fontSize: 16,
-                        mr: 2,
-                        "&:hover": { bgcolor: "#222" },
-                      }}
+                  {/* Notification bell with popover */}
+                  <IconButton onClick={handleBellClick} sx={{ mr: 1 }}>
+                    <Badge
+                      badgeContent={upcomingRegs.length + groupPosts.length}
+                      color="error"
+                      max={9}
                     >
-                      {t("nav2.createEvent")}
-                    </Button>
-                  )}
-                  <IconButton sx={{ mr: 1 }}>
-                    <NotificationsNoneIcon sx={{ color: "#333", fontSize: 28 }} />
+                      <NotificationsNoneIcon sx={{ color: "#333", fontSize: 28 }} />
+                    </Badge>
                   </IconButton>
+                  <Popover
+                    open={Boolean(notifAnchor)}
+                    anchorEl={notifAnchor}
+                    onClose={() => setNotifAnchor(null)}
+                    anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+                    transformOrigin={{ vertical: "top", horizontal: "right" }}
+                    PaperProps={{ sx: { width: 320, maxHeight: 480, borderRadius: 2 } }}
+                  >
+                    <Box sx={{ p: 2, borderBottom: "1px solid #eee" }}>
+                      <Typography sx={{ fontWeight: 700, fontSize: tokens.fontSize.body }}>{t("notifications.title")}</Typography>
+                    </Box>
+                    {notifLoading ? (
+                      <Box sx={{ display: "flex", justifyContent: "center", p: 3 }}>
+                        <CircularProgress size={24} />
+                      </Box>
+                    ) : (
+                      <Box sx={{ overflowY: "auto", maxHeight: 400 }}>
+                        {upcomingRegs.length > 0 && (
+                          <>
+                            <Typography
+                              sx={{
+                                px: 2, py: 1, fontSize: tokens.fontSize.caption, fontWeight: 700,
+                                color: "#666", bgcolor: "#f5f5f5",
+                              }}
+                            >
+                              {t("notifications.upcomingEvents")}
+                            </Typography>
+                            {upcomingRegs.map((r) => (
+                              <Box
+                                key={r.id}
+                                onClick={() => { setNotifAnchor(null); navigate(`/events/${r.event_id}`); }}
+                                sx={{
+                                  px: 2, py: 1.5, cursor: "pointer",
+                                  "&:hover": { bgcolor: "#f9f9f9" },
+                                  borderBottom: "1px solid #f0f0f0",
+                                }}
+                              >
+                                <Typography sx={{ fontSize: tokens.fontSize.body, fontWeight: 600 }} noWrap>
+                                  {r.event_title}
+                                </Typography>
+                                <Typography sx={{ fontSize: tokens.fontSize.caption, color: "#999" }}>
+                                  {r.date} · {r.location || t("notifications.location")}
+                                </Typography>
+                              </Box>
+                            ))}
+                          </>
+                        )}
+                        {groupPosts.length > 0 && (
+                          <>
+                            <Typography
+                              sx={{
+                                px: 2, py: 1, fontSize: tokens.fontSize.caption, fontWeight: 700,
+                                color: "#666", bgcolor: "#f5f5f5",
+                              }}
+                            >
+                              {t("notifications.groupPosts")}
+                            </Typography>
+                            {groupPosts.map((p) => (
+                              <Box
+                                key={p.id}
+                                onClick={() => {
+                                  setNotifAnchor(null);
+                                  navigate(p.isBoardPost ? `/board/posts/${p.id}` : `/posts/${p.id}`);
+                                }}
+                                sx={{
+                                  px: 2, py: 1.5, cursor: "pointer",
+                                  "&:hover": { bgcolor: "#f9f9f9" },
+                                  borderBottom: "1px solid #f0f0f0",
+                                }}
+                              >
+                                <Typography sx={{ fontSize: tokens.fontSize.body, fontWeight: 600 }} noWrap>
+                                  {p.title || p.content?.slice(0, 30)}
+                                </Typography>
+                                <Typography sx={{ fontSize: tokens.fontSize.caption, color: "#999" }}>
+                                  {(p.createdAt || "").slice(0, 10)}
+                                </Typography>
+                              </Box>
+                            ))}
+                          </>
+                        )}
+                        {upcomingRegs.length === 0 && groupPosts.length === 0 && (
+                          <Typography sx={{ p: 3, textAlign: "center", color: "#999", fontSize: tokens.fontSize.body }}>
+                            {t("notifications.empty")}
+                          </Typography>
+                        )}
+                      </Box>
+                    )}
+                  </Popover>
+
+                  {/* Avatar + dropdown menu */}
                   <Box
                     onClick={(e) => setAnchorEl(e.currentTarget)}
                     sx={{ display: "flex", alignItems: "center", cursor: "pointer" }}
                   >
-                    <Avatar
-                      src={user.avatarUrl}
-                      sx={{ width: 52, height: 52 }}
-                    />
+                    <Avatar src={user.avatarUrl} sx={{ width: 52, height: 52 }} />
                     <ArrowDropDownIcon sx={{ color: "#333" }} />
                   </Box>
                   <Menu
@@ -244,57 +319,13 @@ export default function Navbar() {
             </>
           )}
 
-          {/* ===== Mobile ===== */}
+          {/* ===== Mobile right icons ===== */}
           {isMobile && (
-            <>
-              <IconButton onClick={() => setMobileSearchOpen(!mobileSearchOpen)}>
-                <SearchIcon sx={{ color: tokens.color.text, fontSize: 26 }} />
-              </IconButton>
-              <IconButton onClick={() => setDrawerOpen(true)}>
-                <MenuIcon sx={{ color: tokens.color.text, fontSize: 26 }} />
-              </IconButton>
-            </>
+            <IconButton onClick={() => setDrawerOpen(true)}>
+              <MenuIcon sx={{ color: tokens.color.text, fontSize: 26 }} />
+            </IconButton>
           )}
         </Toolbar>
-
-        {/* Mobile search bar — slides open below navbar */}
-        {isMobile && mobileSearchOpen && (
-          <Box
-            sx={{
-              display: "flex",
-              alignItems: "center",
-              bgcolor: tokens.color.surface,
-              px: 2,
-              py: 1,
-              borderTop: `1px solid ${tokens.color.border}`,
-            }}
-          >
-            <InputBase
-              autoFocus
-              placeholder={t("nav.search")}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyDown={handleSearch}
-              sx={{
-                flex: 1,
-                fontSize: 16,
-                bgcolor: tokens.color.bg,
-                border: `1px solid ${tokens.color.border}`,
-                borderRadius: "9999px",
-                height: 42,
-                px: 2,
-                color: tokens.color.text,
-                "& input::placeholder": { color: tokens.color.placeholder, opacity: 1 },
-              }}
-            />
-            <IconButton onClick={handleSearchClick} sx={{ ml: 1 }}>
-              <SearchIcon sx={{ color: tokens.color.navy }} />
-            </IconButton>
-            <IconButton onClick={() => setMobileSearchOpen(false)}>
-              <CloseIcon sx={{ fontSize: 20 }} />
-            </IconButton>
-          </Box>
-        )}
       </AppBar>
 
       {/* Mobile drawer */}
@@ -326,8 +357,8 @@ export default function Navbar() {
             <Box sx={{ p: 2, display: "flex", alignItems: "center", gap: 1.5 }}>
               <Avatar src={user.avatarUrl} sx={{ width: 40, height: 40 }} />
               <Box>
-                <Box sx={{ fontWeight: 600, fontSize: 14 }}>{user.name || t("nav2.userFallback")}</Box>
-                <Box sx={{ fontSize: 12, color: tokens.color.placeholder }}>{user.email}</Box>
+                <Box sx={{ fontWeight: 600, fontSize: tokens.fontSize.body }}>{user.name || t("nav2.userFallback")}</Box>
+                <Box sx={{ fontSize: tokens.fontSize.caption, color: tokens.color.placeholder }}>{user.email}</Box>
               </Box>
             </Box>
             <Divider />

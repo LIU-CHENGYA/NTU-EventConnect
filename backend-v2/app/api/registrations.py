@@ -7,7 +7,7 @@ from app.db.session import get_db
 from app.models.event import Event, EventSession
 from app.models.registration import Registration
 from app.models.user import User
-from app.schemas.registration import RegistrationDetailOut, RegistrationOut
+from app.schemas.registration import EventRegistrationOut, RegistrationDetailOut, RegistrationOut
 
 router = APIRouter(tags=["registrations"])
 
@@ -147,6 +147,53 @@ def my_registrations(
             official_category=ev.official_category if ev else None,
             session_name=sess.session_name,
             date=sess.date,
+            time=sess.time_range,
             location=sess.location,
         ))
     return out
+
+
+@router.get(
+    "/api/events/{event_id}/registrations",
+    response_model=list[EventRegistrationOut],
+)
+def event_registrations(
+    event_id: int,
+    db: Session = Depends(get_db),
+    current: User = Depends(get_current_user),
+):
+    """Return all registrations for every session of the given event (admin only)."""
+    if not current.is_admin:
+        raise HTTPException(403, "Admin only")
+
+    event = db.get(Event, event_id)
+    if not event:
+        raise HTTPException(404, "Event not found")
+    if event.created_by_user_id != current.id:
+        raise HTTPException(403, "Not your event")
+
+    # Join Registration -> EventSession -> User; filter by event_id.
+    rows = (
+        db.query(Registration, EventSession, User)
+        .join(EventSession, EventSession.id == Registration.session_id)
+        .join(User, User.id == Registration.user_id)
+        .filter(EventSession.event_id == event_id)
+        .order_by(Registration.registered_at.desc())
+        .all()
+    )
+
+    return [
+        EventRegistrationOut(
+            registration_id=reg.id,
+            user_id=reg.user_id,
+            user_name=user.name,
+            user_email=user.email,
+            student_id=user.student_id,
+            department=user.department,
+            session_id=reg.session_id,
+            session_name=sess.session_name,
+            status=reg.status,
+            registered_at=reg.registered_at,
+        )
+        for reg, sess, user in rows
+    ]
