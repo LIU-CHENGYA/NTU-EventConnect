@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
   Box, Typography, IconButton, InputBase, Avatar, Button,
@@ -34,6 +34,9 @@ export default function BoardPage() {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
+  // "My Groups" navbar entry points here as /board?view=groups
+  const focusGroups = searchParams.get("view") === "groups";
 
   const [activeTab, setActiveTab] = useState("all");      // top filter row
   const [sidebarTab, setSidebarTab] = useState("all");    // sidebar (all|hot|new|mine|bookmarked|private)
@@ -97,6 +100,16 @@ export default function BoardPage() {
     eventsApi.categories().then((rows) => setCategoryOptions(rows.map((r) => r.name))).catch(() => {});
     eventsApi.tags().then((rows) => setTagOptions(rows.map((r) => r.name))).catch(() => {});
   }, [user]);
+
+  // When arriving via "My Groups" (/board?view=groups), focus the user's groups
+  // by auto-selecting their first group instead of the default all-posts view.
+  // No-op if they have no groups (the Groups sidebar still shows "Create group").
+  useEffect(() => {
+    if (focusGroups && groups.length > 0 && !activeGroupId) {
+      setActiveGroupId(groups[0].id);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusGroups, groups]);
 
   // Keyword filtering happens server-side via boardApi params.
   const filteredPosts = posts;
