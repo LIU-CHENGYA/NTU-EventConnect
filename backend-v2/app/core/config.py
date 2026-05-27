@@ -13,6 +13,13 @@ class Settings(BaseSettings):
     JWT_EXPIRE_MINUTES: int = 60 * 24 * 7
     CORS_ORIGINS: str = "http://localhost:5173,http://localhost:5174,http://localhost:5175,http://localhost:5176,http://localhost:5177"
     GOOGLE_CLIENT_ID: str = ""
+    # Gmail SMTP — set these in .env to enable password-reset emails.
+    SMTP_HOST: str = "smtp.gmail.com"
+    SMTP_PORT: int = 587
+    SMTP_USER: str = ""        # your Gmail address
+    SMTP_PASSWORD: str = ""    # Gmail App Password (not your login password)
+    SMTP_FROM: str = ""        # defaults to SMTP_USER when blank
+    FRONTEND_URL: str = "http://localhost:5173"
 
     @property
     def cors_origins_list(self) -> list[str]:

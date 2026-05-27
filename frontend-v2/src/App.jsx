@@ -5,6 +5,7 @@ import HomePage from "./pages/HomePage";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
 import EventDetailPage from "./pages/EventDetailPage";
 import EventRegisterPage from "./pages/EventRegisterPage";
 import EventCreatePage from "./pages/EventCreatePage";
@@ -27,6 +28,7 @@ function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/events/:id" element={<EventDetailPage />} />
         <Route path="/events/:id/register" element={<EventRegisterPage />} />
         <Route path="/events/create" element={<ProtectedRoute><EventCreatePage /></ProtectedRoute>} />
