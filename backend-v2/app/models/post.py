@@ -22,17 +22,12 @@ class Post(Base):
     content: Mapped[str] = mapped_column(Text, nullable=False)
     images: Mapped[list[str]] = mapped_column(JSON, default=list)
     # public | private | group
-    visibility: Mapped[str] = mapped_column(String(20), default="public")
+    visibility: Mapped[str] = mapped_column(String(20), default="public", index=True)
     group_id: Mapped[int | None] = mapped_column(
         ForeignKey("groups.id", ondelete="SET NULL"), index=True, nullable=True
     )
-    # board_post: True when authored from 留言板 (subject to "must link to ended attended event")
-    is_board_post: Mapped[bool] = mapped_column(default=False, nullable=False)
-    # draft: not yet published. Drafts keep their intended visibility/group_id but
-    # are hidden from every feed and visible only to their author (via /me/drafts).
-    # Decouples "draft" from visibility=="private" so a group post can be drafted
-    # without leaking to the group until the author publishes it.
-    is_draft: Mapped[bool] = mapped_column(default=False, nullable=False)
+    is_board_post: Mapped[bool] = mapped_column(default=False, nullable=False, index=True)
+    is_draft: Mapped[bool] = mapped_column(default=False, nullable=False, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=_utcnow, onupdate=_utcnow
