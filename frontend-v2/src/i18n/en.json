@@ -392,6 +392,8 @@
     "regTime": "Registered at",
     "totalRegistrations": "{{count}} registrations",
     "noRegistrations": "No registrations yet",
+    "exportExcel": "Export Excel",
+    "notOwner": "You are not the manager of this event and cannot view its registrations",
     "backToProfile": "Back to profile"
   }
 }

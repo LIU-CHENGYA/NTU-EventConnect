@@ -162,10 +162,10 @@ def event_registrations(
     db: Session = Depends(get_db),
     current: User = Depends(get_current_user),
 ):
-    """Return all registrations for every session of the given event (admin only)."""
-    if not current.is_admin:
-        raise HTTPException(403, "Admin only")
+    """Return all registrations for every session of the given event.
 
+    Only the event's creator (its manager) may view the registration list.
+    """
     event = db.get(Event, event_id)
     if not event:
         raise HTTPException(404, "Event not found")

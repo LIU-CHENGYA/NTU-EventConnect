@@ -257,9 +257,7 @@ def managed_events(
     db: Session = Depends(get_db),
     current: User = Depends(get_current_user),
 ):
-    """Events created by the current admin user."""
-    if not current.is_admin:
-        raise HTTPException(403, "Admin only")
+    """Events created by the current user (the user manages the events they created)."""
     total = (
         db.query(func.count(Event.id))
         .filter(Event.created_by_user_id == current.id)
@@ -288,10 +286,9 @@ def create_event(
     db: Session = Depends(get_db),
     current: User = Depends(get_current_user),
 ):
-    if not current.is_admin:
-        raise HTTPException(403, "Admin only")
-
-    # Generate a unique source_url for admin-created events (not scraped from NTU).
+    # Any authenticated user may create an event; the creator becomes its
+    # manager (see ownership checks in update_event / event_registrations).
+    # Generate a unique source_url for user-created events (not scraped from NTU).
     admin_source_url = f"admin://{uuid.uuid4()}"
 
     event = Event(
@@ -342,12 +339,10 @@ def update_event(
     db: Session = Depends(get_db),
     current: User = Depends(get_current_user),
 ):
-    if not current.is_admin:
-        raise HTTPException(403, "Admin only")
-
     event = db.get(Event, event_id)
     if not event:
         raise HTTPException(404, "Event not found")
+    # Only the event's creator (its manager) may edit it.
     if event.created_by_user_id != current.id:
         raise HTTPException(403, "Not your event")
 

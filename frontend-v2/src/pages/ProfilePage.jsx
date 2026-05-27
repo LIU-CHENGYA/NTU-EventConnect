@@ -32,9 +32,9 @@ const TAG_COLORS = {
 // Deduplication helper
 const unique = (arr) => [...new Map(arr.map((x) => [x.id, x])).values()];
 
-// Tab keys for regular users (5 tabs) and admin users (6 tabs)
-const TAB_KEYS_USER = ["myPosts", "myRegistrations", "bookmarkedPosts", "bookmarkedEvents", "drafts"];
-const TAB_KEYS_ADMIN = ["myPosts", "myRegistrations", "bookmarkedPosts", "bookmarkedEvents", "drafts", "managedEvents"];
+// Tab keys (6 tabs). Every user gets 「活動管理」 (managedEvents): anyone can
+// create an event and becomes its manager, so this tab lists their own events.
+const TAB_KEYS = ["myPosts", "myRegistrations", "bookmarkedPosts", "bookmarkedEvents", "drafts", "managedEvents"];
 const STATUS_FILTERS = ["all", "success", "waitlist", "cancelled"];
 
 export default function ProfilePage() {
@@ -80,17 +80,14 @@ export default function ProfilePage() {
       setBookmarkedPosts(bPo);
     });
 
-    if (user.isAdmin) {
-      api.get("/api/users/me/managed_events")
-        .then((r) => setManagedEvents((r.data.items || []).map(mapEvent)))
-        .catch(() => {});
-    }
+    // Every user may have created events; load the ones they manage.
+    api.get("/api/users/me/managed_events")
+      .then((r) => setManagedEvents((r.data.items || []).map(mapEvent)))
+      .catch(() => {});
   }, [user, ready, navigate]);
 
   if (!ready) return null;
   if (!user) return null;
-
-  const TAB_KEYS = user.isAdmin ? TAB_KEYS_ADMIN : TAB_KEYS_USER;
 
   const isUpcoming = (reg) => {
     if (!reg.date) return true; // unknown date → keep visible
@@ -515,8 +512,8 @@ export default function ProfilePage() {
             </Box>
           )}
 
-          {/* Tab 5 — 活動管理 (managedEvents, admin only) */}
-          {tab === 5 && user.isAdmin && (
+          {/* Tab 5 — 活動管理 (managedEvents): events the user created */}
+          {tab === 5 && (
             <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2,1fr)", md: "repeat(3,1fr)" }, gap: 2.5 }}>
               {managedEvents.map((e) => (
                 <Box key={e.id} sx={{ display: "flex", flexDirection: "column", gap: 1 }}>

@@ -392,6 +392,8 @@
     "regTime": "報名時間",
     "totalRegistrations": "共 {{count}} 筆報名",
     "noRegistrations": "尚無報名資料",
+    "exportExcel": "匯出 Excel",
+    "notOwner": "你不是這個活動的管理人，無法查看報名資訊",
     "backToProfile": "返回個人頁"
   }
 }
