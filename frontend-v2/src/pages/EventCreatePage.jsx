@@ -11,6 +11,32 @@ import { useAuth } from "../context/AuthContext";
 import { eventsApi, uploadsApi, resolveUrl } from "../api";
 import { tokens } from "../theme";
 
+const labelSx = { fontSize: tokens.fontSize.body, fontWeight: 700, color: tokens.color.text, mb: 0.5, mt: 0 };
+const fieldSx = { "& .MuiOutlinedInput-root": { borderRadius: "10px", bgcolor: "#fff" } };
+const grid2 = { display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 2 };
+
+function SectionHeader({ children }) {
+  return (
+    <>
+      <Divider sx={{ my: 3 }} />
+      <Typography sx={{ fontSize: tokens.fontSize.body, fontWeight: 700, color: tokens.color.navy, mb: 2 }}>
+        {children}
+      </Typography>
+    </>
+  );
+}
+
+function Field({ label, required, children }) {
+  return (
+    <Box>
+      <Typography sx={labelSx}>
+        {label}{required && <Box component="span" sx={{ color: tokens.color.heart, ml: 0.3 }}>*</Box>}
+      </Typography>
+      {children}
+    </Box>
+  );
+}
+
 const emptySession = () => ({
   id: null,
   session_name: "", session_content: "",
@@ -184,28 +210,6 @@ export default function EventCreatePage() {
       setSubmitting(false);
     }
   };
-
-  const labelSx = { fontSize: tokens.fontSize.body, fontWeight: 700, color: tokens.color.text, mb: 0.5, mt: 0 };
-  const fieldSx = { "& .MuiOutlinedInput-root": { borderRadius: "10px", bgcolor: "#fff" } };
-  const grid2 = { display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 2 };
-
-  const SectionHeader = ({ children }) => (
-    <>
-      <Divider sx={{ my: 3 }} />
-      <Typography sx={{ fontSize: tokens.fontSize.body, fontWeight: 700, color: tokens.color.navy, mb: 2 }}>
-        {children}
-      </Typography>
-    </>
-  );
-
-  const Field = ({ label, required, children }) => (
-    <Box>
-      <Typography sx={labelSx}>
-        {label}{required && <Box component="span" sx={{ color: tokens.color.heart, ml: 0.3 }}>*</Box>}
-      </Typography>
-      {children}
-    </Box>
-  );
 
   return (
     <Box sx={{ minHeight: "calc(100vh - 76px)", bgcolor: tokens.color.bg, py: 4 }}>

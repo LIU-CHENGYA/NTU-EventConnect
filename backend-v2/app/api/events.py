@@ -355,6 +355,11 @@ def create_event(
     db.commit()
     db.refresh(event)
 
+    # New event may introduce a new official_category → invalidate so the
+    # category chips update immediately instead of waiting up to 10 min.
+    _categories_cached.invalidate()
+    _tags_cached.invalidate()
+
     # Reload with relationships.
     event = (
         db.query(Event)
@@ -446,6 +451,10 @@ def update_event(
                 ))
 
     db.commit()
+
+    # Category or tags may have changed → invalidate caches immediately.
+    _categories_cached.invalidate()
+    _tags_cached.invalidate()
 
     # Reload with relationships.
     event = (
