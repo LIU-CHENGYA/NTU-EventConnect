@@ -5,8 +5,9 @@ from sqlalchemy import or_, func
 from sqlalchemy.orm import Session, selectinload
 from app.models.post import EventBookmark
 
+from app.core.cache import ttl_cache
 from app.core.deps import get_current_user
-from app.db.session import get_db
+from app.db.session import get_db, SessionLocal
 from app.models.event import Event, EventSession, EventTag
 from app.models.user import User
 from app.schemas.event import (
@@ -201,53 +202,58 @@ def list_events(
     )
 
 
+@ttl_cache(seconds=600)
+def _categories_cached(lang: str) -> list[dict]:
+    db: Session = SessionLocal()
+    try:
+        if lang == "en":
+            name_expr = func.coalesce(
+                Event.official_category_en,
+                Event.title_en,
+                Event.official_category,
+                Event.title,
+            ).label("name")
+        else:
+            name_expr = func.coalesce(Event.official_category, Event.title).label("name")
+        rows = (
+            db.query(name_expr, func.count(EventSession.id).label("count"))
+            .outerjoin(EventSession, EventSession.event_id == Event.id)
+            .filter(name_expr.isnot(None))
+            .group_by(name_expr)
+            .order_by(func.count(EventSession.id).desc(), name_expr.asc())
+            .all()
+        )
+        return [{"name": name, "count": count} for name, count in rows]
+    finally:
+        db.close()
+
+
+@ttl_cache(seconds=600)
+def _tags_cached() -> list[dict]:
+    db: Session = SessionLocal()
+    try:
+        rows = (
+            db.query(EventTag.tag, func.count(EventTag.event_id).label("count"))
+            .group_by(EventTag.tag)
+            .order_by(func.count(EventTag.event_id).desc())
+            .all()
+        )
+        return [{"name": name, "count": count} for name, count in rows]
+    finally:
+        db.close()
+
+
 @router.get("/categories")
 def list_categories(
     lang: str = Query("zh", pattern="^(zh|en)$"),
     db: Session = Depends(get_db),
 ):
-    """「台大官方分類」 = 母活動名 (activity_name_activity_session).
-
-    Per info.md L30 + Figma, this groups sessions by parent activity. Each row
-    is a distinct parent name + total session count, ordered by session count
-    desc so the most-active parents surface first (the chip row is typically
-    capped to top 15 client-side).
-
-    Falls back per-row to `Event.title` so legacy DBs without the
-    `official_category` column still render something useful — both store the
-    parent activity name post-seed.
-
-    When lang=en, prefer EN columns and fall back through the same chain.
-    """
-    if lang == "en":
-        name_expr = func.coalesce(
-            Event.official_category_en,
-            Event.title_en,
-            Event.official_category,
-            Event.title,
-        ).label("name")
-    else:
-        name_expr = func.coalesce(Event.official_category, Event.title).label("name")
-    rows = (
-        db.query(name_expr, func.count(EventSession.id).label("count"))
-        .outerjoin(EventSession, EventSession.event_id == Event.id)
-        .filter(name_expr.isnot(None))
-        .group_by(name_expr)
-        .order_by(func.count(EventSession.id).desc(), name_expr.asc())
-        .all()
-    )
-    return [{"name": name, "count": count} for name, count in rows]
+    return _categories_cached(lang)
 
 
 @router.get("/tags", response_model=list[TagOut])
 def list_tags(db: Session = Depends(get_db)):
-    rows = (
-        db.query(EventTag.tag, func.count(EventTag.event_id).label("count"))
-        .group_by(EventTag.tag)
-        .order_by(func.count(EventTag.event_id).desc())
-        .all()
-    )
-    return [TagOut(name=name, count=count) for name, count in rows]
+    return _tags_cached()
 
 
 @router.get("/managed", response_model=EventListResponse)

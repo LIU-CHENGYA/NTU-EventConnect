@@ -45,3 +45,7 @@ async def run_daily_refresh() -> None:
         )
         return
     logger.info("daily_refresh: completed\n%s", result.stdout.strip())
+    # Invalidate category/tag caches so the next request reflects new data.
+    from app.api.events import _categories_cached, _tags_cached
+    _categories_cached.invalidate()
+    _tags_cached.invalidate()
