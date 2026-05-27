@@ -37,13 +37,15 @@ EXPECTED_COLUMNS = [
     ("event_sessions", "location_en",           "VARCHAR(300)"),
     ("event_sessions", "meal_en",               "VARCHAR(100)"),
     ("events",         "created_by_user_id",    "INTEGER"),
+    ("users",          "reset_token",            "VARCHAR(100)"),
+    ("users",          "reset_token_expires",    "DATETIME"),
 ]
 
 
 def _ddl_for(dialect: str, frag: str) -> str:
     if dialect == "postgresql":
-        # Postgres wants TRUE/FALSE keywords and BOOLEAN as BOOL
-        return frag.replace("DEFAULT 0", "DEFAULT FALSE")
+        frag = frag.replace("DEFAULT 0", "DEFAULT FALSE")
+        frag = frag.replace("DATETIME", "TIMESTAMP WITH TIME ZONE")
     return frag
 
 

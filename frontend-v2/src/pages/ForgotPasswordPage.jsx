@@ -1,19 +1,32 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Box, Typography, TextField, Button, InputAdornment } from "@mui/material";
+import { Box, Typography, TextField, Button, InputAdornment, CircularProgress } from "@mui/material";
 import EmailIcon from "@mui/icons-material/Email";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import { useTranslation } from "react-i18next";
+import { authApi } from "../api";
 import { tokens } from "../theme";
 
 export default function ForgotPasswordPage() {
   const { t } = useTranslation();
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (email) setSent(true);
+    if (!email) return;
+    setError("");
+    setLoading(true);
+    try {
+      await authApi.forgotPassword(email);
+      setSent(true);
+    } catch {
+      setError(t("auth.resetRequestFailed", "發送失敗，請稍後再試"));
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -67,15 +80,21 @@ export default function ForgotPasswordPage() {
               InputProps={{ startAdornment: <InputAdornment position="start"><EmailIcon sx={{ color: tokens.color.placeholder, fontSize: 20 }} /></InputAdornment> }}
             />
 
+            {error && (
+              <Typography sx={{ fontSize: tokens.fontSize.caption, color: "error.main", mb: 1.5, textAlign: "center" }}>
+                {error}
+              </Typography>
+            )}
+
             <Button
-              type="submit" fullWidth variant="contained"
+              type="submit" fullWidth variant="contained" disabled={loading}
               sx={{
                 bgcolor: tokens.color.navy, py: 1.4, borderRadius: "10px",
                 textTransform: "none", fontSize: tokens.fontSize.subtitle, fontWeight: 600, mb: 3,
                 "&:hover": { bgcolor: tokens.color.navyDark },
               }}
             >
-              {t("auth.sendResetLink")}
+              {loading ? <CircularProgress size={22} sx={{ color: "#fff" }} /> : t("auth.sendResetLink")}
             </Button>
           </>
         )}
