@@ -70,8 +70,9 @@ export default function PostEditPage() {
     try {
       const res = await uploadsApi.upload(file);
       if (res?.url) setImages((prev) => [...prev, res.url]);
-    } catch {
-      alert(t("post.uploadFailed"));
+    } catch (err) {
+      const detail = err?.response?.data?.detail;
+      alert(detail ? `${t("post.uploadFailed")}: ${detail}` : t("post.uploadFailed"));
     } finally {
       setUploading(false);
     }
