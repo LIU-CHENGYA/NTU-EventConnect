@@ -168,6 +168,10 @@ EXPECTED_INDEXES = [
     ("ix_posts_visibility",             "posts",  "visibility"),
     # managed_events filters events by creator; column had no index pre-migration.
     ("ix_events_created_by_user_id",    "events", "created_by_user_id"),
+    # category filter falls back to Event.title == category (equality, not LIKE).
+    ("ix_events_title",                 "events", "title"),
+    # EN-mode category filter: WHERE official_category_en = ?
+    ("ix_events_official_category_en",  "events", "official_category_en"),
 ]
 
 

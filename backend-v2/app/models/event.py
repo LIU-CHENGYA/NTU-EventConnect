@@ -10,7 +10,7 @@ class Event(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     source_url: Mapped[str] = mapped_column(String(500), unique=True, index=True)
-    title: Mapped[str] = mapped_column(String(500), nullable=False)
+    title: Mapped[str] = mapped_column(String(500), index=True, nullable=False)
     created_by_user_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("users.id"), index=True, nullable=True)
     content: Mapped[str | None] = mapped_column(Text, nullable=True)
     category: Mapped[str | None] = mapped_column(String(100), index=True, nullable=True)
@@ -34,7 +34,7 @@ class Event(Base):
     title_en: Mapped[str | None] = mapped_column(String(500), nullable=True)
     content_en: Mapped[str | None] = mapped_column(Text, nullable=True)
     category_en: Mapped[str | None] = mapped_column(String(100), nullable=True)
-    official_category_en: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    official_category_en: Mapped[str | None] = mapped_column(String(500), index=True, nullable=True)
     organizer_en: Mapped[str | None] = mapped_column(String(500), nullable=True)
     registration_type_en: Mapped[str | None] = mapped_column(String(100), nullable=True)
     registration_fee_en: Mapped[str | None] = mapped_column(String(100), nullable=True)
