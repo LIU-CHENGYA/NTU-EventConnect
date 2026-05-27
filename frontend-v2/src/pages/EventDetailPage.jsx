@@ -13,6 +13,7 @@ import { useAuth } from "../context/AuthContext";
 import { tokens } from "../theme";
 import { translateTag } from "../i18n/tagLabels";
 import { eventHasFutureSession } from "../utils/sessionTime";
+import ImageLightbox from "../components/ImageLightbox";
 
 export default function EventDetailPage() {
   const { id } = useParams();
@@ -28,6 +29,9 @@ export default function EventDetailPage() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [loading, setLoading] = useState(true);
   const [myRegs, setMyRegs] = useState([]);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
+  const [lightboxImages, setLightboxImages] = useState([]);
 
   // Fetch the user's registrations so we can show "已報名" on the CTA button.
   useEffect(() => {
@@ -108,11 +112,12 @@ export default function EventDetailPage() {
   );
 
   return (
+    <>
     <Box sx={{ minHeight: "calc(100vh - 76px)", bgcolor: tokens.color.bg, py: 4 }}>
-      <Box sx={{ maxWidth: 1280, mx: "auto", px: 4 }}>
+      <Box sx={{ maxWidth: 1280, mx: "auto", px: { xs: 2, md: 4 } }}>
         {/* Breadcrumb header */}
         <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 3 }}>
-          <IconButton onClick={() => navigate(-1)} sx={{ border: "1.5px solid #333", width: 38, height: 38 }}>
+          <IconButton onClick={() => navigate(-1)} sx={{ border: "1.5px solid #333", width: 44, height: 44 }}>
             <ArrowBackIosNewIcon sx={{ fontSize: 18 }} />
           </IconButton>
           <Typography sx={{ fontFamily: tokens.font.heading, fontSize: { xs: 22, md: tokens.fontSize.heading }, fontWeight: 700, color: "#000" }}>
@@ -181,10 +186,11 @@ export default function EventDetailPage() {
                   </Box>
                   <Typography sx={{ fontSize: tokens.fontSize.body, mb: 1 }}>{r.content}</Typography>
                   {r.images?.length > 0 && (
-                    <Box sx={{ display: "flex", gap: 1 }}>
+                    <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
                       {r.images.map((img, i) => (
                         <Box key={i} component="img" src={img}
-                          sx={{ width: 90, height: 90, borderRadius: 2, objectFit: "cover" }} />
+                          onClick={(e) => { e.stopPropagation(); setLightboxImages(r.images); setLightboxIndex(i); setLightboxOpen(true); }}
+                          sx={{ width: 90, height: 90, borderRadius: 2, objectFit: "cover", cursor: "pointer", "&:hover": { opacity: 0.85 } }} />
                       ))}
                     </Box>
                   )}
@@ -235,11 +241,8 @@ export default function EventDetailPage() {
               </Box>
             </Card>
 
-            {/* Info card with image + details */}
+            {/* Info card with details */}
             <Card sx={{ p: 2.5, display: "flex", flexDirection: "column", gap: 1.2 }}>
-              <Box component="img" src={event.image}
-                sx={{ width: "100%", height: 180, objectFit: "cover", borderRadius: "10px", mb: 1 }} />
-
               <Section icon={<CalendarTodayIcon sx={{ fontSize: 18 }} />} title={t("event.dateTime")}
                 lines={[displayDate, displayTime]} />
               <Section icon={<PlaceIcon sx={{ fontSize: 18 }} />} title={t("event.location")} lines={[displayLocation]} />
@@ -292,6 +295,14 @@ export default function EventDetailPage() {
         </Box>
       </Box>
     </Box>
+    <ImageLightbox
+      key={lightboxImages.join(",")}
+      images={lightboxImages}
+      initialIndex={lightboxIndex}
+      open={lightboxOpen}
+      onClose={() => setLightboxOpen(false)}
+    />
+    </>
   );
 }
 

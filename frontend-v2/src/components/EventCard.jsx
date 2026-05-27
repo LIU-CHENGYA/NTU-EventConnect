@@ -52,7 +52,7 @@ export default function EventCard({
       onClick={() => navigate(`/events/${event.id}${event._matchedSessionId ? `?session=${event._matchedSessionId}` : ""}`)}
       sx={{
         width: "100%",
-        maxWidth: { xs: "100%", md: 280 },
+        maxWidth: "100%",
         bgcolor: "white",
         borderRadius: "8px",
         overflow: "hidden",

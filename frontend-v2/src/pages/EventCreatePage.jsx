@@ -218,7 +218,7 @@ export default function EventCreatePage() {
                 <TextField size="small" label={t("admin.date")} value={s.date} onChange={(e) => updateSession(idx, "date", e.target.value)} sx={fieldSx} />
                 <TextField size="small" label={t("admin.timeRange")} value={s.time_range} onChange={(e) => updateSession(idx, "time_range", e.target.value)} sx={fieldSx} />
                 <TextField size="small" label={t("admin.location")} value={s.location} onChange={(e) => updateSession(idx, "location", e.target.value)} sx={fieldSx} />
-                <TextField size="small" type="number" label={t("admin.capacity")} value={s.capacity} onChange={(e) => updateSession(idx, "capacity", e.target.value)} sx={fieldSx} />
+                <TextField size="small" type="number" label={t("admin.capacity")} value={s.capacity} onChange={(e) => updateSession(idx, "capacity", e.target.value)} sx={{ ...fieldSx, gridColumn: "1/-1" }} />
               </Box>
             </Paper>
           ))}

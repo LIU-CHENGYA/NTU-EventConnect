@@ -166,8 +166,8 @@ export default function Navbar() {
                   <Button
                     onClick={() => navigate("/register")}
                     sx={{
-                      color: tokens.color.placeholder,
-                      fontSize: tokens.fontSize.title,
+                      color: tokens.color.textSecondary,
+                      fontSize: tokens.fontSize.body,
                       fontWeight: 500,
                       textTransform: "none",
                       minWidth: 0,
@@ -179,8 +179,8 @@ export default function Navbar() {
                   <Button
                     onClick={() => navigate("/login")}
                     sx={{
-                      color: tokens.color.placeholder,
-                      fontSize: tokens.fontSize.title,
+                      color: tokens.color.textSecondary,
+                      fontSize: tokens.fontSize.body,
                       fontWeight: 500,
                       textTransform: "none",
                       minWidth: 0,

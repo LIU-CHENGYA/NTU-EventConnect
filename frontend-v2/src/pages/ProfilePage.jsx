@@ -44,7 +44,7 @@ export default function ProfilePage() {
   const { user, ready, setUser } = useAuth();
   const navigate = useNavigate();
   const { drafts, isEventBookmarked, toggleEventBookmark } = useData();
-  const [tab, setTab] = useState(1);
+  const [tab, setTab] = useState(0);
   const [statusFilter, setStatusFilter] = useState("all");
   const [editOpen, setEditOpen] = useState(false);
   const [editForm, setEditForm] = useState({ name: "", bio: "" });
@@ -206,10 +206,10 @@ export default function ProfilePage() {
         {/* ── Sidebar ── */}
         <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
           <Box sx={sidebarCard}>
-            <Typography sx={{ fontFamily: tokens.font.heading, fontSize: tokens.fontSize.heading, mb: 2 }}>{t("profile.publicProfile")}</Typography>
+            <Typography sx={{ fontFamily: tokens.font.base, fontSize: tokens.fontSize.heading, mb: 2 }}>{t("profile.publicProfile")}</Typography>
             {stats.map((s) => (
               <Box key={s.label} sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", py: 0.6 }}>
-                <Typography sx={{ fontFamily: tokens.font.heading, fontSize: tokens.fontSize.subtitle }}>{s.label}</Typography>
+                <Typography sx={{ fontFamily: tokens.font.base, fontSize: tokens.fontSize.subtitle }}>{s.label}</Typography>
                 {s.value !== "" && <Typography sx={{ fontSize: tokens.fontSize.subtitle }}>{s.value}</Typography>}
               </Box>
             ))}
@@ -225,7 +225,7 @@ export default function ProfilePage() {
 
           {/* ── Calendar ── */}
           <Box sx={sidebarCard}>
-            <Typography sx={{ fontFamily: tokens.font.heading, fontSize: tokens.fontSize.heading, mb: 1 }}>
+            <Typography sx={{ fontFamily: tokens.font.base, fontSize: tokens.fontSize.heading, mb: 1 }}>
               {t("profile.calendarTitle")}
             </Typography>
 
@@ -374,7 +374,7 @@ export default function ProfilePage() {
               }}
             />
             <Box sx={{ pt: 5, pb: 1, textAlign: "center" }}>
-              <Typography sx={{ fontFamily: tokens.font.heading, fontWeight: 700, fontSize: tokens.fontSize.title }}>{user.name}</Typography>
+              <Typography sx={{ fontFamily: tokens.font.base, fontWeight: 700, fontSize: tokens.fontSize.title }}>{user.name}</Typography>
               {user.bio && (
                 <Typography sx={{ fontSize: tokens.fontSize.body, color: tokens.color.text, mt: 1, px: 4 }}>
                   {user.bio}
@@ -416,7 +416,7 @@ export default function ProfilePage() {
                 position: "absolute", top: 12, right: 12,
                 bgcolor: "#39a7ff", color: "white",
                 px: 1.5, py: "5px", borderRadius: "20px", fontSize: tokens.fontSize.caption,
-                cursor: "pointer", fontFamily: tokens.font.heading,
+                cursor: "pointer", fontFamily: tokens.font.base,
               }}
             >
               {t("profile.editProfile")}
@@ -443,10 +443,10 @@ export default function ProfilePage() {
                     key={s}
                     onClick={() => setStatusFilter(s)}
                     sx={{
-                      px: 1.5, py: "6px", fontSize: 14, borderRadius: "8px",
+                      px: 1.5, py: "6px", fontSize: tokens.fontSize.body, borderRadius: "8px",
                       border: "1px solid #cac4d0",
                       bgcolor: statusFilter === s ? "rgba(57,167,255,0.42)" : "#fff",
-                      color: "#49454f", cursor: "pointer", fontFamily: tokens.font.heading,
+                      color: "#49454f", cursor: "pointer", fontFamily: tokens.font.base,
                       fontWeight: 500,
                     }}
                   >
@@ -456,7 +456,7 @@ export default function ProfilePage() {
               </Box>
 
               {/* Section 1: 即將到來 */}
-              <Typography sx={{ fontFamily: tokens.font.heading, fontSize: tokens.fontSize.subtitle, fontWeight: 700, mb: 1.5 }}>
+              <Typography sx={{ fontFamily: tokens.font.base, fontSize: tokens.fontSize.subtitle, fontWeight: 700, mb: 1.5 }}>
                 {t("profile.sections.upcoming", "即將到來")}
               </Typography>
               <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2,1fr)", md: "repeat(3,1fr)" }, gap: 2.5, mb: 3 }}>
@@ -466,7 +466,7 @@ export default function ProfilePage() {
               </Box>
 
               {/* Section 2: 已結束 */}
-              <Typography sx={{ fontFamily: tokens.font.heading, fontSize: tokens.fontSize.subtitle, fontWeight: 700, mb: 1.5 }}>
+              <Typography sx={{ fontFamily: tokens.font.base, fontSize: tokens.fontSize.subtitle, fontWeight: 700, mb: 1.5 }}>
                 {t("profile.sections.ended", "已結束")}
               </Typography>
               <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2,1fr)", md: "repeat(3,1fr)" }, gap: 2.5 }}>

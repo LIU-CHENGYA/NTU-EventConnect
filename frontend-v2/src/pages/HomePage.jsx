@@ -413,7 +413,10 @@ export default function HomePage() {
             </Typography>
           </Box>
           <Box sx={{ display: "flex", flexDirection: "column" }}>
-            <Typography sx={{ fontSize: tokens.fontSize.caption, mb: 0.4, visibility: "hidden" }}>.</Typography>
+            <Typography sx={{
+              fontSize: tokens.fontSize.caption, mb: 0.4,
+              visibility: "hidden", display: { xs: "none", md: "block" },
+            }}>.</Typography>
             <IconButton
               sx={{
                 bgcolor: tokens.color.navy, color: "#fff",
