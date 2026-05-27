@@ -11,7 +11,7 @@ class Event(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     source_url: Mapped[str] = mapped_column(String(500), unique=True, index=True)
     title: Mapped[str] = mapped_column(String(500), nullable=False)
-    created_by_user_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("users.id"), nullable=True)
+    created_by_user_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("users.id"), index=True, nullable=True)
     content: Mapped[str | None] = mapped_column(Text, nullable=True)
     category: Mapped[str | None] = mapped_column(String(100), index=True, nullable=True)
     image_url: Mapped[str | None] = mapped_column(String(500), nullable=True)

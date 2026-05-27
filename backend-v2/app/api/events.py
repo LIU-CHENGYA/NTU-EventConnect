@@ -178,11 +178,15 @@ def list_events(
         .filter(*filters)
     )
     if sort == "hot":
+        # Restrict aggregation to the already-filtered event set so the DB
+        # doesn't aggregate the entire table before joining (same pattern as posts hot sort).
+        filtered_event_ids = db.query(Event.id).filter(*filters).subquery()
         hot_sub = (
             db.query(
                 EventBookmark.event_id.label("event_id"),
                 func.count(EventBookmark.user_id).label("bookmark_count"),
             )
+            .filter(EventBookmark.event_id.in_(filtered_event_ids))
             .group_by(EventBookmark.event_id)
             .subquery()
         )

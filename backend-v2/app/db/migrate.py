@@ -163,9 +163,11 @@ def migrate_event_bookmarks_session(engine: Engine) -> bool:
 
 EXPECTED_INDEXES = [
     # Columns that appear in WHERE / ORDER BY on every posts query but lacked indexes.
-    ("ix_posts_is_board_post", "posts",  "is_board_post"),
-    ("ix_posts_is_draft",      "posts",  "is_draft"),
-    ("ix_posts_visibility",    "posts",  "visibility"),
+    ("ix_posts_is_board_post",          "posts",  "is_board_post"),
+    ("ix_posts_is_draft",               "posts",  "is_draft"),
+    ("ix_posts_visibility",             "posts",  "visibility"),
+    # managed_events filters events by creator; column had no index pre-migration.
+    ("ix_events_created_by_user_id",    "events", "created_by_user_id"),
 ]
 
 
