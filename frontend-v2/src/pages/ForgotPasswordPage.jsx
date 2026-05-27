@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Box, Typography, TextField, Button, InputAdornment, CircularProgress } from "@mui/material";
+import { Box, Typography, TextField, Button, InputAdornment, CircularProgress, Alert } from "@mui/material";
 import EmailIcon from "@mui/icons-material/Email";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import GoogleIcon from "@mui/icons-material/Google";
 import { useTranslation } from "react-i18next";
 import { authApi } from "../api";
 import { tokens } from "../theme";
@@ -13,17 +14,23 @@ export default function ForgotPasswordPage() {
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [isSso, setIsSso] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!email) return;
     setError("");
+    setIsSso(false);
     setLoading(true);
     try {
       await authApi.forgotPassword(email);
       setSent(true);
-    } catch {
-      setError(t("auth.resetRequestFailed", "發送失敗，請稍後再試"));
+    } catch (err) {
+      if (err?.response?.data?.detail === "sso_account") {
+        setIsSso(true);
+      } else {
+        setError(t("auth.resetRequestFailed", "發送失敗，請稍後再試"));
+      }
     } finally {
       setLoading(false);
     }
@@ -79,6 +86,16 @@ export default function ForgotPasswordPage() {
               sx={{ mb: 3, "& .MuiOutlinedInput-root": { borderRadius: "10px", bgcolor: tokens.color.bg } }}
               InputProps={{ startAdornment: <InputAdornment position="start"><EmailIcon sx={{ color: tokens.color.placeholder, fontSize: 20 }} /></InputAdornment> }}
             />
+
+            {isSso && (
+              <Alert
+                severity="info"
+                icon={<GoogleIcon fontSize="inherit" />}
+                sx={{ mb: 2, borderRadius: "10px", fontSize: tokens.fontSize.caption }}
+              >
+                {t("auth.ssoAccountHint", "此帳號是透過 Google 登入註冊的，無法使用 Email 重設密碼。請直接點選「以 Google 登入」。")}
+              </Alert>
+            )}
 
             {error && (
               <Typography sx={{ fontSize: tokens.fontSize.caption, color: "error.main", mb: 1.5, textAlign: "center" }}>
