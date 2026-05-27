@@ -133,13 +133,20 @@ def migrate_event_bookmarks_session(engine: Engine) -> bool:
     cols = {c["name"] for c in inspector.get_columns("event_bookmarks")}
     if "session_id" in cols:
         return False  # already migrated
+
+    # DATETIME is SQLite-only; PostgreSQL requires TIMESTAMP WITH TIME ZONE.
+    dialect = engine.dialect.name
+    ts_type = "TIMESTAMP WITH TIME ZONE" if dialect == "postgresql" else "DATETIME"
+
     with engine.begin() as conn:
-        conn.execute(text("""
+        # Drop the temp table in case a previous migration attempt failed midway.
+        conn.execute(text("DROP TABLE IF EXISTS event_bookmarks_v2"))
+        conn.execute(text(f"""
             CREATE TABLE event_bookmarks_v2 (
-                user_id   INTEGER NOT NULL REFERENCES users(id)   ON DELETE CASCADE,
-                event_id  INTEGER NOT NULL REFERENCES events(id)  ON DELETE CASCADE,
+                user_id    INTEGER NOT NULL REFERENCES users(id)   ON DELETE CASCADE,
+                event_id   INTEGER NOT NULL REFERENCES events(id)  ON DELETE CASCADE,
                 session_id INTEGER NOT NULL DEFAULT 0,
-                created_at DATETIME,
+                created_at {ts_type},
                 PRIMARY KEY (user_id, event_id, session_id)
             )
         """))
