@@ -70,7 +70,7 @@ export default function OtherProfilePage() {
           <IconButton onClick={() => navigate(-1)} sx={{ color: tokens.color.text }}>
             <ArrowBackIcon />
           </IconButton>
-          <Typography sx={{ fontFamily: tokens.font.heading, fontSize: { xs: 22, md: 28 }, fontWeight: 700, color: tokens.color.navy }}>
+          <Typography sx={{ fontFamily: tokens.font.base, fontSize: { xs: 22, md: 28 }, fontWeight: 700, color: tokens.color.navy }}>
             {t("profile.publicProfile")}
           </Typography>
         </Box>
@@ -79,10 +79,10 @@ export default function OtherProfilePage() {
           {/* Sidebar */}
           <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
             <Box sx={sidebarCard}>
-              <Typography sx={{ fontFamily: tokens.font.heading, fontSize: tokens.fontSize.heading, mb: 2 }}>{t("profile.publicProfile")}</Typography>
+              <Typography sx={{ fontFamily: tokens.font.base, fontSize: tokens.fontSize.heading, mb: 2 }}>{t("profile.publicProfile")}</Typography>
               {stats.map((s) => (
                 <Box key={s.label} sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", py: 0.6 }}>
-                  <Typography sx={{ fontFamily: tokens.font.heading, fontSize: tokens.fontSize.subtitle }}>{s.label}</Typography>
+                  <Typography sx={{ fontFamily: tokens.font.base, fontSize: tokens.fontSize.subtitle }}>{s.label}</Typography>
                   {s.value !== "" && <Typography sx={{ fontSize: tokens.fontSize.subtitle }}>{s.value}</Typography>}
                 </Box>
               ))}
@@ -119,7 +119,7 @@ export default function OtherProfilePage() {
                 }}
               />
               <Box sx={{ pt: 5, pb: 1, textAlign: "center" }}>
-                <Typography sx={{ fontFamily: tokens.font.heading, fontSize: tokens.fontSize.title }}>{profileUser.name}</Typography>
+                <Typography sx={{ fontFamily: tokens.font.base, fontSize: tokens.fontSize.title }}>{profileUser.name}</Typography>
                 {profileUser.department && (
                   <Typography sx={{ fontSize: tokens.fontSize.body, color: tokens.color.placeholder }}>{profileUser.department}</Typography>
                 )}
