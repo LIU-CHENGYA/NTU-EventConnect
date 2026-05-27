@@ -79,41 +79,80 @@ def _user_attended_ended(db: Session, user: User, event_id: int) -> bool:
 
 
 def _post_out(db: Session, p: Post, viewer: User | None = None) -> PostOut:
-    out = PostOut.model_validate(p)
-    out.user_name = p.user.name if p.user else None
-    out.user_avatar = _user_avatar(p.user)
-    if p.event_id:
-        ev = db.get(Event, p.event_id)
-        out.event_title = ev.title if ev else None
-        out.event_official_category = ev.official_category if ev else None
-    if p.group_id:
-        g = db.get(Group, p.group_id)
-        out.group_name = g.name if g else None
-    out.like_count = (
-        db.query(func.count(PostLike.post_id)).filter(PostLike.post_id == p.id).scalar() or 0
+    return _post_out_bulk(db, [p], viewer=viewer)[0]
+
+
+def _post_out_bulk(db: Session, posts: list[Post], viewer: User | None = None) -> list[PostOut]:
+    """Build PostOut for a list of posts with O(1) extra queries instead of O(N)."""
+    if not posts:
+        return []
+
+    post_ids = [p.id for p in posts]
+    event_ids = {p.event_id for p in posts if p.event_id}
+    group_ids = {p.group_id for p in posts if p.group_id}
+
+    like_counts = dict(
+        db.query(PostLike.post_id, func.count(PostLike.user_id))
+        .filter(PostLike.post_id.in_(post_ids))
+        .group_by(PostLike.post_id)
+        .all()
     )
-    out.bookmark_count = (
-        db.query(func.count(PostBookmark.post_id)).filter(PostBookmark.post_id == p.id).scalar() or 0
+    bookmark_counts = dict(
+        db.query(PostBookmark.post_id, func.count(PostBookmark.user_id))
+        .filter(PostBookmark.post_id.in_(post_ids))
+        .group_by(PostBookmark.post_id)
+        .all()
     )
-    out.comment_count = (
-        db.query(func.count(Comment.id)).filter(Comment.post_id == p.id).scalar() or 0
+    comment_counts = dict(
+        db.query(Comment.post_id, func.count(Comment.id))
+        .filter(Comment.post_id.in_(post_ids))
+        .group_by(Comment.post_id)
+        .all()
     )
-    if viewer is not None:
-        out.is_liked = (
-            db.query(PostLike.user_id)
-            .filter(PostLike.post_id == p.id, PostLike.user_id == viewer.id)
-            .limit(1)
-            .scalar()
-            is not None
-        )
-        out.is_bookmarked = (
-            db.query(PostBookmark.user_id)
-            .filter(PostBookmark.post_id == p.id, PostBookmark.user_id == viewer.id)
-            .limit(1)
-            .scalar()
-            is not None
-        )
-    return out
+
+    liked_ids: set[int] = set()
+    bookmarked_ids: set[int] = set()
+    if viewer:
+        liked_ids = {
+            row[0] for row in
+            db.query(PostLike.post_id)
+            .filter(PostLike.post_id.in_(post_ids), PostLike.user_id == viewer.id)
+            .all()
+        }
+        bookmarked_ids = {
+            row[0] for row in
+            db.query(PostBookmark.post_id)
+            .filter(PostBookmark.post_id.in_(post_ids), PostBookmark.user_id == viewer.id)
+            .all()
+        }
+
+    events: dict[int, Event] = {}
+    if event_ids:
+        events = {e.id: e for e in db.query(Event).filter(Event.id.in_(event_ids)).all()}
+    groups: dict[int, Group] = {}
+    if group_ids:
+        groups = {g.id: g for g in db.query(Group).filter(Group.id.in_(group_ids)).all()}
+
+    result = []
+    for p in posts:
+        out = PostOut.model_validate(p)
+        out.user_name = p.user.name if p.user else None
+        out.user_avatar = _user_avatar(p.user)
+        if p.event_id:
+            ev = events.get(p.event_id)
+            out.event_title = ev.title if ev else None
+            out.event_official_category = ev.official_category if ev else None
+        if p.group_id:
+            g = groups.get(p.group_id)
+            out.group_name = g.name if g else None
+        out.like_count = like_counts.get(p.id, 0)
+        out.bookmark_count = bookmark_counts.get(p.id, 0)
+        out.comment_count = comment_counts.get(p.id, 0)
+        if viewer is not None:
+            out.is_liked = p.id in liked_ids
+            out.is_bookmarked = p.id in bookmarked_ids
+        result.append(out)
+    return result
 
 
 def _comment_out(c: Comment) -> CommentOut:
@@ -240,7 +279,7 @@ def list_posts(
         q = q.order_by(Post.id.desc())
 
     rows = q.offset((page - 1) * size).limit(size).all()
-    return [_post_out(db, p, viewer=current) for p in rows]
+    return _post_out_bulk(db, rows, viewer=current)
 
 
 # ---------- create ----------

@@ -12,7 +12,7 @@ from app.models.user import User
 from app.schemas.event import EventDetailOut, EventOut, EventSessionOut
 from app.schemas.post import PostOut
 from sqlalchemy.orm import selectinload
-from app.api.posts import _post_out, _can_view
+from app.api.posts import _post_out, _post_out_bulk, _can_view
 
 router = APIRouter(tags=["bookmarks"])
 
@@ -114,7 +114,7 @@ def my_post_bookmarks(
     # appearing once the user is removed from the group, and visibility flips
     # from public→private aren't leaked via bookmarks.
     visible = [p for p in rows if _can_view(db, p, current)]
-    return [_post_out(db, p, viewer=current) for p in visible]
+    return _post_out_bulk(db, visible, viewer=current)
 
 
 @router.get("/api/users/me/drafts", response_model=list[PostOut])
@@ -133,4 +133,4 @@ def my_drafts(
         .limit(size)
         .all()
     )
-    return [_post_out(db, p, viewer=current) for p in rows]
+    return _post_out_bulk(db, rows, viewer=current)
