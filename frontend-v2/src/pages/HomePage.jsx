@@ -47,6 +47,7 @@ export default function HomePage() {
   const [hotPage, setHotPage] = useState(1);
 
   const [categoryOptions, setCategoryOptions] = useState([]);
+  const [categorySearch, setCategorySearch] = useState("");
   const [tagOptions, setTagOptions] = useState([]);
 
   const { isEventBookmarked, toggleEventBookmark } = useData();
@@ -266,6 +267,32 @@ export default function HomePage() {
             {activeTab === "official" ? t("filter.officialHint") : t("filter.tagsHint")}
           </Typography>
         )}
+        {activeTab === "official" && (
+          <Box sx={{ position: "relative", mb: 1 }}>
+            <input
+              value={categorySearch}
+              onChange={(e) => setCategorySearch(e.target.value)}
+              placeholder={t("filter.officialHint")}
+              style={{
+                width: "100%", boxSizing: "border-box",
+                padding: "6px 32px 6px 10px",
+                border: `1px solid ${tokens.color.border}`,
+                borderRadius: 8, fontSize: 13,
+                background: "#fff", outline: "none",
+                color: tokens.color.text,
+              }}
+            />
+            {categorySearch && (
+              <span
+                onClick={() => setCategorySearch("")}
+                style={{
+                  position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)",
+                  cursor: "pointer", color: tokens.color.placeholder, fontSize: 16, lineHeight: 1,
+                }}
+              >✕</span>
+            )}
+          </Box>
+        )}
         {(activeTab === "official" || activeTab === "tags") && (
           <Box
             sx={{
@@ -276,7 +303,6 @@ export default function HomePage() {
               bgcolor: "#fff",
               border: `1px solid ${tokens.color.border}`,
               borderRadius: 1.5,
-              // 母活動名は 329 種あるため横スクロール、タグは少ないので折返し OK
               flexWrap: activeTab === "tags" ? "wrap" : "nowrap",
               overflowX: activeTab === "official" ? "auto" : "visible",
               "&::-webkit-scrollbar": { height: 6 },
@@ -291,8 +317,10 @@ export default function HomePage() {
                 >
                   {t("filter.anyCategory")}
                 </Chip>
-                {/* 母活動名は固有名詞なので i18n しない。Top 15 で frontend cap (場次数降順は backend)。 */}
-                {categoryOptions.slice(0, 15).map((opt) => (
+                {categoryOptions
+                  .filter((opt) => !categorySearch.trim() || opt.toLowerCase().includes(categorySearch.trim().toLowerCase()))
+                  .slice(0, categorySearch.trim() ? 50 : 15)
+                  .map((opt) => (
                   <Chip
                     key={opt}
                     active={selectedCategory === opt}
