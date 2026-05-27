@@ -64,7 +64,7 @@ export default function OtherProfilePage() {
 
   return (
     <Box sx={{ minHeight: "calc(100vh - 76px)", bgcolor: tokens.color.bg, py: 4 }}>
-      <Box sx={{ maxWidth: 1280, mx: "auto", px: 4 }}>
+      <Box sx={{ maxWidth: 1280, mx: "auto", px: { xs: 2, md: 4 } }}>
         {/* Header */}
         <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 3 }}>
           <IconButton onClick={() => navigate(-1)} sx={{ color: tokens.color.text }}>

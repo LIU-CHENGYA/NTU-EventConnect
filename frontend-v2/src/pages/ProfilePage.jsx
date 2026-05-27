@@ -44,7 +44,7 @@ export default function ProfilePage() {
   const { user, ready, setUser } = useAuth();
   const navigate = useNavigate();
   const { drafts, isEventBookmarked, toggleEventBookmark } = useData();
-  const [tab, setTab] = useState(1);
+  const [tab, setTab] = useState(0);
   const [statusFilter, setStatusFilter] = useState("all");
   const [editOpen, setEditOpen] = useState(false);
   const [editForm, setEditForm] = useState({ name: "", bio: "" });

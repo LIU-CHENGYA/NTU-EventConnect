@@ -11,6 +11,8 @@ import FavoriteIcon from "@mui/icons-material/Favorite";
 import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
 import BookmarkBorderIcon from "@mui/icons-material/BookmarkBorder";
 import BookmarkIcon from "@mui/icons-material/Bookmark";
+import MoreVertIcon from "@mui/icons-material/MoreVert";
+import LocalActivityIcon from "@mui/icons-material/LocalActivity";
 import { boardApi, postsApi, groupsApi, eventsApi } from "../api";
 import { useAuth } from "../context/AuthContext";
 import { tokens } from "../theme";
@@ -240,7 +242,7 @@ export default function BoardPage() {
           <IconButton
             onClick={reload}
             sx={{
-              bgcolor: NAVY, color: "#fff", borderRadius: 1.5, width: 50, height: 50,
+              bgcolor: NAVY, color: "#fff", borderRadius: 1.5, width: 52, height: 52,
               alignSelf: "flex-end", "&:hover": { bgcolor: tokens.color.navyDark },
             }}
           >
@@ -297,7 +299,7 @@ export default function BoardPage() {
         </Box>
 
         {/* === Posts list === */}
-        <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5, position: "relative" }}>
+        <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5, position: "relative", pb: { xs: 12, md: 4 } }}>
           {/* Mobile-only groups strip — desktop has the sidebar; mobile had
               NO surface for groups previously (the only entry point). */}
           {user && (
@@ -447,9 +449,9 @@ function SideItem({ label, count, active, onClick, onEdit }) {
       {onEdit && (
         <Box
           onClick={(e) => { e.stopPropagation(); onEdit(); }}
-          sx={{ fontSize: tokens.fontSize.caption, color: tokens.color.placeholder, "&:hover": { color: NAVY } }}
+          sx={{ display: "flex", alignItems: "center", color: tokens.color.placeholder, "&:hover": { color: NAVY } }}
         >
-          ⋮
+          <MoreVertIcon sx={{ fontSize: 16 }} />
         </Box>
       )}
     </Box>
@@ -482,7 +484,7 @@ function FilterField({ label, placeholder, value, onChange, icon, onClear, clear
         display: "flex", alignItems: "center",
         bgcolor: "#fff",
         border: `1px solid ${tokens.color.border}`,
-        borderRadius: 1.5, px: 1.4, height: 42, gap: 0.75,
+        borderRadius: 1.5, px: 1.4, height: 52, gap: 0.75,
       }}>
         {icon}
         <InputBase
@@ -553,13 +555,15 @@ function PostListItem({ post, onClick, onToggleLike, onToggleBookmark }) {
             }
           }}
           sx={{
-            display: "inline-block", fontSize: tokens.fontSize.caption, fontWeight: 700,
+            display: "inline-flex", alignItems: "center", gap: 0.4,
+            fontSize: tokens.fontSize.caption, fontWeight: 700,
             color: NAVY, bgcolor: "#E8EFFF", px: 0.8, py: "2px", borderRadius: 0.5, mb: 0.5,
             cursor: "pointer",
             "&:hover": { bgcolor: "#d0dcf7" },
           }}
         >
-          🎟 {post.eventTitle}
+          <LocalActivityIcon sx={{ fontSize: 13 }} />
+          {post.eventTitle}
         </Box>
       )}
 

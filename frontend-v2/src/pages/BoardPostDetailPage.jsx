@@ -9,6 +9,7 @@ import FavoriteIcon from "@mui/icons-material/Favorite";
 import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
+import LocalActivityIcon from "@mui/icons-material/LocalActivity";
 import { useTranslation } from "react-i18next";
 import { postsApi } from "../api";
 import { useAuth } from "../context/AuthContext";
@@ -145,14 +146,15 @@ export default function BoardPostDetailPage() {
             <Box
               onClick={handleEventTagClick}
               sx={{
-                display: "inline-flex", alignItems: "center", gap: 0.5,
+                display: "inline-flex", alignItems: "center", gap: 0.4,
                 fontSize: tokens.fontSize.caption, fontWeight: 700, color: NAVY,
                 bgcolor: "#E8EFFF", px: 1, py: "3px", borderRadius: 0.6, mb: 1.25,
                 cursor: "pointer",
                 "&:hover": { bgcolor: "#d0dcf7" },
               }}
             >
-              🎟 {post.eventTitle}
+              <LocalActivityIcon sx={{ fontSize: 13 }} />
+              {post.eventTitle}
             </Box>
           )}
 
@@ -177,7 +179,7 @@ export default function BoardPostDetailPage() {
 
           {/* Images with lightbox */}
           {Array.isArray(post.images) && post.images.length > 0 && (
-            <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 1.5, mb: 2 }}>
+            <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 1.5, mb: 2 }}>
               {post.images.map((url, idx) => (
                 <Box
                   key={url}
