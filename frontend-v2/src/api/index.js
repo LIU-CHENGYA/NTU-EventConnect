@@ -336,4 +336,4 @@ export const groupsApi = {
   revokeInvite: (id, inviteId) => api.delete(`/api/groups/${id}/invitations/${inviteId}`),
 };
 
-export { mapEvent, mapPost, mapUser, mapGroup };
+export { mapEvent, mapPost, mapUser, mapGroup, resolveUrl };
