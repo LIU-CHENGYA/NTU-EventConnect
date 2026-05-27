@@ -257,13 +257,18 @@ def list_posts(
         q = q.filter(Post.visibility == "private", Post.user_id == current.id)
 
     if tab == "hot":
+        # Restrict like/bookmark counts to the already-filtered post set so
+        # the DB doesn't aggregate the entire table before joining.
+        filtered_ids = q.with_entities(Post.id).subquery()
         like_sub = (
             db.query(PostLike.post_id, func.count(PostLike.user_id).label("c"))
+            .filter(PostLike.post_id.in_(filtered_ids))
             .group_by(PostLike.post_id)
             .subquery()
         )
         bm_sub = (
             db.query(PostBookmark.post_id, func.count(PostBookmark.user_id).label("c"))
+            .filter(PostBookmark.post_id.in_(filtered_ids))
             .group_by(PostBookmark.post_id)
             .subquery()
         )

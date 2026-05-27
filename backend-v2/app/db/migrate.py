@@ -161,6 +161,29 @@ def migrate_event_bookmarks_session(engine: Engine) -> bool:
     return True
 
 
+EXPECTED_INDEXES = [
+    # Columns that appear in WHERE / ORDER BY on every posts query but lacked indexes.
+    ("ix_posts_is_board_post", "posts",  "is_board_post"),
+    ("ix_posts_is_draft",      "posts",  "is_draft"),
+    ("ix_posts_visibility",    "posts",  "visibility"),
+]
+
+
+def ensure_indexes(engine: Engine) -> list[str]:
+    """CREATE INDEX IF NOT EXISTS for columns that were added without indexes."""
+    added: list[str] = []
+    with engine.begin() as conn:
+        for idx_name, table, column in EXPECTED_INDEXES:
+            try:
+                conn.execute(text(
+                    f"CREATE INDEX IF NOT EXISTS {idx_name} ON {table} ({column})"
+                ))
+                added.append(idx_name)
+            except Exception:  # noqa: BLE001
+                pass
+    return added
+
+
 def run_startup_migrations(engine: Engine) -> None:
     """Idempotent. ADD COLUMN failures stay best-effort; column-widening
     failures are fatal so the 02:00 cron cannot silently repeat the
@@ -182,3 +205,9 @@ def run_startup_migrations(engine: Engine) -> None:
     altered = widen_columns(engine)
     if altered:
         log.warning("[migrate] Widened columns: %s", ", ".join(altered))
+    try:
+        added_idx = ensure_indexes(engine)
+        if added_idx:
+            log.warning("[migrate] Created indexes: %s", ", ".join(added_idx))
+    except Exception as e:  # noqa: BLE001
+        log.error("[migrate] ensure_indexes failed: %s", e)
