@@ -27,6 +27,11 @@ COPY app/ ./app/
 # で起動するため必須。CSV (fetch_data/) は別管理 (volume mount / 外部 sync) が前提。
 COPY scripts/ ./scripts/
 
+# admin_whitelist.txt is the sole source of admin authorization (see
+# app/core/admin.py). Without it in the image, is_admin_email() returns False
+# for everyone and nobody can create/manage events.
+COPY admin_whitelist.txt ./admin_whitelist.txt
+
 # 建立 uploads 目錄
 RUN mkdir -p uploads
 

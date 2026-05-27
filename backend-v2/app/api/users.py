@@ -5,6 +5,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import func
 from sqlalchemy.orm import Session, selectinload
 
+from app.core.admin import is_admin_email
 from app.core.deps import get_current_user
 from app.db.session import get_db
 from app.models.event import Event
@@ -103,7 +104,9 @@ def my_managed_events(
     db: Session = Depends(get_db),
     current: User = Depends(get_current_user),
 ):
-    """Events created by the current admin."""
+    """Events created by the current admin (admin-only)."""
+    if not is_admin_email(current.email):
+        raise HTTPException(403, "Admin only")
     from app.api.events import _to_detail
     total = (
         db.query(func.count(Event.id))

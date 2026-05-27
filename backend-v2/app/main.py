@@ -60,6 +60,19 @@ Base.metadata.create_all(bind=engine)
 # The migrate helper performs the minimum ADD COLUMN needed for SQLite/Postgres.
 run_startup_migrations(engine)
 
+# Surface the admin whitelist size at boot: a missing/empty whitelist silently
+# makes nobody an admin (no event creation/management), so make it visible.
+from app.core.admin import admin_whitelist  # noqa: E402
+
+_admin_count = len(admin_whitelist())
+if _admin_count == 0:
+    logger.warning(
+        "Admin whitelist is EMPTY — no user can create or manage events. "
+        "Check admin_whitelist.txt is present (and copied into the image) or set ADMIN_WHITELIST."
+    )
+else:
+    logger.info("Admin whitelist loaded: %d email(s).", _admin_count)
+
 app.include_router(auth_router.router)
 app.include_router(events_router.router)
 app.include_router(posts_router.router)

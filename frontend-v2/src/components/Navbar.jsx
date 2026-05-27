@@ -134,7 +134,7 @@ export default function Navbar() {
                 {t("nav.board")}
               </Button>
               <LocaleSwitcher />
-              {user && (
+              {user?.isAdmin && (
                 <Button
                   startIcon={<AddCircleIcon sx={{ color: "white" }} />}
                   onClick={() => navigate("/events/create")}
@@ -378,9 +378,11 @@ export default function Navbar() {
               <ListItemButton onClick={() => drawerNav("/board?view=groups")}>
                 <ListItemText primary={t("nav.groups")} />
               </ListItemButton>
-              <ListItemButton onClick={() => drawerNav("/events/create")}>
-                <ListItemText primary={t("nav2.createEvent")} />
-              </ListItemButton>
+              {user.isAdmin && (
+                <ListItemButton onClick={() => drawerNav("/events/create")}>
+                  <ListItemText primary={t("nav2.createEvent")} />
+                </ListItemButton>
+              )}
             </List>
             <Divider />
             <List>

@@ -1,5 +1,5 @@
 from datetime import datetime
-from pydantic import BaseModel, EmailStr, Field, ConfigDict
+from pydantic import BaseModel, EmailStr, Field, ConfigDict, model_validator
 
 
 class UserRegister(BaseModel):
@@ -23,8 +23,17 @@ class UserOut(BaseModel):
     department: str | None = None
     avatar_url: str | None = None
     bio: str | None = None
-    is_admin: bool
+    is_admin: bool = False
     created_at: datetime
+
+    @model_validator(mode="after")
+    def _admin_from_whitelist(self):
+        # Admin status is derived from the email whitelist, not the DB column,
+        # so the frontend's `isAdmin` flag reflects admin_whitelist.txt.
+        from app.core.admin import is_admin_email
+
+        self.is_admin = is_admin_email(self.email)
+        return self
 
 
 class TokenResponse(BaseModel):

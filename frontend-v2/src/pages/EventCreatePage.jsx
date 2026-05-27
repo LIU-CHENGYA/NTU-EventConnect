@@ -69,8 +69,15 @@ export default function EventCreatePage() {
 
   if (!ready) return null;
   if (!user) { navigate("/login"); return null; }
-  // Any logged-in user may create an event; for edits the backend enforces
-  // ownership (PATCH returns 403 if the user is not the event's creator).
+  // Only whitelisted admins may create/edit events (admin_whitelist.txt drives
+  // user.isAdmin); the backend POST/PATCH also enforces this.
+  if (!user.isAdmin) {
+    return (
+      <Box sx={{ p: 6, textAlign: "center", bgcolor: tokens.color.bg, minHeight: "calc(100vh - 76px)" }}>
+        <Typography sx={{ fontSize: tokens.fontSize.subtitle, color: tokens.color.textSecondary }}>{t("admin.adminOnly")}</Typography>
+      </Box>
+    );
+  }
   if (loading) return <Box sx={{ p: 6, textAlign: "center" }}>{t("common.loading")}</Box>;
 
   const toggleTag = (tag) =>

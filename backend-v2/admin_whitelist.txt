@@ -1,0 +1,15 @@
+# NTU-EventConnect — Admin whitelist
+#
+# One email per line. Lines starting with "#" are comments; blank lines are
+# ignored; matching is case-insensitive. An email listed here is an admin, and
+# admins are the only accounts allowed to create events ("Create activity").
+# Edit this file to change admins — no database change needed; the affected
+# user just needs to log in again for it to take effect.
+#
+# Security note: register the account FIRST, then add its email here. That way
+# nobody else can register the same email afterwards (it returns "Email already
+# registered"), so the admin identity cannot be claimed by an impostor.
+# (You can also append a temporary comma-separated list via the ADMIN_WHITELIST
+# environment variable.)
+
+coco5747769@gmail.com

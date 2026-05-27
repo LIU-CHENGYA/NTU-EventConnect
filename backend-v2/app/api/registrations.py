@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
+from app.core.admin import is_admin_email
 from app.core.deps import get_current_user
 from app.core.time import session_has_ended
 from app.db.session import get_db
@@ -164,8 +165,11 @@ def event_registrations(
 ):
     """Return all registrations for every session of the given event.
 
-    Only the event's creator (its manager) may view the registration list.
+    Admin-only (admin_whitelist.txt); the ownership check below further limits
+    an admin to the registration lists of events they created.
     """
+    if not is_admin_email(current.email):
+        raise HTTPException(403, "Admin only")
     event = db.get(Event, event_id)
     if not event:
         raise HTTPException(404, "Event not found")

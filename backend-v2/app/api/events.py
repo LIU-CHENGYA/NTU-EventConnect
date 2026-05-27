@@ -5,6 +5,7 @@ from sqlalchemy import or_, func
 from sqlalchemy.orm import Session, selectinload
 from app.models.post import EventBookmark
 
+from app.core.admin import is_admin_email
 from app.core.cache import ttl_cache
 from app.core.deps import get_current_user
 from app.db.session import get_db, SessionLocal
@@ -267,7 +268,11 @@ def managed_events(
     db: Session = Depends(get_db),
     current: User = Depends(get_current_user),
 ):
-    """Events created by the current user (the user manages the events they created)."""
+    """Events the current admin manages (the events they created)."""
+    # Management is admin-only (admin_whitelist.txt); the query below further
+    # restricts to events this admin created.
+    if not is_admin_email(current.email):
+        raise HTTPException(403, "Admin only")
     total = (
         db.query(func.count(Event.id))
         .filter(Event.created_by_user_id == current.id)
@@ -296,9 +301,15 @@ def create_event(
     db: Session = Depends(get_db),
     current: User = Depends(get_current_user),
 ):
-    # Any authenticated user may create an event; the creator becomes its
-    # manager (see ownership checks in update_event / event_registrations).
-    # Generate a unique source_url for user-created events (not scraped from NTU).
+    # Only whitelisted admins may create events (admin_whitelist.txt). The
+    # creator becomes the event's manager; editing it and viewing its
+    # registrations are then gated by ownership (see update_event /
+    # event_registrations), which — since only admins can create — stays
+    # admin-only.
+    if not is_admin_email(current.email):
+        raise HTTPException(403, "Admin only")
+
+    # Generate a unique source_url for admin-created events (not scraped from NTU).
     admin_source_url = f"admin://{uuid.uuid4()}"
 
     event = Event(
@@ -349,6 +360,10 @@ def update_event(
     db: Session = Depends(get_db),
     current: User = Depends(get_current_user),
 ):
+    # Editing is admin-only (admin_whitelist.txt); ownership is enforced below
+    # so a legacy non-admin owner can no longer edit events they created.
+    if not is_admin_email(current.email):
+        raise HTTPException(403, "Admin only")
     event = db.get(Event, event_id)
     if not event:
         raise HTTPException(404, "Event not found")
