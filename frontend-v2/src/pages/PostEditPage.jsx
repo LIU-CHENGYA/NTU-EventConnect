@@ -1,16 +1,17 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
-  Box, Typography, Paper, Button, TextField, RadioGroup, Radio, FormControlLabel, IconButton, Avatar,
+  Box, Typography, Paper, Button, TextField, RadioGroup, Radio, FormControlLabel, IconButton, CircularProgress,
 } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import StarIcon from "@mui/icons-material/Star";
 import StarBorderIcon from "@mui/icons-material/StarBorder";
 import AddPhotoAlternateIcon from "@mui/icons-material/AddPhotoAlternate";
+import CloseIcon from "@mui/icons-material/Close";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import PlaceIcon from "@mui/icons-material/Place";
 import { useTranslation } from "react-i18next";
-import { postsApi, eventsApi } from "../api";
+import { postsApi, eventsApi, uploadsApi } from "../api";
 import { useAuth } from "../context/AuthContext";
 import { tokens } from "../theme";
 
@@ -26,6 +27,9 @@ export default function PostEditPage() {
   const [hoverRating, setHoverRating] = useState(0);
   const [content, setContent] = useState("");
   const [visibility, setVisibility] = useState("public");
+  const [images, setImages] = useState([]);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     if (!ready) return;
@@ -37,6 +41,7 @@ export default function PostEditPage() {
       setRating(p.rating || 0);
       setContent(p.content || "");
       setVisibility(p.visibility || "public");
+      setImages(p.images || []);
       if (p.eventId) {
         const e = await eventsApi.get(p.eventId).catch(() => null);
         if (live) setEvent(e);
@@ -57,15 +62,26 @@ export default function PostEditPage() {
     );
   }
 
+  const handleImageUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = "";
+    setUploading(true);
+    try {
+      const res = await uploadsApi.upload(file);
+      if (res?.url) setImages((prev) => [...prev, res.url]);
+    } catch {
+      alert(t("post.uploadFailed"));
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const handleSave = async () => {
     try {
       // Preserve original group_id when keeping a post as a group post.
-      // Without this, the PATCH payload would lack group_id and the new
-      // PostUpdate validator would 422 (or fall through to backend "Not a
-      // member"). Switching to visibility=group from a non-group post is
-      // not supported here — the group picker lives in BoardPostCreateDialog.
       // Saving from the editor publishes the post (clears any draft state).
-      const payload = { rating, content, visibility, is_draft: false };
+      const payload = { rating, content, visibility, images, is_draft: false };
       if (visibility === "group" && post.groupId) {
         payload.group_id = post.groupId;
       }
@@ -133,32 +149,56 @@ export default function PostEditPage() {
               {t("post.charCount", { n: content.length })}
             </Typography>
 
-            {post.images?.length > 0 && (
+            {images.length > 0 && (
               <Box sx={{ display: "flex", gap: 1.2, mt: 2, flexWrap: "wrap" }}>
-                {post.images.map((img, idx) => (
-                  <Box
-                    key={idx}
-                    component="img"
-                    src={img}
-                    sx={{ width: 110, height: 110, borderRadius: "12px", objectFit: "cover" }}
-                  />
+                {images.map((img, idx) => (
+                  <Box key={idx} sx={{ position: "relative" }}>
+                    <Box
+                      component="img"
+                      src={img}
+                      sx={{ width: 110, height: 110, borderRadius: "12px", objectFit: "cover", display: "block" }}
+                    />
+                    <IconButton
+                      size="small"
+                      onClick={() => setImages((prev) => prev.filter((_, i) => i !== idx))}
+                      sx={{
+                        position: "absolute", top: -8, right: -8,
+                        bgcolor: "rgba(0,0,0,0.6)", color: "#fff",
+                        width: 22, height: 22,
+                        "&:hover": { bgcolor: "rgba(0,0,0,0.85)" },
+                      }}
+                    >
+                      <CloseIcon sx={{ fontSize: 14 }} />
+                    </IconButton>
+                  </Box>
                 ))}
               </Box>
             )}
 
             <Box
+              component="label"
               sx={{
                 border: `2px dashed ${tokens.color.border}`,
                 borderRadius: "12px",
-                p: 2.5, textAlign: "center", cursor: "pointer", mt: 2,
-                bgcolor: tokens.color.bg,
-                "&:hover": { borderColor: tokens.color.navy },
+                p: 2.5, textAlign: "center", cursor: uploading ? "default" : "pointer", mt: 2,
+                bgcolor: tokens.color.bg, display: "block",
+                "&:hover": { borderColor: uploading ? tokens.color.border : tokens.color.navy },
               }}
             >
-              <AddPhotoAlternateIcon sx={{ fontSize: 28, color: tokens.color.placeholder }} />
-              <Typography sx={{ fontSize: tokens.fontSize.body, color: tokens.color.textSecondary }}>
-                {t("post.addImage")}
+              {uploading
+                ? <CircularProgress size={28} />
+                : <AddPhotoAlternateIcon sx={{ fontSize: 28, color: tokens.color.placeholder }} />}
+              <Typography sx={{ fontSize: tokens.fontSize.body, color: tokens.color.textSecondary, mt: 0.5 }}>
+                {uploading ? t("common.uploading", "上傳中...") : t("post.addImage")}
               </Typography>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/gif,image/webp"
+                hidden
+                disabled={uploading}
+                onChange={handleImageUpload}
+              />
             </Box>
 
             <Box sx={{ mt: 2.5, display: "flex", alignItems: "center", gap: 1 }}>
