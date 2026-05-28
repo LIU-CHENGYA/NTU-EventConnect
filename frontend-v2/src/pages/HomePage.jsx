@@ -579,9 +579,12 @@ function Section({
       </Box>
 
       <Box sx={{ display: "flex", alignItems: "center", gap: { xs: 0, md: 1 } }}>
-        {!isMobile && !expandedMode && (
-          <IconButton disabled={!canPrev} onClick={() => setPage(page - 1)}
-            sx={{ color: canPrev ? tokens.color.text : tokens.color.border }}>
+        {!isMobile && (
+          <IconButton
+            disabled={!canPrev || expandedMode}
+            onClick={() => { if (!expandedMode) setPage(page - 1); }}
+            sx={{ color: canPrev && !expandedMode ? tokens.color.text : tokens.color.border, visibility: expandedMode ? "hidden" : "visible" }}
+          >
             <ChevronLeftIcon sx={{ fontSize: 40 }} />
           </IconButton>
         )}
@@ -610,9 +613,12 @@ function Section({
             </Typography>
           )}
         </Box>
-        {!isMobile && !expandedMode && (
-          <IconButton disabled={!canNext} onClick={() => setPage(page + 1)}
-            sx={{ color: canNext ? tokens.color.text : tokens.color.border }}>
+        {!isMobile && (
+          <IconButton
+            disabled={!canNext || expandedMode}
+            onClick={() => { if (!expandedMode) setPage(page + 1); }}
+            sx={{ color: canNext && !expandedMode ? tokens.color.text : tokens.color.border, visibility: expandedMode ? "hidden" : "visible" }}
+          >
             <ChevronRightIcon sx={{ fontSize: 40 }} />
           </IconButton>
         )}
