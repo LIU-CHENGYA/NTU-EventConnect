@@ -20,15 +20,23 @@ export default function PostCard({ post }) {
       }}
       onClick={() => navigate(`/posts/${post.id}`)}
     >
-      {/* Post image */}
-      {post.images?.length > 0 && (
-        <Box
-          component="img"
-          src={post.images[0]}
-          alt="post"
-          sx={{ width: "100%", height: 160, objectFit: "cover" }}
-        />
-      )}
+      {/* Post image — always 160px to keep content aligned across cards */}
+      <Box sx={{
+        width: "100%", height: 160, flexShrink: 0,
+        bgcolor: "#DDE3EE",
+        background: "linear-gradient(135deg, #DDE3EE 0%, #C8D0E0 100%)",
+        overflow: "hidden",
+      }}>
+        {post.images?.length > 0 && (
+          <Box
+            component="img"
+            src={post.images[0]}
+            alt="post"
+            onError={(e) => { e.currentTarget.style.display = "none"; }}
+            sx={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+          />
+        )}
+      </Box>
 
       <CardContent sx={{ p: 2 }}>
         {/* Author */}
