@@ -12,5 +12,11 @@
 # (You can also append a temporary comma-separated list via the ADMIN_WHITELIST
 # environment variable.)
 
-coco5747769@gmail.com,
+coco5747769@gmail.com
 coco5747769@alum.ccu.edu.tw
+jennyxu0569@gmail.com
+angellin7260@gmail.com
+a0900192309@gmail.com
+kuzehiro0802@gmail.com
+b094020046@g-mail.nsysu.edu.tw
+linda62345@gmail.com
