@@ -111,17 +111,17 @@ export default function BoardPostCreateDialog({ open, onClose, onCreated }) {
     }
   };
 
-  const validate = () => {
+  const validate = (asDraft = false) => {
     if (!event) return t("post.selectActivity");
     if (!title.trim()) return t("post.enterTitle");
-    if (!content.trim()) return t("post.enterContent");
+    if (!asDraft && !content.trim()) return t("post.enterContent");
     if (visibility === "group" && !groupId) return t("post.selectGroup");
     return null;
   };
 
   const handleSubmit = async (asDraft = false) => {
     setError("");
-    const v = validate();
+    const v = validate(asDraft);
     if (v) { setError(v); return; }
     setSubmitting(true);
     try {

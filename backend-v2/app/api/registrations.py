@@ -120,6 +120,7 @@ def cancel_registration(
 def my_registrations(
     page: int = Query(1, ge=1),
     size: int = Query(20, ge=1, le=100),
+    lang: str = Query("zh"),
     db: Session = Depends(get_db),
     current: User = Depends(get_current_user),
 ):
@@ -142,10 +143,10 @@ def my_registrations(
             status=reg.status,
             registered_at=reg.registered_at,
             event_id=ev.id if ev else None,
-            event_title=ev.title if ev else None,
+            event_title=(ev.title_en if lang == "en" and ev.title_en else ev.title) if ev else None,
             event_image=ev.image_url if ev else None,
-            category=ev.category if ev else None,
-            official_category=ev.official_category if ev else None,
+            category=(ev.category_en if lang == "en" and ev.category_en else ev.category) if ev else None,
+            official_category=(ev.official_category_en if lang == "en" and ev.official_category_en else ev.official_category) if ev else None,
             session_name=sess.session_name,
             date=sess.date,
             time=sess.time_range,

@@ -50,7 +50,6 @@ export default function PostCreatePage() {
   };
 
   const handleSaveDraft = async () => {
-    if (!content.trim()) return;
     try {
       await postsApi.create({
         event_id: event ? event.id : null,
