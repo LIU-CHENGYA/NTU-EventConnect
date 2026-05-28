@@ -294,15 +294,15 @@ export const usersApi = {
     const { data } = await api.get("/api/users/me/drafts");
     return data.map(mapPost);
   },
-  myRegistrations: () => api.get("/api/users/me/registrations").then((r) =>
+  myRegistrations: () => api.get("/api/users/me/registrations", { params: { lang: currentLang() } }).then((r) =>
     r.data.map((reg) => ({ ...reg, event_image: resolveUrl(reg.event_image) }))
   ),
   myComments: async () => {
-    const { data } = await api.get("/api/users/me/comments");
+    const { data } = await api.get("/api/users/me/comments", { params: { lang: currentLang() } });
     return data.map(mapMyComment);
   },
   managedEvents: async (params = {}) => {
-    const { data } = await api.get("/api/users/me/managed_events", { params });
+    const { data } = await api.get("/api/users/me/managed_events", { params: { lang: currentLang(), ...params } });
     return { ...data, items: (data.items || []).map(mapEvent) };
   },
 };

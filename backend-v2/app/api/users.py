@@ -62,6 +62,7 @@ class MyCommentOut(BaseModel):
 
 @router.get("/me/comments", response_model=list[MyCommentOut])
 def list_my_comments(
+    lang: str = Query("zh"),
     db: Session = Depends(get_db),
     current: User = Depends(get_current_user),
 ):
@@ -91,7 +92,7 @@ def list_my_comments(
                 post_excerpt=(p.content or "")[:80],
                 post_is_board_post=bool(p.is_board_post),
                 post_event_id=p.event_id,
-                post_event_title=e.title if e else None,
+                post_event_title=(e.title_en if lang == "en" and e.title_en else e.title) if e else None,
             )
         )
     return out
@@ -101,6 +102,7 @@ def list_my_comments(
 def my_managed_events(
     page: int = Query(1, ge=1),
     size: int = Query(20),
+    lang: str = Query("zh"),
     db: Session = Depends(get_db),
     current: User = Depends(get_current_user),
 ):
@@ -123,7 +125,7 @@ def my_managed_events(
         .all()
     )
     return EventListResponse(
-        items=[_to_detail(e, "zh") for e in items],
+        items=[_to_detail(e, lang) for e in items],
         total=total,
         page=page,
         size=size,
