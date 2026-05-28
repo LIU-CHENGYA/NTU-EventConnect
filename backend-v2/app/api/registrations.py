@@ -119,7 +119,7 @@ def cancel_registration(
 )
 def my_registrations(
     page: int = Query(1, ge=1),
-    size: int = Query(20, ge=1, le=100),
+    size: int = Query(20, ge=1, le=500),
     lang: str = Query("zh"),
     db: Session = Depends(get_db),
     current: User = Depends(get_current_user),

@@ -140,13 +140,13 @@ export default function ProfilePage() {
     setEditForm({ ...editForm, avatarUrl: previewUrl });
   };
 
-  // sidebar count uses upcoming filter
   const upcomingCount = myRegistrations.filter((r) => r.status === "success" && isUpcoming(r)).length;
+  const joinedCount = myRegistrations.filter((r) => r.status === "success").length;
   const stats = [
-    { label: t("profile.stats.posts"), value: profileStats.post_count },
-    { label: t("profile.stats.joined"), value: profileStats.joined_event_count },
+    { label: t("profile.stats.posts"), value: myPosts.length },
+    { label: t("profile.stats.joined"), value: joinedCount },
     { label: t("profile.stats.upcoming"), value: upcomingCount },
-    { label: t("profile.stats.tags"), value: "" },
+    { label: t("profile.stats.bookmarked"), value: bookmarkedEvents.length },
   ];
 
   const handleSaveEdit = async () => {
