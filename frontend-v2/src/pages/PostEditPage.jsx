@@ -78,11 +78,9 @@ export default function PostEditPage() {
     }
   };
 
-  const handleSave = async () => {
+  const handleSave = async (asDraft = false) => {
     try {
-      // Preserve original group_id when keeping a post as a group post.
-      // Saving from the editor publishes the post (clears any draft state).
-      const payload = { rating, content, visibility, images, is_draft: false };
+      const payload = { rating, content, visibility, images, is_draft: asDraft };
       if (visibility === "group" && post.groupId) {
         payload.group_id = post.groupId;
       }
@@ -92,6 +90,8 @@ export default function PostEditPage() {
       alert(t("post.updateFailed") + ": " + (e?.response?.data?.detail || e.message));
     }
   };
+
+  const isDraft = !!post.is_draft;
 
   // Only let the user pick "僅限群組" if the post was originally a group
   // post (so we can preserve its group_id). Switching public/private → group
@@ -232,9 +232,22 @@ export default function PostEditPage() {
               >
                 {t("common.cancel")}
               </Button>
+              {isDraft && (
+                <Button
+                  variant="outlined"
+                  onClick={() => handleSave(true)}
+                  sx={{
+                    flex: 1, textTransform: "none",
+                    borderRadius: "27px", height: 54, fontSize: tokens.fontSize.body,
+                    borderColor: tokens.color.navy, color: tokens.color.navy,
+                  }}
+                >
+                  {t("common.saveDraft")}
+                </Button>
+              )}
               <Button
                 variant="contained"
-                onClick={handleSave}
+                onClick={() => handleSave(false)}
                 sx={{
                   flex: 1,
                   bgcolor: tokens.color.black, color: "#fff",
@@ -243,7 +256,7 @@ export default function PostEditPage() {
                   "&:hover": { bgcolor: tokens.color.navyDark },
                 }}
               >
-                {t("common.save")}
+                {isDraft ? t("common.publish") : t("common.save")}
               </Button>
             </Box>
           </Paper>
