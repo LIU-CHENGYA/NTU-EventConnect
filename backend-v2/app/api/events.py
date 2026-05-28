@@ -316,8 +316,15 @@ def create_event(
         source_url=admin_source_url,
         title=payload.title,
         content=payload.content,
+        official_category=payload.official_category,
         category=payload.category,
         organizer=payload.organizer,
+        contact_phone=payload.contact_phone,
+        contact_email=payload.contact_email,
+        registration_type=payload.registration_type,
+        registration_fee=payload.registration_fee,
+        target_audience=payload.target_audience,
+        learning_category=payload.learning_category,
         image_url=payload.image_url,
         created_by_user_id=current.id,
     )
@@ -333,15 +340,25 @@ def create_event(
             event_id=event.id,
             source_url=session_source_url,
             session_name=s.session_name,
+            session_content=s.session_content,
             date=s.date,
             time_range=s.time_range,
             location=s.location,
+            instructor=s.instructor,
             capacity=s.capacity,
             remaining_slots=s.capacity,
+            registration_start=s.registration_start,
+            registration_end=s.registration_end,
+            meal=s.meal,
         ))
 
     db.commit()
     db.refresh(event)
+
+    # New event may introduce a new official_category → invalidate so the
+    # category chips update immediately instead of waiting up to 10 min.
+    _categories_cached.invalidate()
+    _tags_cached.invalidate()
 
     # Reload with relationships.
     event = (
@@ -372,7 +389,11 @@ def update_event(
         raise HTTPException(403, "Not your event")
 
     # Apply scalar fields only when explicitly provided.
-    scalar_fields = {"title", "content", "category", "organizer", "image_url"}
+    scalar_fields = {
+        "title", "content", "official_category", "category", "organizer",
+        "contact_phone", "contact_email", "registration_type", "registration_fee",
+        "target_audience", "learning_category", "image_url",
+    }
     for field, value in payload.model_dump(exclude_unset=True).items():
         if field in scalar_fields:
             setattr(event, field, value)
@@ -417,14 +438,23 @@ def update_event(
                     event_id=event_id,
                     source_url=session_source_url,
                     session_name=s.session_name,
+                    session_content=s.session_content,
                     date=s.date,
                     time_range=s.time_range,
                     location=s.location,
+                    instructor=s.instructor,
                     capacity=new_capacity,
                     remaining_slots=new_capacity,
+                    registration_start=s.registration_start,
+                    registration_end=s.registration_end,
+                    meal=s.meal,
                 ))
 
     db.commit()
+
+    # Category or tags may have changed → invalidate caches immediately.
+    _categories_cached.invalidate()
+    _tags_cached.invalidate()
 
     # Reload with relationships.
     event = (

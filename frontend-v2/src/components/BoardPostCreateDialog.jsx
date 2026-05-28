@@ -105,8 +105,9 @@ export default function BoardPostCreateDialog({ open, onClose, onCreated }) {
     try {
       const res = await uploadsApi.upload(file);
       if (res?.url) setImages([...images, res.url]);
-    } catch {
-      setError(t("post.uploadFailed"));
+    } catch (err) {
+      const detail = err?.response?.data?.detail;
+      setError(detail ? `${t("post.uploadFailed")}: ${detail}` : t("post.uploadFailed"));
     }
   };
 

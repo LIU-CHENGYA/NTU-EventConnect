@@ -123,6 +123,10 @@ def me(current: User = Depends(get_current_user)):
 @router.post("/forgot-password")
 def forgot_password(payload: ForgotPasswordRequest, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.email == payload.email).first()
+    # SSO-only accounts have an empty password_hash — tell the user explicitly
+    # so they know to click "以 Google 登入" instead.
+    if user and (user.password_hash or "") == "":
+        raise HTTPException(400, "sso_account")
     if user:
         token = secrets.token_urlsafe(32)
         user.reset_token = token
@@ -132,9 +136,8 @@ def forgot_password(payload: ForgotPasswordRequest, db: Session = Depends(get_db
             from app.core.email import send_reset_email
             send_reset_email(user.email, token)
         except Exception as e:
-            # Don't expose email failures to the client; log for ops.
             log.error("[forgot-password] Failed to send reset email to %s: %s", user.email, e)
-    # Always return the same message to avoid revealing whether an email exists.
+    # Non-existent emails return the same 200 to avoid enumeration.
     return {"message": "如果此 Email 已註冊，重設連結已寄出"}
 
 
@@ -144,6 +147,12 @@ def reset_password(payload: ResetPasswordRequest, db: Session = Depends(get_db))
     now = datetime.now(timezone.utc)
     if not user or not user.reset_token_expires or user.reset_token_expires.replace(tzinfo=timezone.utc) < now:
         raise HTTPException(status_code=400, detail="Token 無效或已過期")
+    # Prevent resetting password for SSO-only accounts. If a user was created
+    # via Google SSO their `password_hash` is empty and password login is
+    # intentionally disabled.
+    if (user.password_hash or "") == "":
+        raise HTTPException(status_code=400, detail="此帳號由第三方登入建立，無法從此路徑重設密碼")
+
     user.password_hash = hash_password(payload.new_password)
     user.reset_token = None
     user.reset_token_expires = None

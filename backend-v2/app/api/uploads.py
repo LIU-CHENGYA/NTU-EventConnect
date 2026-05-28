@@ -35,23 +35,18 @@ async def upload_image(
     file: UploadFile = File(...),
     current: User = Depends(get_current_user),
 ):
-    ext = Path(file.filename or "").suffix.lower()
-    if ext == ".jpeg":
-        ext = ".jpg"
-    if ext not in ALLOWED_EXT:
-        raise HTTPException(400, f"File type {ext} not allowed")
-
     data = await file.read()
     if not data:
         raise HTTPException(400, "Empty file")
     if len(data) > MAX_BYTES:
         raise HTTPException(400, "File too large (max 5MB)")
 
+    # Validate by magic bytes only — the client-provided filename/extension is
+    # ignored for security and to tolerate images renamed or saved with the wrong
+    # extension (e.g. a WebP downloaded as .jpg, or a PNG screenshot named .jpg).
     sniffed = _sniff_image(data)
     if sniffed is None:
-        raise HTTPException(400, "File content is not a recognised image")
-    if ext != sniffed:
-        raise HTTPException(400, "File extension does not match file content")
+        raise HTTPException(400, "File content is not a recognised image (supported: jpg, png, gif, webp)")
 
     # Filename is fully generated; user input never reaches the path → no traversal.
     name = f"{secrets.token_hex(16)}{sniffed}"
