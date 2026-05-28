@@ -294,7 +294,7 @@ export const usersApi = {
     const { data } = await api.get("/api/users/me/drafts");
     return data.map(mapPost);
   },
-  myRegistrations: () => api.get("/api/users/me/registrations", { params: { lang: currentLang(), size: 200 } }).then((r) =>
+  myRegistrations: () => api.get("/api/users/me/registrations", { params: { lang: currentLang() } }).then((r) =>
     r.data.map((reg) => ({ ...reg, event_image: resolveUrl(reg.event_image) }))
   ),
   myComments: async () => {
