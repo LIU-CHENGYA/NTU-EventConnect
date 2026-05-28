@@ -113,7 +113,7 @@ export default function BoardPostCreateDialog({ open, onClose, onCreated }) {
 
   const validate = (asDraft = false) => {
     if (!event) return t("post.selectActivity");
-    if (!asDraft && !title.trim()) return t("post.enterTitle");
+    if (!title.trim()) return t("post.enterTitle");
     if (!asDraft && !content.trim()) return t("post.enterContent");
     if (visibility === "group" && !groupId) return t("post.selectGroup");
     return null;

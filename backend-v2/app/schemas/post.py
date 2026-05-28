@@ -22,6 +22,8 @@ class PostCreate(BaseModel):
             raise ValueError("group_id is required when visibility=group")
         if self.is_board_post and self.event_id is None:
             raise ValueError("Board posts must link to an event")
+        if not (self.title or "").strip():
+            raise ValueError("title is required")
         if not self.is_draft and not (self.content or "").strip():
             raise ValueError("content is required when publishing")
         return self
