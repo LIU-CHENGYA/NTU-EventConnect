@@ -66,12 +66,19 @@ export default function EventCard({
       }}
     >
       {/* Image */}
-      <Box sx={{ position: "relative", height: 150 }}>
-        <img
-          src={event.image || "https://images.unsplash.com/photo-1523050854058-8df90110c476?w=800"}
-          alt={event.title}
-          style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
-        />
+      <Box sx={{
+        position: "relative", height: 150, flexShrink: 0,
+        bgcolor: "#DDE3EE",
+        background: "linear-gradient(135deg, #DDE3EE 0%, #C8D0E0 100%)",
+      }}>
+        {event.image && (
+          <img
+            src={event.image}
+            alt={event.title}
+            onError={(e) => { e.currentTarget.style.display = "none"; }}
+            style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+          />
+        )}
         {/* Heart top-left */}
         {user && showBookmark && (
           <IconButton
