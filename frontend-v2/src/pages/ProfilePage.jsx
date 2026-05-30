@@ -425,7 +425,7 @@ export default function ProfilePage() {
 
           {/* Tab 0 — 我的留言 (myPosts) */}
           {tab === 0 && (
-            <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2,1fr)", md: "repeat(3,1fr)" }, gap: 2.5 }}>
+            <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2,1fr)", md: "repeat(3,1fr)" }, gap: 2.5, alignItems: 'start' }}>
               {myPosts.map((p) => <PostCard key={p.id} post={p} />)}
               {myPosts.length === 0 && (
                 <Typography sx={{ textAlign: "center", color: "#999", gridColumn: "1/-1", py: 4 }}>{t("profile.empty.noPosts", "尚無留言")}</Typography>
@@ -459,7 +459,7 @@ export default function ProfilePage() {
               <Typography sx={{ fontFamily: tokens.font.base, fontSize: tokens.fontSize.subtitle, fontWeight: 700, mb: 1.5 }}>
                 {t("profile.sections.upcoming", "即將到來")}
               </Typography>
-              <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2,1fr)", md: "repeat(3,1fr)" }, gap: 2.5, mb: 3 }}>
+              <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2,1fr)", md: "repeat(3,1fr)" }, gap: 2.5, mb: 3, alignItems: 'start' }}>
                 {upcomingRegs.length > 0
                   ? upcomingRegs.map(renderRegCard)
                   : <Typography sx={{ color: "#999", gridColumn: "1/-1", py: 2 }}>{t("profile.empty.noRegistrations")}</Typography>}
@@ -469,7 +469,7 @@ export default function ProfilePage() {
               <Typography sx={{ fontFamily: tokens.font.base, fontSize: tokens.fontSize.subtitle, fontWeight: 700, mb: 1.5 }}>
                 {t("profile.sections.ended", "已結束")}
               </Typography>
-              <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2,1fr)", md: "repeat(3,1fr)" }, gap: 2.5 }}>
+              <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2,1fr)", md: "repeat(3,1fr)" }, gap: 2.5, alignItems: 'start' }}>
                 {pastRegs.length > 0
                   ? pastRegs.map(renderRegCard)
                   : <Typography sx={{ color: "#999", gridColumn: "1/-1", py: 2 }}>{t("profile.empty.noRegistrations")}</Typography>}
@@ -479,7 +479,7 @@ export default function ProfilePage() {
 
           {/* Tab 2 — 收藏留言 (bookmarkedPosts) */}
           {tab === 2 && (
-            <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2,1fr)", md: "repeat(3,1fr)" }, gap: 2.5 }}>
+            <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2,1fr)", md: "repeat(3,1fr)" }, gap: 2.5, alignItems: 'start' }}>
               {bookmarkedPosts.map((p) => <PostCard key={p.id} post={p} />)}
               {bookmarkedPosts.length === 0 && (
                 <Typography sx={{ textAlign: "center", color: "#999", gridColumn: "1/-1", py: 4 }}>{t("profile.empty.noBookmarkedPosts")}</Typography>
@@ -489,7 +489,7 @@ export default function ProfilePage() {
 
           {/* Tab 3 — 收藏活動 (bookmarkedEvents) */}
           {tab === 3 && (
-            <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2,1fr)", md: "repeat(3,1fr)" }, gap: 2.5 }}>
+            <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2,1fr)", md: "repeat(3,1fr)" }, gap: 2.5, alignItems: 'start' }}>
               {bookmarkedEvents.map((e) => {
                 const sessionId = e._bookmarkedSessionId ?? 0;
                 return (
