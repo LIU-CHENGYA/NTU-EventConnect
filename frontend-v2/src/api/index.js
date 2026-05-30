@@ -15,7 +15,7 @@ function mapEvent(e) {
   if (!e) return e;
   const firstSession = (e.sessions && e.sessions[0]) || {};
   const mealText = (firstSession.meal || "").trim();
-  const mealProvided = !!mealText && !/不提供|無|沒有|none|no meal/i.test(mealText);
+  const mealProvided = !!mealText && mealText !== "不提供";
   return {
     id: e.id,
     title: e.title,
