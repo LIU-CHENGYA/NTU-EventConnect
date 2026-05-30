@@ -36,7 +36,7 @@ export default function Navbar() {
   const NOTIF_SEEN_KEY = "ntu_notif_last_seen";
   const totalNotifs = upcomingRegs.length + groupPosts.length;
   const lastSeen = parseInt(localStorage.getItem(NOTIF_SEEN_KEY) || "0", 10);
-  const badgeCount = totalNotifs > lastSeen ? totalNotifs : 0;
+  const badgeCount = totalNotifs > lastSeen ? totalNotifs - lastSeen : 0;
 
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
