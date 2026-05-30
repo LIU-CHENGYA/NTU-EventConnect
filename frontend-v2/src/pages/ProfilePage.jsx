@@ -39,7 +39,7 @@ const TAB_KEYS_ADMIN = ["myPosts", "myRegistrations", "bookmarkedPosts", "bookma
 const STATUS_FILTERS = ["all", "success", "waitlist", "cancelled"];
 
 export default function ProfilePage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [selectedFile, setSelectedFile] = useState(null);
   const { user, ready, setUser } = useAuth();
   const navigate = useNavigate();
@@ -87,7 +87,7 @@ export default function ProfilePage() {
         .then((r) => setManagedEvents((r.data.items || []).map(mapEvent)))
         .catch(() => {});
     }
-  }, [user, ready, navigate]);
+  }, [user, ready, navigate, i18n.language]);
 
   if (!ready) return null;
   if (!user) return null;

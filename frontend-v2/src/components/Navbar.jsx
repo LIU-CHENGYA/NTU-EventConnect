@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate, Link, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
@@ -33,32 +33,45 @@ export default function Navbar() {
   const [groupPosts, setGroupPosts] = useState([]);
   const [notifLoading, setNotifLoading] = useState(false);
 
+  const NOTIF_SEEN_KEY = "ntu_notif_last_seen";
+  const totalNotifs = upcomingRegs.length + groupPosts.length;
+  const lastSeen = parseInt(localStorage.getItem(NOTIF_SEEN_KEY) || "0", 10);
+  const badgeCount = totalNotifs > lastSeen ? totalNotifs : 0;
+
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+
+  const loadNotifData = useCallback(async () => {
+    if (!user) return;
+    const [regs, posts] = await Promise.all([
+      usersApi.myRegistrations().catch(() => []),
+      postsApi.list({ visibility: "group", size: 10 }).catch(() => []),
+    ]);
+    const now = new Date();
+    const in7days = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+    const upcoming = regs.filter((r) => {
+      if (!r.date || r.status !== "success") return false;
+      const d = new Date(r.date);
+      return d >= now && d <= in7days;
+    });
+    setUpcomingRegs(upcoming);
+    setGroupPosts(posts.filter((p) => p.userId !== user.id).slice(0, 5));
+  }, [user]);
+
+  // Load on mount so badge appears without clicking first.
+  useEffect(() => { loadNotifData(); }, [loadNotifData]);
 
   const handleBellClick = async (e) => {
     setNotifAnchor(e.currentTarget);
     if (!user) return;
     setNotifLoading(true);
-    try {
-      const [regs, posts] = await Promise.all([
-        usersApi.myRegistrations().catch(() => []),
-        // Group-post notifications: recent posts in the user's groups (by others).
-        postsApi.list({ visibility: "group", size: 10 }).catch(() => []),
-      ]);
-      // Filter upcoming registrations in next 7 days
-      const now = new Date();
-      const in7days = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-      const upcoming = regs.filter((r) => {
-        if (!r.date || r.status !== "success") return false;
-        const d = new Date(r.date);
-        return d >= now && d <= in7days;
-      });
-      setUpcomingRegs(upcoming);
-      setGroupPosts(posts.filter((p) => p.userId !== user.id).slice(0, 5));
-    } finally {
-      setNotifLoading(false);
-    }
+    try { await loadNotifData(); } finally { setNotifLoading(false); }
+  };
+
+  const handleNotifClose = () => {
+    setNotifAnchor(null);
+    // Mark current notifications as seen so badge clears.
+    localStorage.setItem(NOTIF_SEEN_KEY, String(totalNotifs));
   };
 
   const handleLogout = () => {
@@ -194,7 +207,7 @@ export default function Navbar() {
                   {/* Notification bell with popover */}
                   <IconButton onClick={handleBellClick} sx={{ mr: 1 }}>
                     <Badge
-                      badgeContent={upcomingRegs.length + groupPosts.length}
+                      badgeContent={badgeCount}
                       color="error"
                       max={9}
                     >
@@ -204,7 +217,7 @@ export default function Navbar() {
                   <Popover
                     open={Boolean(notifAnchor)}
                     anchorEl={notifAnchor}
-                    onClose={() => setNotifAnchor(null)}
+                    onClose={handleNotifClose}
                     anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
                     transformOrigin={{ vertical: "top", horizontal: "right" }}
                     PaperProps={{ sx: { width: 320, maxHeight: 480, borderRadius: 2 } }}

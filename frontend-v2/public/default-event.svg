@@ -30,17 +30,13 @@
     <circle cx="620" cy="360" r="2" /><circle cx="680" cy="360" r="2" /><circle cx="740" cy="360" r="2" />
   </g>
 
-  <!-- Calendar icon -->
-  <g transform="translate(310, 130)">
-    <!-- Outer rect -->
+  <!-- Calendar icon — centered: x=(800-90)/2=355, y=(450-80-40-22)/2=154 -->
+  <g transform="translate(355, 144)">
     <rect x="0" y="10" width="90" height="80" rx="8" fill="none" stroke="#7ba7ff" stroke-width="3" opacity="0.8"/>
-    <!-- Top bar -->
     <rect x="0" y="10" width="90" height="22" rx="8" fill="#4f7fe8" opacity="0.7"/>
     <rect x="0" y="24" width="90" height="8" fill="#4f7fe8" opacity="0.7"/>
-    <!-- Hooks -->
     <line x1="22" y1="4" x2="22" y2="20" stroke="#7ba7ff" stroke-width="3" stroke-linecap="round"/>
     <line x1="68" y1="4" x2="68" y2="20" stroke="#7ba7ff" stroke-width="3" stroke-linecap="round"/>
-    <!-- Grid lines -->
     <g fill="#7ba7ff" opacity="0.7" font-family="sans-serif" font-size="10" text-anchor="middle">
       <text x="18" y="55">●</text>
       <text x="36" y="55">●</text>
@@ -52,13 +48,9 @@
     </g>
   </g>
 
-  <!-- Main title text -->
-  <text x="400" y="278" font-family="'Helvetica Neue', Arial, sans-serif" font-size="22"
+  <!-- Title -->
+  <text x="400" y="298" font-family="'Helvetica Neue', Arial, sans-serif" font-size="22"
     font-weight="600" fill="#ffffff" opacity="0.85" text-anchor="middle" letter-spacing="2">
     NTU EventConnect
-  </text>
-  <text x="400" y="310" font-family="'Helvetica Neue', Arial, sans-serif" font-size="14"
-    fill="#7ba7ff" opacity="0.75" text-anchor="middle" letter-spacing="1">
-    活動資訊即將公布
   </text>
 </svg>
