@@ -23,4 +23,13 @@ i18n
     },
   });
 
+// Keep <html lang> in sync so native <input type="date"> shows the
+// correct locale placeholder format (e.g. MM/DD/YYYY vs 年/月/日) in Chrome.
+function applyHtmlLang(lng) {
+  document.documentElement.lang = lng.startsWith("en") ? "en" : "zh-TW";
+}
+i18n.on("languageChanged", applyHtmlLang);
+// Also apply immediately (LanguageDetector reads localStorage synchronously).
+if (i18n.language) applyHtmlLang(i18n.language);
+
 export default i18n;

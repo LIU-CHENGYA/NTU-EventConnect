@@ -406,7 +406,6 @@ export default function HomePage() {
               }}>
                 <input
                   type="date"
-                  lang={i18n.language.startsWith("en") ? "en" : "zh-TW"}
                   value={date}
                   onChange={(e) => setDate(e.target.value)}
                   style={{
@@ -424,7 +423,6 @@ export default function HomePage() {
               }}>
                 <input
                   type="date"
-                  lang={i18n.language.startsWith("en") ? "en" : "zh-TW"}
                   value={dateEnd}
                   onChange={(e) => setDateEnd(e.target.value)}
                   style={{
