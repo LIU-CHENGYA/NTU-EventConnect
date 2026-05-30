@@ -16,7 +16,6 @@ import CancelConfirmDialog from "../components/CancelConfirmDialog";
 // Filter values are canonical English keys; display labels come from i18n
 // (event.statusFilter.*). Backend `Registration.status` is already English.
 const STATUS_FILTERS = ["all", "success", "waitlist", "cancelled"];
-const FALLBACK_IMG = "https://images.unsplash.com/photo-1511795409834-ef04bbd61622?w=400";
 
 export default function RegistrationRecordPage() {
   const { t } = useTranslation();
@@ -126,7 +125,8 @@ export default function RegistrationRecordPage() {
               >
                 <Box
                   component="img"
-                  src={FALLBACK_IMG}
+                  src={reg.event_image || "/default-event.svg"}
+                  onError={(e) => { e.currentTarget.src = "/default-event.svg"; }}
                   sx={{ width: 72, height: 72, borderRadius: "12px", objectFit: "cover", mr: 2 }}
                 />
                 <Box sx={{ flex: 1 }}>
@@ -228,7 +228,7 @@ export default function RegistrationRecordPage() {
         event={pendingCancel ? {
           title: pendingCancel.event_title,
           sessionName: pendingCancel.session_name,
-          image: pendingCancel.event_image || FALLBACK_IMG,
+          image: pendingCancel.event_image || "/default-event.svg",
           date: pendingCancel.date,
           location: pendingCancel.location,
         } : null}
