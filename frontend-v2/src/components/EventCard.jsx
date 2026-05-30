@@ -21,6 +21,7 @@ export default function EventCard({
   favorited = false,
   onToggleFavorite,
   showBookmark = true,
+  sx = {},
 }) {
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
@@ -64,6 +65,7 @@ export default function EventCard({
         flexDirection: "column",
         transition: "transform .15s",
         "&:hover": { transform: "translateY(-2px)" },
+        ...sx,
       }}
     >
       {/* Image */}
