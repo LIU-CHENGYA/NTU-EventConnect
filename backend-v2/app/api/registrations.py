@@ -28,6 +28,13 @@ def register_session(
         raise HTTPException(404, "Session not found")
     if session_has_ended(sess):
         raise HTTPException(409, "Activity already ended; registration not allowed")
+    if sess.registration_start:
+        from datetime import date as _date
+        try:
+            if _date.today() < _date.fromisoformat(sess.registration_start):
+                raise HTTPException(409, "Registration period has not started yet")
+        except ValueError:
+            pass
 
     existing = db.query(Registration).filter(
         Registration.user_id == current.id,

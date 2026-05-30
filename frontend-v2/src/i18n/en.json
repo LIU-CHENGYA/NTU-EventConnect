@@ -98,7 +98,9 @@
       "waitlist": "Waitlist",
       "cancelled": "Cancelled"
     },
-    "emptyList": "No matching activities"
+    "emptyList": "No matching activities",
+    "regNotStarted": "Registration not open yet",
+    "endedBadge": "Ended"
   },
   "cancelDialog": {
     "title": "Cancel this registration?",

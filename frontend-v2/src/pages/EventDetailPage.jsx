@@ -267,7 +267,8 @@ export default function EventDetailPage() {
                 const sessions = event.sessions || [];
                 const hasFuture = eventHasFutureSession(event);
                 const ended = sessions.length > 0 && !hasFuture;
-                const disabled = ended || isRegistered;
+                const regNotStarted = displayRegStart && new Date(displayRegStart + "T00:00:00") > new Date();
+                const disabled = ended || isRegistered || regNotStarted;
                 return (
                   <Button
                     onClick={() => {
@@ -286,7 +287,7 @@ export default function EventDetailPage() {
                       "&.Mui-disabled": { bgcolor: "#9aa0a6", color: "#fffefe" },
                     }}
                   >
-                    {ended ? t("event.endedLabel") : isRegistered ? t("event.registered") : t("event.registerNow")}
+                    {ended ? t("event.endedLabel") : regNotStarted ? t("event.regNotStarted") : isRegistered ? t("event.registered") : t("event.registerNow")}
                   </Button>
                 );
               })()}
