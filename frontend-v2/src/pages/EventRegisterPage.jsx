@@ -76,6 +76,11 @@ export default function EventRegisterPage() {
       );
       return;
     }
+    const studentIdVal = form.studentId.trim();
+    if (studentIdVal && !/^[A-Za-z]\d{8}$/.test(studentIdVal)) {
+      setError("學號格式錯誤：第一碼為英文字母，第二至九碼為數字（共9碼），例：B12345678");
+      return;
+    }
     try {
       await api.post(`/api/sessions/${session.id}/register`);
       const profilePatch = {};
