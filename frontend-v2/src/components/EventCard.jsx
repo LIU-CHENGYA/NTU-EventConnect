@@ -72,14 +72,12 @@ export default function EventCard({
         bgcolor: "#DDE3EE",
         background: "linear-gradient(135deg, #DDE3EE 0%, #C8D0E0 100%)",
       }}>
-        {event.image && (
-          <img
-            src={event.image}
-            alt={event.title}
-            onError={(e) => { e.currentTarget.style.display = "none"; }}
-            style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
-          />
-        )}
+        <img
+          src={event.image || "/default-event.svg"}
+          alt={event.title}
+          onError={(e) => { e.currentTarget.src = "/default-event.svg"; }}
+          style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+        />
         {/* Heart top-left */}
         {user && showBookmark && (
           <IconButton

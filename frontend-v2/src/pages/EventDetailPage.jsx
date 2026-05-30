@@ -131,8 +131,9 @@ export default function EventDetailPage() {
             {/* Main image */}
             <Card sx={{ overflow: "hidden", height: 320 }}>
               <img
-                src={event.image}
+                src={event.image || "/default-event.svg"}
                 alt={event.title}
+                onError={(e) => { e.currentTarget.src = "/default-event.svg"; }}
                 style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
               />
             </Card>

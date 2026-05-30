@@ -23,7 +23,7 @@ function mapEvent(e) {
     activityContent: e.content || "",
     category: e.category || "活動",
     officialCategory: e.official_category || null,
-    image: resolveUrl(e.image_url),
+    image: resolveUrl(e.image_url) || "/default-event.svg",
     organizer: e.organizer || "",
     organizerContact: e.organizer_contact || "",
     contactPhone: e.contact_phone || "",
