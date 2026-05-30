@@ -364,9 +364,11 @@ export default function EventCreatePage() {
                   <TextField size="small" label="講師" value={s.instructor} onChange={(e) => updateSession(idx, "instructor", e.target.value)} sx={fieldSx} />
                 </Box>
                 <Box sx={grid2}>
-                  <TextField size="small" type="date" label={t("admin.date")}
-                    InputLabelProps={{ shrink: true }}
-                    value={s.date} onChange={(e) => updateSession(idx, "date", e.target.value)} sx={fieldSx} />
+                  <Box>
+                    <Typography sx={{ ...labelSx, mb: 0.5 }}>{t("admin.date")}</Typography>
+                    <TextField size="small" type="date" fullWidth
+                      value={s.date} onChange={(e) => updateSession(idx, "date", e.target.value)} sx={fieldSx} />
+                  </Box>
                   <Box>
                     <Typography sx={{ ...labelSx, mb: 0.5 }}>{t("admin.timeRange")}</Typography>
                     <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>

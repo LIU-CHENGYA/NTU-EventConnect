@@ -363,7 +363,7 @@
     "adminOnly": "Admins only",
     "eventTitle": "Activity name",
     "eventContent": "Description",
-    "category": "Category",
+    "category": "Activity type",
     "organizer": "Organizer",
     "image": "Activity image",
     "uploadImage": "Upload image",

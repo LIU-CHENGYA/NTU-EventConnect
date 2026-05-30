@@ -363,7 +363,7 @@
     "adminOnly": "僅限管理員存取",
     "eventTitle": "活動名稱",
     "eventContent": "活動內容",
-    "category": "分類",
+    "category": "活動類型",
     "organizer": "承辦單位",
     "image": "活動圖片",
     "uploadImage": "上傳圖片",
