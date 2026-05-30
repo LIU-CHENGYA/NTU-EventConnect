@@ -46,6 +46,7 @@ export default function EventCard({
   };
 
   const tagsToShow = (event.tags || []).slice(0, 3);
+  const isEnded = event.date && new Date(event.date + "T23:59:59") < new Date();
 
   return (
     <Box
@@ -96,8 +97,27 @@ export default function EventCard({
               : <FavoriteBorderIcon sx={{ color: tokens.color.heart, fontSize: 18 }} />}
           </IconButton>
         )}
+        {/* Ended overlay */}
+        {isEnded && (
+          <Box sx={{
+            position: "absolute", inset: 0,
+            bgcolor: "rgba(0,0,0,0.38)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            zIndex: 1,
+          }}>
+            <Box sx={{
+              bgcolor: "rgba(0,0,0,0.72)", color: "#fff",
+              fontSize: tokens.fontSize.caption, fontWeight: 700,
+              px: 1.5, py: 0.4, borderRadius: "4px",
+              border: "1px solid rgba(255,255,255,0.35)",
+              letterSpacing: "0.5px",
+            }}>
+              {t("event.endedBadge")}
+            </Box>
+          </Box>
+        )}
         {/* Top-right: meal badge + category */}
-        <Box sx={{ position: "absolute", top: 8, right: 8, display: "flex", gap: 0.5 }}>
+        <Box sx={{ position: "absolute", top: 8, right: 8, display: "flex", gap: 0.5, zIndex: 2 }}>
           {event.mealProvided && (
             <Box
               sx={{

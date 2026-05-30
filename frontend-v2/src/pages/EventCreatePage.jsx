@@ -47,6 +47,14 @@ const emptySession = () => ({
   meal: "",
 });
 
+// Split "09:00-12:00" or "09:00 ~ 12:00" into { start, end }
+function parseTimeRange(tr = "") {
+  const sep = tr.includes(" ~ ") ? " ~ " : tr.includes("~") ? "~" : "-";
+  const idx = tr.indexOf(sep);
+  if (idx === -1) return { start: tr.slice(0, 5), end: "" };
+  return { start: tr.slice(0, idx).trim().slice(0, 5), end: tr.slice(idx + sep.length).trim().slice(0, 5) };
+}
+
 export default function EventCreatePage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -356,13 +364,36 @@ export default function EventCreatePage() {
                   <TextField size="small" label="講師" value={s.instructor} onChange={(e) => updateSession(idx, "instructor", e.target.value)} sx={fieldSx} />
                 </Box>
                 <Box sx={grid2}>
-                  <TextField size="small" label={t("admin.date")} placeholder="YYYY-MM-DD" value={s.date} onChange={(e) => updateSession(idx, "date", e.target.value)} sx={fieldSx} />
-                  <TextField size="small" label={t("admin.timeRange")} placeholder="09:00-12:00" value={s.time_range} onChange={(e) => updateSession(idx, "time_range", e.target.value)} sx={fieldSx} />
+                  <TextField size="small" type="date" label={t("admin.date")}
+                    InputLabelProps={{ shrink: true }}
+                    value={s.date} onChange={(e) => updateSession(idx, "date", e.target.value)} sx={fieldSx} />
+                  <Box>
+                    <Typography sx={{ ...labelSx, mb: 0.5 }}>{t("admin.timeRange")}</Typography>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                      <TextField size="small" type="time" InputLabelProps={{ shrink: true }}
+                        value={parseTimeRange(s.time_range).start}
+                        onChange={(e) => {
+                          const { end } = parseTimeRange(s.time_range);
+                          updateSession(idx, "time_range", e.target.value ? `${e.target.value}-${end}` : "");
+                        }} sx={{ ...fieldSx, flex: 1 }} />
+                      <Typography sx={{ color: tokens.color.placeholder }}>~</Typography>
+                      <TextField size="small" type="time" InputLabelProps={{ shrink: true }}
+                        value={parseTimeRange(s.time_range).end}
+                        onChange={(e) => {
+                          const { start } = parseTimeRange(s.time_range);
+                          updateSession(idx, "time_range", e.target.value ? `${start}-${e.target.value}` : "");
+                        }} sx={{ ...fieldSx, flex: 1 }} />
+                    </Box>
+                  </Box>
                 </Box>
                 <TextField size="small" label={t("admin.location")} value={s.location} onChange={(e) => updateSession(idx, "location", e.target.value)} sx={fieldSx} />
                 <Box sx={grid2}>
-                  <TextField size="small" label="報名開始日期" placeholder="YYYY-MM-DD" value={s.registration_start} onChange={(e) => updateSession(idx, "registration_start", e.target.value)} sx={fieldSx} />
-                  <TextField size="small" label="報名截止日期" placeholder="YYYY-MM-DD" value={s.registration_end} onChange={(e) => updateSession(idx, "registration_end", e.target.value)} sx={fieldSx} />
+                  <TextField size="small" type="date" label="報名開始日期"
+                    InputLabelProps={{ shrink: true }}
+                    value={s.registration_start} onChange={(e) => updateSession(idx, "registration_start", e.target.value)} sx={fieldSx} />
+                  <TextField size="small" type="date" label="報名截止日期"
+                    InputLabelProps={{ shrink: true }}
+                    value={s.registration_end} onChange={(e) => updateSession(idx, "registration_end", e.target.value)} sx={fieldSx} />
                 </Box>
                 <Box sx={grid2}>
                   <TextField size="small" type="number" label={t("admin.capacity")} value={s.capacity} onChange={(e) => updateSession(idx, "capacity", e.target.value)} sx={fieldSx} />
