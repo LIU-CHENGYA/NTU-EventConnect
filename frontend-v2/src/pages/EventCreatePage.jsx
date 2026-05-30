@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   Box, Typography, TextField, Button, IconButton, Chip, Paper, Divider, CircularProgress,
+  Select, MenuItem, FormControl, InputLabel,
 } from "@mui/material";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
@@ -37,6 +38,8 @@ function Field({ label, required, children }) {
   );
 }
 
+const MEAL_OPTIONS = ["不提供", "提供午餐", "提供晚餐", "提供早和午餐", "提供午餐和晚餐", "提供三餐"];
+
 const emptySession = () => ({
   id: null,
   session_name: "", session_content: "",
@@ -44,7 +47,7 @@ const emptySession = () => ({
   location: "", instructor: "",
   capacity: 0,
   registration_start: "", registration_end: "",
-  meal: "",
+  meal: "不提供",
 });
 
 // Split "09:00-12:00" or "09:00 ~ 12:00" into { start, end }
@@ -124,7 +127,7 @@ export default function EventCreatePage() {
               capacity: s.capacity ?? 0,
               registration_start: s.registration_start || "",
               registration_end: s.registration_end || "",
-              meal: s.meal || "",
+              meal: MEAL_OPTIONS.includes(s.meal) ? s.meal : "不提供",
             }))
           : [emptySession()]
       );
@@ -399,7 +402,18 @@ export default function EventCreatePage() {
                 </Box>
                 <Box sx={grid2}>
                   <TextField size="small" type="number" label={t("admin.capacity")} value={s.capacity} onChange={(e) => updateSession(idx, "capacity", e.target.value)} sx={fieldSx} />
-                  <TextField size="small" label="餐點" placeholder="例：提供午餐、不提供" value={s.meal} onChange={(e) => updateSession(idx, "meal", e.target.value)} sx={fieldSx} />
+                  <FormControl size="small" fullWidth sx={fieldSx}>
+                    <InputLabel>餐點</InputLabel>
+                    <Select
+                      label="餐點"
+                      value={s.meal || "不提供"}
+                      onChange={(e) => updateSession(idx, "meal", e.target.value)}
+                    >
+                      {MEAL_OPTIONS.map((opt) => (
+                        <MenuItem key={opt} value={opt}>{opt}</MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
                 </Box>
                 <TextField
                   size="small" multiline minRows={2}
