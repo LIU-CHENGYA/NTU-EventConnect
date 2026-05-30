@@ -522,7 +522,7 @@ export default function ProfilePage() {
             <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2,1fr)", md: "repeat(3,1fr)" }, gap: 2.5 }}>
               {managedEvents.map((e) => (
                 <Box key={e.id} sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-                  <EventCard event={e} />
+                  <EventCard event={e} sx={{ flex: 1 }} />
                   <Box sx={{ display: "flex", gap: 1 }}>
                     <Button
                       size="small"
