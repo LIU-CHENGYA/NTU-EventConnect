@@ -13,6 +13,7 @@ from app.models.user import User
 from app.schemas.event import EventDetailOut, EventOut, EventSessionOut
 from app.schemas.post import PostOut
 from app.api.posts import _post_out, _post_out_bulk
+from app.api.events import _to_detail
 
 router = APIRouter(tags=["bookmarks"])
 
@@ -70,6 +71,7 @@ class EventBookmarkItem(BaseModel):
 def my_event_bookmarks(
     page: int = Query(1, ge=1),
     size: int = Query(20, ge=1, le=100),
+    lang: str = Query("zh"),
     db: Session = Depends(get_db),
     current: User = Depends(get_current_user),
 ):
@@ -85,11 +87,7 @@ def my_event_bookmarks(
     )
     result = []
     for bm, e in rows:
-        event_detail = EventDetailOut(
-            **EventOut.model_validate(e).model_dump(),
-            sessions=[EventSessionOut.model_validate(s) for s in (e.sessions or [])],
-        )
-        result.append(EventBookmarkItem(bookmarked_session_id=bm.session_id, event=event_detail))
+        result.append(EventBookmarkItem(bookmarked_session_id=bm.session_id, event=_to_detail(e, lang)))
     return result
 
 
@@ -97,6 +95,7 @@ def my_event_bookmarks(
 def my_post_bookmarks(
     page: int = Query(1, ge=1),
     size: int = Query(20, ge=1, le=100),
+    lang: str = Query("zh"),
     db: Session = Depends(get_db),
     current: User = Depends(get_current_user),
 ):
@@ -125,13 +124,14 @@ def my_post_bookmarks(
         .limit(size)
         .all()
     )
-    return _post_out_bulk(db, rows, viewer=current)
+    return _post_out_bulk(db, rows, viewer=current, lang=lang)
 
 
 @router.get("/api/users/me/drafts", response_model=list[PostOut])
 def my_drafts(
     page: int = Query(1, ge=1),
     size: int = Query(20, ge=1, le=100),
+    lang: str = Query("zh"),
     db: Session = Depends(get_db),
     current: User = Depends(get_current_user),
 ):
@@ -144,4 +144,4 @@ def my_drafts(
         .limit(size)
         .all()
     )
-    return _post_out_bulk(db, rows, viewer=current)
+    return _post_out_bulk(db, rows, viewer=current, lang=lang)

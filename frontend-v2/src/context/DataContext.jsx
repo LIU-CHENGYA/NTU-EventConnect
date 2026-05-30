@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { bookmarksApi, usersApi } from "../api";
 import { useAuth } from "./AuthContext";
 
@@ -6,6 +7,7 @@ const DataContext = createContext(null);
 
 export function DataProvider({ children }) {
   const { user, ready } = useAuth();
+  const { i18n } = useTranslation();
   // Keys are "${eventId}-${sessionId}" where sessionId=0 means whole-event.
   const [bookmarkedEventKeys, setBookmarkedEventKeys] = useState(new Set());
   const [bookmarkedPostIds, setBookmarkedPostIds] = useState(new Set());
@@ -35,7 +37,7 @@ export function DataProvider({ children }) {
       // eslint-disable-next-line no-console
       console.error("[DataContext] refreshUserData failed:", err);
     }
-  }, [user]);
+  }, [user, i18n.language]);
 
   useEffect(() => {
     // Wait for AuthProvider to finish restoring session — otherwise we'd

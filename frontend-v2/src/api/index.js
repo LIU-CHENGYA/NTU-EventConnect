@@ -242,7 +242,7 @@ export const boardApi = {
 
 export const bookmarksApi = {
   myEvents: async () => {
-    const { data } = await api.get("/api/users/me/bookmarks/events");
+    const { data } = await api.get("/api/users/me/bookmarks/events", { params: { lang: currentLang() } });
     // Each item: { bookmarked_session_id, event }. Map to a flat event object
     // with _bookmarkedSessionId so callers can display the right session.
     return data.map(({ bookmarked_session_id, event }) => {
@@ -262,7 +262,7 @@ export const bookmarksApi = {
     });
   },
   myPosts: async () => {
-    const { data } = await api.get("/api/users/me/bookmarks/posts");
+    const { data } = await api.get("/api/users/me/bookmarks/posts", { params: { lang: currentLang() } });
     return data.map(mapPost);
   },
   // session_id = 0 means whole-event bookmark; non-zero = specific session.
@@ -291,7 +291,7 @@ export const usersApi = {
   get: (id) => api.get(`/api/users/${id}`).then((r) => mapUser(r.data)),
   updateMe: (payload) => api.patch("/api/users/me", payload).then((r) => mapUser(r.data)),
   myDrafts: async () => {
-    const { data } = await api.get("/api/users/me/drafts");
+    const { data } = await api.get("/api/users/me/drafts", { params: { lang: currentLang() } });
     return data.map(mapPost);
   },
   myRegistrations: () => api.get("/api/users/me/registrations", { params: { lang: currentLang() } }).then((r) =>
