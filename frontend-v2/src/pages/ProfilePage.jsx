@@ -459,7 +459,7 @@ export default function ProfilePage() {
               <Typography sx={{ fontFamily: tokens.font.base, fontSize: tokens.fontSize.subtitle, fontWeight: 700, mb: 1.5 }}>
                 {t("profile.sections.upcoming", "即將到來")}
               </Typography>
-              <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2,1fr)", md: "repeat(3,1fr)" }, gap: 2.5, mb: 3, alignItems: 'start' }}>
+              <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2,1fr)", md: "repeat(3,1fr)" }, gap: 2.5, mb: 3 }}>
                 {upcomingRegs.length > 0
                   ? upcomingRegs.map(renderRegCard)
                   : <Typography sx={{ color: "#999", gridColumn: "1/-1", py: 2 }}>{t("profile.empty.noRegistrations")}</Typography>}
@@ -469,7 +469,7 @@ export default function ProfilePage() {
               <Typography sx={{ fontFamily: tokens.font.base, fontSize: tokens.fontSize.subtitle, fontWeight: 700, mb: 1.5 }}>
                 {t("profile.sections.ended", "已結束")}
               </Typography>
-              <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2,1fr)", md: "repeat(3,1fr)" }, gap: 2.5, alignItems: 'start' }}>
+              <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2,1fr)", md: "repeat(3,1fr)" }, gap: 2.5 }}>
                 {pastRegs.length > 0
                   ? pastRegs.map(renderRegCard)
                   : <Typography sx={{ color: "#999", gridColumn: "1/-1", py: 2 }}>{t("profile.empty.noRegistrations")}</Typography>}
@@ -489,7 +489,7 @@ export default function ProfilePage() {
 
           {/* Tab 3 — 收藏活動 (bookmarkedEvents) */}
           {tab === 3 && (
-            <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2,1fr)", md: "repeat(3,1fr)" }, gap: 2.5, alignItems: 'start' }}>
+            <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2,1fr)", md: "repeat(3,1fr)" }, gap: 2.5 }}>
               {bookmarkedEvents.map((e) => {
                 const sessionId = e._bookmarkedSessionId ?? 0;
                 return (
