@@ -23,7 +23,7 @@ function mapEvent(e) {
     activityContent: e.content || "",
     category: e.category || "活動",
     officialCategory: e.official_category || null,
-    image: resolveUrl(e.image_url),
+    image: resolveUrl(e.image_url) || "/default-event.svg",
     organizer: e.organizer || "",
     organizerContact: e.organizer_contact || "",
     contactPhone: e.contact_phone || "",
@@ -209,7 +209,7 @@ export const eventsApi = {
 
 export const postsApi = {
   list: async (params = {}) => {
-    const { data } = await api.get("/api/posts", { params });
+    const { data } = await api.get("/api/posts", { params: { lang: currentLang(), ...params } });
     return data.map(mapPost);
   },
   get: async (id) => {

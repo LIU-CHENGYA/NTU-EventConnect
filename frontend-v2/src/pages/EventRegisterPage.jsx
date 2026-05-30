@@ -158,7 +158,8 @@ export default function EventRegisterPage() {
               <Box sx={{ display: "flex", gap: 2.5, alignItems: "center" }}>
                 <Box
                   component="img"
-                  src={event.image}
+                  src={event.image || "/default-event.svg"}
+                  onError={(e) => { e.currentTarget.src = "/default-event.svg"; }}
                   sx={{ width: 96, height: 96, borderRadius: "12px", objectFit: "cover" }}
                 />
                 <Box sx={{ flex: 1 }}>

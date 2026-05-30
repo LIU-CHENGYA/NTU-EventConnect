@@ -78,11 +78,11 @@ def _user_attended_ended(db: Session, user: User, event_id: int) -> bool:
     return False
 
 
-def _post_out(db: Session, p: Post, viewer: User | None = None) -> PostOut:
-    return _post_out_bulk(db, [p], viewer=viewer)[0]
+def _post_out(db: Session, p: Post, viewer: User | None = None, lang: str = "zh") -> PostOut:
+    return _post_out_bulk(db, [p], viewer=viewer, lang=lang)[0]
 
 
-def _post_out_bulk(db: Session, posts: list[Post], viewer: User | None = None) -> list[PostOut]:
+def _post_out_bulk(db: Session, posts: list[Post], viewer: User | None = None, lang: str = "zh") -> list[PostOut]:
     """Build PostOut for a list of posts with O(1) extra queries instead of O(N)."""
     if not posts:
         return []
@@ -140,8 +140,8 @@ def _post_out_bulk(db: Session, posts: list[Post], viewer: User | None = None) -
         out.user_avatar = _user_avatar(p.user)
         if p.event_id:
             ev = events.get(p.event_id)
-            out.event_title = ev.title if ev else None
-            out.event_official_category = ev.official_category if ev else None
+            out.event_title = (ev.title_en if lang == "en" and ev.title_en else ev.title) if ev else None
+            out.event_official_category = (ev.official_category_en if lang == "en" and ev.official_category_en else ev.official_category) if ev else None
         if p.group_id:
             g = groups.get(p.group_id)
             out.group_name = g.name if g else None
@@ -185,6 +185,7 @@ def list_posts(
     tab: str | None = Query(None, pattern="^(all|hot|new|mine|bookmarked|private)$"),
     page: int = Query(1, ge=1),
     size: int = Query(20, ge=1, le=100),
+    lang: str = Query("zh"),
     db: Session = Depends(get_db),
     current: User | None = Depends(get_current_user_optional),
 ):
@@ -284,7 +285,7 @@ def list_posts(
         q = q.order_by(Post.id.desc())
 
     rows = q.offset((page - 1) * size).limit(size).all()
-    return _post_out_bulk(db, rows, viewer=current)
+    return _post_out_bulk(db, rows, viewer=current, lang=lang)
 
 
 # ---------- create ----------

@@ -33,7 +33,8 @@ function endedAttendedEvents(regs) {
 }
 
 export default function BoardPostCreateDialog({ open, onClose, onCreated }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isEn = i18n.language.startsWith("en");
   const { refreshUserData } = useData();
   const [registrations, setRegistrations] = useState([]);
   const [groups, setGroups] = useState([]);
@@ -70,11 +71,11 @@ export default function BoardPostCreateDialog({ open, onClose, onCreated }) {
     });
     const map = {};
     for (const r of filtered) {
-      const cat = r.category || "其他";
+      const cat = r.category || t("event.otherCategory");
       (map[cat] = map[cat] || []).push(r);
     }
     return map;
-  }, [registrations, eventSearch]);
+  }, [registrations, eventSearch, i18n.language]);
 
   const filteredGroups = useMemo(() => {
     const q = groupSearch.trim().toLowerCase();
@@ -88,7 +89,7 @@ export default function BoardPostCreateDialog({ open, onClose, onCreated }) {
       event_title: reg.event_title,
       session_name: reg.session_name,
       date: reg.date,
-      category: reg.category || "活動",
+      category: reg.category || t("event.defaultCategory"),
       image: reg.event_image,
     });
     setEventAnchor(null);
@@ -274,7 +275,7 @@ export default function BoardPostCreateDialog({ open, onClose, onCreated }) {
                 <Typography sx={{ fontSize: tokens.fontSize.caption, color: tokens.color.textSecondary, mt: 0.4 }}>
                   {formatDate(event.date)}
                 </Typography>
-                {event.session_name && (
+                {!isEn && event.session_name && (
                   <Typography sx={{ fontSize: tokens.fontSize.caption, color: tokens.color.textSecondary }}>
                     {event.session_name}
                   </Typography>
@@ -437,10 +438,10 @@ export default function BoardPostCreateDialog({ open, onClose, onCreated }) {
                           fontSize: tokens.fontSize.caption, fontWeight: 700, px: 0.6, py: "1px",
                           bgcolor: "#E8EFFF", color: NAVY, borderRadius: 0.5,
                         }}>
-                          {r.category || "活動"}
+                          {r.category || t("event.defaultCategory")}
                         </Box>
                         <Typography sx={{ fontSize: tokens.fontSize.caption, color: tokens.color.textSecondary }}>
-                          {r.session_name && `${r.session_name} • `}{formatDate(r.date)}
+                          {!isEn && r.session_name && `${r.session_name} • `}{formatDate(r.date)}
                         </Typography>
                         <Box sx={{
                           fontSize: tokens.fontSize.caption, fontWeight: 700, px: 0.6, py: "1px",
