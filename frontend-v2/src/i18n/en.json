@@ -100,7 +100,9 @@
     },
     "emptyList": "No matching activities",
     "regNotStarted": "Registration not open yet",
-    "endedBadge": "Ended"
+    "endedBadge": "Ended",
+    "defaultCategory": "Activity",
+    "otherCategory": "Other"
   },
   "cancelDialog": {
     "title": "Cancel this registration?",

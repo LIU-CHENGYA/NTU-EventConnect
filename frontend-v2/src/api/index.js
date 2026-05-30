@@ -209,7 +209,7 @@ export const eventsApi = {
 
 export const postsApi = {
   list: async (params = {}) => {
-    const { data } = await api.get("/api/posts", { params });
+    const { data } = await api.get("/api/posts", { params: { lang: currentLang(), ...params } });
     return data.map(mapPost);
   },
   get: async (id) => {

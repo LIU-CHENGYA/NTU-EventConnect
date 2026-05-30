@@ -100,7 +100,9 @@
     },
     "emptyList": "沒有符合條件的活動",
     "regNotStarted": "尚未開放報名",
-    "endedBadge": "已結束"
+    "endedBadge": "已結束",
+    "defaultCategory": "活動",
+    "otherCategory": "其他"
   },
   "cancelDialog": {
     "title": "確定要取消報名嗎？",
