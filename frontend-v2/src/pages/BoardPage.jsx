@@ -99,14 +99,14 @@ export default function BoardPage() {
   const clearKeyword = () => setKeyword("");
 
   useEffect(() => { reload(); /* eslint-disable-next-line */ },
-    [sidebarTab, activeGroupId, activeTab, keyword, selectedCategory, selectedTag]);
+    [sidebarTab, activeGroupId, activeTab, keyword, selectedCategory, selectedTag, i18n.language]);
 
   useEffect(() => {
     boardApi.hot({ size: 5 }).then(setHotWeekly).catch(() => setHotWeekly([]));
     if (user) groupsApi.listMine().then(setGroups).catch(() => setGroups([]));
     eventsApi.categories().then((rows) => setCategoryOptions(rows.map((r) => r.name))).catch(() => {});
     eventsApi.tags().then((rows) => setTagOptions(rows.map((r) => r.name))).catch(() => {});
-  }, [user]);
+  }, [user, i18n.language]);
 
   // When arriving via "My Groups" (/board?view=groups), focus the user's groups
   // by auto-selecting their first group instead of the default all-posts view.
