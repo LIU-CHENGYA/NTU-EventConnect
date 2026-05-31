@@ -50,6 +50,7 @@ export default function HomePage() {
   const [activeTab, setActiveTab] = useState(officialCategoryParam ? "official" : "all");
   const [selectedCategory, setSelectedCategory] = useState(officialCategoryParam);
   const [selectedTags, setSelectedTags] = useState([]);
+  const [upcomingOnly, setUpcomingOnly] = useState(false);
   const [keyword, setKeyword] = useState(searchQuery);
   const [date, setDate] = useState("");
   const [dateEnd, setDateEnd] = useState("");
@@ -95,7 +96,7 @@ export default function HomePage() {
   const hasPartialDateRange = !!(date || dateEnd) && !hasDateRange;
 
   // Derived: is any search/filter active?
-  const hasFilter = !!(keyword.trim() || hasDateRange || selectedTags.length > 0 || selectedCategory || activeTab !== "all");
+  const hasFilter = !!(keyword.trim() || hasDateRange || selectedTags.length > 0 || upcomingOnly || selectedCategory || activeTab !== "all");
 
   // sync external ?search= → keyword
   useEffect(() => { setKeyword(searchQuery); }, [searchQuery]);
@@ -111,7 +112,7 @@ export default function HomePage() {
   // Reset to page 1 when filters change
   useEffect(() => {
     setListPage(1);
-  }, [activeTab, selectedCategory, JSON.stringify(selectedTags), keyword, date, dateEnd]);
+  }, [activeTab, selectedCategory, JSON.stringify(selectedTags), upcomingOnly, keyword, date, dateEnd]);
 
   // Build query params from current filter state
   const buildQuery = () => {
@@ -136,6 +137,8 @@ export default function HomePage() {
     if (hasDateRange) {
       params.date = date;
       params.date_to = dateEnd;
+    } else if (upcomingOnly && activeTab === "tags") {
+      params.date = new Date().toISOString().slice(0, 10);
     }
     return params;
   };
@@ -156,7 +159,7 @@ export default function HomePage() {
       .catch(() => { if (live) setListData({ items: [], total: 0 }); });
     return () => { live = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab, selectedCategory, JSON.stringify(selectedTags), keyword, date, dateEnd, listPage, i18n.language]);
+  }, [activeTab, selectedCategory, JSON.stringify(selectedTags), upcomingOnly, keyword, date, dateEnd, listPage, i18n.language]);
 
   // Hot
   useEffect(() => {
@@ -254,7 +257,7 @@ export default function HomePage() {
                 onClick={() => {
                   setActiveTab(tab.id);
                   if (tab.id !== "official") setSelectedCategory("");
-                  if (tab.id !== "tags") setSelectedTags([]);
+                  if (tab.id !== "tags") { setSelectedTags([]); setUpcomingOnly(false); }
                 }}
                 sx={{
                   px: 1.6,
@@ -347,10 +350,16 @@ export default function HomePage() {
             ) : (
               <>
                 <Chip
-                  active={selectedTags.length === 0}
-                  onClick={() => setSelectedTags([])}
+                  active={selectedTags.length === 0 && !upcomingOnly}
+                  onClick={() => { setSelectedTags([]); setUpcomingOnly(false); }}
                 >
                   {t("filter.anyTag")}
+                </Chip>
+                <Chip
+                  active={upcomingOnly}
+                  onClick={() => setUpcomingOnly((v) => !v)}
+                >
+                  {t("filter.upcoming")}
                 </Chip>
                 {tagOptions.map((opt) => {
                   const label = translateTag(opt, i18n.language);
