@@ -7,6 +7,12 @@ import {
 import AddCircleIcon from "@mui/icons-material/AddCircle";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import AddPhotoAlternateIcon from "@mui/icons-material/AddPhotoAlternate";
+import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
+import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
+import { DatePicker } from "@mui/x-date-pickers/DatePicker";
+import { TimePicker } from "@mui/x-date-pickers/TimePicker";
+import { enUS, zhTW } from "date-fns/locale";
+import { format as formatFn, parseISO } from "date-fns";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../context/AuthContext";
 import { eventsApi, uploadsApi, resolveUrl } from "../api";
@@ -59,8 +65,28 @@ function parseTimeRange(tr = "") {
   return { start: tr.slice(0, idx).trim().slice(0, 5), end: tr.slice(idx + sep.length).trim().slice(0, 5) };
 }
 
+// MUI X pickers replace native <input type=date/time> whose calendar/clock
+// icons render differently across Chrome and Safari. State stays as the same
+// "yyyy-MM-dd" / "HH:mm" strings the backend expects.
+const isEn = (lng) => lng.startsWith("en");
+const mondayFirst = (loc) => ({ ...loc, options: { ...loc.options, weekStartsOn: 1 } });
+const parseYmd = (s) => (s ? parseISO(s) : null);
+const formatYmd = (d) => (d && !Number.isNaN(d.getTime()) ? formatFn(d, "yyyy-MM-dd") : "");
+const parseHm = (s) => {
+  if (!s) return null;
+  const [h, m] = s.split(":").map(Number);
+  if (Number.isNaN(h)) return null;
+  const d = new Date();
+  d.setHours(h, m || 0, 0, 0);
+  return d;
+};
+const formatHm = (d) => (d && !Number.isNaN(d.getTime()) ? formatFn(d, "HH:mm") : "");
+
 export default function EventCreatePage() {
   const { t, i18n } = useTranslation();
+  const dfLocale = mondayFirst(isEn(i18n.language) ? enUS : zhTW);
+  const dateFormat = isEn(i18n.language) ? "MM/dd/yyyy" : "yyyy/MM/dd";
+  const dayOfWeekFormatter = (date) => formatFn(date, isEn(i18n.language) ? "EEE" : "EEEEE", { locale: dfLocale });
   const navigate = useNavigate();
   const { id } = useParams();
   const isEdit = Boolean(id);
@@ -224,6 +250,7 @@ export default function EventCreatePage() {
   };
 
   return (
+    <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={dfLocale}>
     <Box sx={{ minHeight: "calc(100vh - 76px)", bgcolor: tokens.color.bg, py: 4 }}>
       <Box sx={{ maxWidth: 900, mx: "auto", px: { xs: 2, md: 3 } }}>
         <Typography sx={{ fontFamily: tokens.font.heading, fontSize: { xs: 22, md: 28 }, fontWeight: 700, color: tokens.color.navy, mb: 3 }}>
@@ -370,36 +397,59 @@ export default function EventCreatePage() {
                 <Box sx={grid2}>
                   <Box>
                     <Typography sx={{ ...labelSx, mb: 0.5 }}>{t("admin.date")}</Typography>
-                    <TextField size="small" type="date" fullWidth
-                      value={s.date} onChange={(e) => updateSession(idx, "date", e.target.value)} sx={fieldSx} />
+                    <DatePicker
+                      value={parseYmd(s.date)}
+                      onChange={(d) => updateSession(idx, "date", formatYmd(d))}
+                      format={dateFormat}
+                      dayOfWeekFormatter={dayOfWeekFormatter}
+                      slotProps={{ textField: { size: "small", fullWidth: true, sx: fieldSx } }}
+                    />
                   </Box>
                   <Box>
                     <Typography sx={{ ...labelSx, mb: 0.5 }}>{t("admin.timeRange")}</Typography>
                     <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                      <TextField size="small" type="time" InputLabelProps={{ shrink: true }}
-                        value={parseTimeRange(s.time_range).start}
-                        onChange={(e) => {
+                      <TimePicker
+                        ampm={false}
+                        value={parseHm(parseTimeRange(s.time_range).start)}
+                        onChange={(d) => {
                           const { end } = parseTimeRange(s.time_range);
-                          updateSession(idx, "time_range", e.target.value ? `${e.target.value}-${end}` : "");
-                        }} sx={{ ...fieldSx, flex: 1 }} />
+                          const start = formatHm(d);
+                          updateSession(idx, "time_range", start ? `${start}-${end}` : "");
+                        }}
+                        slotProps={{ textField: { size: "small", sx: { ...fieldSx, flex: 1 } } }}
+                      />
                       <Typography sx={{ color: tokens.color.placeholder }}>~</Typography>
-                      <TextField size="small" type="time" InputLabelProps={{ shrink: true }}
-                        value={parseTimeRange(s.time_range).end}
-                        onChange={(e) => {
+                      <TimePicker
+                        ampm={false}
+                        value={parseHm(parseTimeRange(s.time_range).end)}
+                        onChange={(d) => {
                           const { start } = parseTimeRange(s.time_range);
-                          updateSession(idx, "time_range", e.target.value ? `${start}-${e.target.value}` : "");
-                        }} sx={{ ...fieldSx, flex: 1 }} />
+                          const end = formatHm(d);
+                          updateSession(idx, "time_range", end ? `${start}-${end}` : "");
+                        }}
+                        slotProps={{ textField: { size: "small", sx: { ...fieldSx, flex: 1 } } }}
+                      />
                     </Box>
                   </Box>
                 </Box>
                 <TextField size="small" label={t("admin.location")} value={s.location} onChange={(e) => updateSession(idx, "location", e.target.value)} sx={fieldSx} />
                 <Box sx={grid2}>
-                  <TextField size="small" type="date" label={t("admin.registrationStart")}
-                    InputLabelProps={{ shrink: true }}
-                    value={s.registration_start} onChange={(e) => updateSession(idx, "registration_start", e.target.value)} sx={fieldSx} />
-                  <TextField size="small" type="date" label={t("admin.registrationEnd")}
-                    InputLabelProps={{ shrink: true }}
-                    value={s.registration_end} onChange={(e) => updateSession(idx, "registration_end", e.target.value)} sx={fieldSx} />
+                  <DatePicker
+                    label={t("admin.registrationStart")}
+                    value={parseYmd(s.registration_start)}
+                    onChange={(d) => updateSession(idx, "registration_start", formatYmd(d))}
+                    format={dateFormat}
+                    dayOfWeekFormatter={dayOfWeekFormatter}
+                    slotProps={{ textField: { size: "small", fullWidth: true, sx: fieldSx } }}
+                  />
+                  <DatePicker
+                    label={t("admin.registrationEnd")}
+                    value={parseYmd(s.registration_end)}
+                    onChange={(d) => updateSession(idx, "registration_end", formatYmd(d))}
+                    format={dateFormat}
+                    dayOfWeekFormatter={dayOfWeekFormatter}
+                    slotProps={{ textField: { size: "small", fullWidth: true, sx: fieldSx } }}
+                  />
                 </Box>
                 <Box sx={grid2}>
                   <TextField size="small" type="number" label={t("admin.capacity")} value={s.capacity} onChange={(e) => updateSession(idx, "capacity", e.target.value)} sx={fieldSx} />
@@ -456,5 +506,6 @@ export default function EventCreatePage() {
         </Paper>
       </Box>
     </Box>
+    </LocalizationProvider>
   );
 }
