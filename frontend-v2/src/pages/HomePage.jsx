@@ -38,11 +38,18 @@ const SHORTCUT_TABS = [
 const isEn = (lng) => lng.startsWith("en");
 const parseYmd = (s) => (s ? parseISO(s) : null);
 const formatYmd = (d) => (d && !Number.isNaN(d.getTime()) ? formatFn(d, "yyyy-MM-dd") : "");
+// enUS defaults to a Sunday-first week; force Monday-first for both languages
+// so the calendar layout is consistent regardless of UI language.
+const mondayFirst = (loc) => ({ ...loc, options: { ...loc.options, weekStartsOn: 1 } });
 
 export default function HomePage() {
   const { t, i18n } = useTranslation();
-  const dfLocale = isEn(i18n.language) ? enUS : zhTW;
+  const dfLocale = mondayFirst(isEn(i18n.language) ? enUS : zhTW);
   const dateFormat = isEn(i18n.language) ? "MM/dd/yyyy" : "yyyy/MM/dd";
+  // EN narrow weekday is "S M T W T F S" (Sat/Sun both "S"); use 3-letter
+  // abbreviation instead. ZH single char (日一二…) is already unambiguous.
+  const weekdayFmt = isEn(i18n.language) ? "EEE" : "EEEEE";
+  const dayOfWeekFormatter = (date) => formatFn(date, weekdayFmt, { locale: dfLocale });
   const [searchParams, setSearchParams] = useSearchParams();
   const searchQuery = searchParams.get("search") || "";
 
@@ -429,6 +436,7 @@ export default function HomePage() {
                   value={parseYmd(date)}
                   onChange={(d) => setDate(formatYmd(d))}
                   format={dateFormat}
+                  dayOfWeekFormatter={dayOfWeekFormatter}
                   slotProps={{
                     textField: {
                       variant: "standard",
@@ -450,6 +458,7 @@ export default function HomePage() {
                   value={parseYmd(dateEnd)}
                   onChange={(d) => setDateEnd(formatYmd(d))}
                   format={dateFormat}
+                  dayOfWeekFormatter={dayOfWeekFormatter}
                   slotProps={{
                     textField: {
                       variant: "standard",
