@@ -184,9 +184,21 @@ export default function HomePage() {
     return () => { live = false; };
   }, [i18n.language]);
 
+  // When #即將到來 is active, drop any stale/edge-case events that have no
+  // session on or after today. This prevents a brief flash of 已結束 cards
+  // while the new request is still loading (old list data remains until it
+  // resolves) and guards against any backend/timezone edge cases.
+  const filteredListItems = useMemo(() => {
+    if (!upcomingOnly) return listData.items;
+    const today = new Date().toISOString().slice(0, 10);
+    return listData.items.filter((ev) =>
+      (ev.sessions || []).some((s) => s?.date && s.date >= today)
+    );
+  }, [listData.items, upcomingOnly]);
+
   const totalListPages = useMemo(
-    () => Math.max(1, Math.ceil(listData.total / PAGE_SIZE)),
-    [listData.total]
+    () => Math.max(1, Math.ceil((upcomingOnly ? filteredListItems.length : listData.total) / PAGE_SIZE)),
+    [listData.total, upcomingOnly, filteredListItems.length]
   );
 
   // When a specific official category chip is selected, expand each event's sessions
@@ -512,8 +524,8 @@ export default function HomePage() {
         {/* All / filtered events below */}
         <Section
           title={hasFilter ? t("event.searchResults") : t("event.list")}
-          items={expandedListItems ?? listData.items}
-          total={expandedListItems ? expandedListItems.length : listData.total}
+          items={expandedListItems ?? filteredListItems}
+          total={expandedListItems ? expandedListItems.length : (upcomingOnly ? filteredListItems.length : listData.total)}
           page={expandedListItems ? 1 : listPage}
           totalPages={expandedListItems ? 1 : totalListPages}
           setPage={expandedListItems ? () => {} : setListPage}
