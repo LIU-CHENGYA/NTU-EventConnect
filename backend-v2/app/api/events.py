@@ -268,18 +268,20 @@ def managed_events(
     db: Session = Depends(get_db),
     current: User = Depends(get_current_user),
 ):
-    """Events the current admin manages (all events visible to any admin)."""
+    """Events the current admin manages (the events they created)."""
+    # Management is admin-only (admin_whitelist.txt); the query below further
+    # restricts to events this admin created.
     if not is_admin_email(current.email):
         raise HTTPException(403, "Admin only")
     total = (
         db.query(func.count(Event.id))
-        .filter(Event.created_by_user_id.isnot(None))
+        .filter(Event.created_by_user_id == current.id)
         .scalar() or 0
     )
     items = (
         db.query(Event)
         .options(selectinload(Event.sessions), selectinload(Event.tags))
-        .filter(Event.created_by_user_id.isnot(None))
+        .filter(Event.created_by_user_id == current.id)
         .order_by(Event.id.desc())
         .offset((page - 1) * size)
         .limit(size)
@@ -382,7 +384,9 @@ def update_event(
     event = db.get(Event, event_id)
     if not event:
         raise HTTPException(404, "Event not found")
-    # Any admin may edit any admin-created event.
+    # Only the event's creator (its manager) may edit it.
+    if event.created_by_user_id != current.id:
+        raise HTTPException(403, "Not your event")
 
     # Apply scalar fields only when explicitly provided.
     scalar_fields = {

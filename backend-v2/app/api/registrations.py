@@ -173,13 +173,16 @@ def event_registrations(
 ):
     """Return all registrations for every session of the given event.
 
-    Admin-only (admin_whitelist.txt); any admin may view any event's registrations.
+    Admin-only (admin_whitelist.txt); the ownership check below further limits
+    an admin to the registration lists of events they created.
     """
     if not is_admin_email(current.email):
         raise HTTPException(403, "Admin only")
     event = db.get(Event, event_id)
     if not event:
         raise HTTPException(404, "Event not found")
+    if event.created_by_user_id != current.id:
+        raise HTTPException(403, "Not your event")
 
     # Join Registration -> EventSession -> User; filter by event_id.
     rows = (
