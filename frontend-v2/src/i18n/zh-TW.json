@@ -47,7 +47,8 @@
     "location": "地點",
     "anyLocation": "任何地點",
     "anyCategory": "全部分類",
-    "anyTag": "全部標籤"
+    "anyTag": "全部標籤",
+    "upcoming": "#即將到來"
   },
   "event": {
     "list": "活動列表",

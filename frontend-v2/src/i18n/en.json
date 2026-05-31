@@ -47,7 +47,8 @@
     "location": "Location",
     "anyLocation": "Any location",
     "anyCategory": "All categories",
-    "anyTag": "All tags"
+    "anyTag": "All tags",
+    "upcoming": "#Upcoming"
   },
   "event": {
     "list": "Activities",
