@@ -108,19 +108,19 @@ def my_managed_events(
     db: Session = Depends(get_db),
     current: User = Depends(get_current_user),
 ):
-    """Events created by the current admin (admin-only)."""
+    """All admin-created events visible to any admin (admin-only)."""
     if not is_admin_email(current.email):
         raise HTTPException(403, "Admin only")
     from app.api.events import _to_detail
     total = (
         db.query(func.count(Event.id))
-        .filter(Event.created_by_user_id == current.id)
+        .filter(Event.created_by_user_id.isnot(None))
         .scalar() or 0
     )
     items = (
         db.query(Event)
         .options(selectinload(Event.sessions), selectinload(Event.tags))
-        .filter(Event.created_by_user_id == current.id)
+        .filter(Event.created_by_user_id.isnot(None))
         .order_by(Event.id.desc())
         .offset((page - 1) * size)
         .limit(size)
