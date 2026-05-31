@@ -382,7 +382,9 @@ def update_event(
     event = db.get(Event, event_id)
     if not event:
         raise HTTPException(404, "Event not found")
-    # Any admin may edit any admin-created event.
+    # Only the event's creator may edit it.
+    if event.created_by_user_id != current.id:
+        raise HTTPException(403, "Not your event")
 
     # Apply scalar fields only when explicitly provided.
     scalar_fields = {
