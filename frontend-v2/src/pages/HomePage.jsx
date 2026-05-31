@@ -86,6 +86,11 @@ export default function HomePage() {
       matched = sessions
         .filter((s) => s?.date && s.date >= start && s.date <= end)
         .sort((a, b) => String(a.date).localeCompare(String(b.date)))[0];
+    } else if (upcomingOnly) {
+      const today = new Date().toISOString().slice(0, 10);
+      matched = sessions
+        .filter((s) => s?.date && s.date >= today)
+        .sort((a, b) => String(a.date).localeCompare(String(b.date)))[0];
     }
     matched = matched || sessions[0];
     return { date: matched?.date || event?.date || "", _matchedSessionId: matched?.id ?? null };
