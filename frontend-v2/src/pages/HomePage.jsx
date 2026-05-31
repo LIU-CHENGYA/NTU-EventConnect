@@ -204,8 +204,8 @@ export default function HomePage() {
   }, [listData.items, upcomingOnly]);
 
   const totalListPages = useMemo(
-    () => Math.max(1, Math.ceil((upcomingOnly ? filteredListItems.length : listData.total) / PAGE_SIZE)),
-    [listData.total, upcomingOnly, filteredListItems.length]
+    () => Math.max(1, Math.ceil(listData.total / PAGE_SIZE)),
+    [listData.total]
   );
 
   // When a specific official category chip is selected, expand each event's sessions
@@ -534,7 +534,7 @@ export default function HomePage() {
         <Section
           title={hasFilter ? t("event.searchResults") : t("event.list")}
           items={expandedListItems ?? filteredListItems}
-          total={expandedListItems ? expandedListItems.length : (upcomingOnly ? filteredListItems.length : listData.total)}
+          total={expandedListItems ? expandedListItems.length : listData.total}
           page={expandedListItems ? 1 : listPage}
           totalPages={expandedListItems ? 1 : totalListPages}
           setPage={expandedListItems ? () => {} : setListPage}
