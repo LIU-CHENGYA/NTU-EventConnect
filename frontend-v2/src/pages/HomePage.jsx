@@ -473,7 +473,7 @@ export default function HomePage() {
                 bgcolor: (hasPartialDateRange && !date) ? "#FFF3CD" : "transparent",
                 outline: (hasPartialDateRange && !date) ? "1.5px dashed #F59E0B" : "none",
               }}>
-                {date ? displayDate(date) : dateFormat.toLowerCase()}
+                {date ? displayDate(date) : dateFormat.toUpperCase()}
               </Box>
               <Typography sx={{ fontSize: tokens.fontSize.caption, color: tokens.color.placeholder, mx: 0.25 }}>~</Typography>
               <Box sx={{
@@ -482,7 +482,7 @@ export default function HomePage() {
                 bgcolor: (hasPartialDateRange && !dateEnd) ? "#FFF3CD" : "transparent",
                 outline: (hasPartialDateRange && !dateEnd) ? "1.5px dashed #F59E0B" : "none",
               }}>
-                {dateEnd ? displayDate(dateEnd) : dateFormat.toLowerCase()}
+                {dateEnd ? displayDate(dateEnd) : dateFormat.toUpperCase()}
               </Box>
             </Box>
             <Popover
