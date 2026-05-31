@@ -425,7 +425,7 @@ export default function ProfilePage() {
 
           {/* Tab 0 — 我的留言 (myPosts) */}
           {tab === 0 && (
-            <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2,1fr)", md: "repeat(3,1fr)" }, gap: 2.5, alignItems: 'start' }}>
+            <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2,1fr)", md: "repeat(3,1fr)" }, gap: 2.5 }}>
               {myPosts.map((p) => <PostCard key={p.id} post={p} />)}
               {myPosts.length === 0 && (
                 <Typography sx={{ textAlign: "center", color: "#999", gridColumn: "1/-1", py: 4 }}>{t("profile.empty.noPosts", "尚無留言")}</Typography>
@@ -479,7 +479,7 @@ export default function ProfilePage() {
 
           {/* Tab 2 — 收藏留言 (bookmarkedPosts) */}
           {tab === 2 && (
-            <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2,1fr)", md: "repeat(3,1fr)" }, gap: 2.5, alignItems: 'start' }}>
+            <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2,1fr)", md: "repeat(3,1fr)" }, gap: 2.5 }}>
               {bookmarkedPosts.map((p) => <PostCard key={p.id} post={p} />)}
               {bookmarkedPosts.length === 0 && (
                 <Typography sx={{ textAlign: "center", color: "#999", gridColumn: "1/-1", py: 4 }}>{t("profile.empty.noBookmarkedPosts")}</Typography>
