@@ -2,18 +2,20 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
-  Box, Typography, IconButton, InputBase,
+  Box, Typography, IconButton, InputBase, Popover, Button,
   useMediaQuery, useTheme,
 } from "@mui/material";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import SearchIcon from "@mui/icons-material/Search";
 import ClearIcon from "@mui/icons-material/Clear";
+import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
-import { DatePicker } from "@mui/x-date-pickers/DatePicker";
+import { DateCalendar } from "@mui/x-date-pickers/DateCalendar";
+import { PickersDay } from "@mui/x-date-pickers/PickersDay";
 import { enUS, zhTW } from "date-fns/locale";
-import { format as formatFn, parseISO } from "date-fns";
+import { format as formatFn, parseISO, isSameDay, isWithinInterval } from "date-fns";
 import EventCard from "../components/EventCard";
 import { eventsApi } from "../api";
 import { useData } from "../context/DataContext";
@@ -33,8 +35,8 @@ const SHORTCUT_TABS = [
 ];
 
 // Native <input type="date"> ignores the page lang in Chrome, so the empty
-// placeholder stays "年/月/日" even in English. Use MUI DatePicker instead,
-// whose textfield format + calendar popover follow the chosen date-fns locale.
+// placeholder stays "年/月/日" even in English. We render a date-fns-localized
+// MUI DateCalendar inside a popover instead (also doubles as a range picker).
 const isEn = (lng) => lng.startsWith("en");
 const parseYmd = (s) => (s ? parseISO(s) : null);
 const formatYmd = (d) => (d && !Number.isNaN(d.getTime()) ? formatFn(d, "yyyy-MM-dd") : "");
@@ -61,6 +63,25 @@ export default function HomePage() {
   const [keyword, setKeyword] = useState(searchQuery);
   const [date, setDate] = useState("");
   const [dateEnd, setDateEnd] = useState("");
+  const [calAnchor, setCalAnchor] = useState(null);
+
+  // Single calendar popover doubling as a range picker: 1st click sets start,
+  // 2nd click sets end (auto-sorted), completing the range closes the popover.
+  const handleDayPick = (day) => {
+    const ymd = formatYmd(day);
+    if (!date || (date && dateEnd)) {
+      setDate(ymd);
+      setDateEnd("");
+    } else if (ymd < date) {
+      setDateEnd(date);
+      setDate(ymd);
+      setCalAnchor(null);
+    } else {
+      setDateEnd(ymd);
+      setCalAnchor(null);
+    }
+  };
+  const displayDate = (s) => (s ? formatFn(parseISO(s), dateFormat) : "");
 
   const [listPage, setListPage] = useState(1);
   const [listData, setListData] = useState({ items: [], total: 0 });
@@ -436,59 +457,79 @@ export default function HomePage() {
             <Typography sx={{ fontSize: tokens.fontSize.caption, color: tokens.color.placeholder, mb: 0.4 }}>
               {t("filter.dateRangeLabel")}
             </Typography>
-            <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={dfLocale}>
-              <Box sx={{
-                display: "flex", gap: 0.5, alignItems: "center",
+            <Box
+              onClick={(e) => setCalAnchor(e.currentTarget)}
+              sx={{
+                display: "flex", gap: 0.5, alignItems: "center", cursor: "pointer",
                 bgcolor: "#fff",
                 border: `1px solid ${hasPartialDateRange ? "#F59E0B" : tokens.color.border}`,
                 borderRadius: 1.5, px: 1, height: 52,
                 transition: "border-color 0.2s",
               }}>
-                <DatePicker
-                  value={parseYmd(date)}
-                  onChange={(d) => setDate(formatYmd(d))}
-                  format={dateFormat}
-                  dayOfWeekFormatter={dayOfWeekFormatter}
-                  slotProps={{
-                    textField: {
-                      variant: "standard",
-                      placeholder: dateFormat.toLowerCase(),
-                      InputProps: { disableUnderline: true },
-                      sx: {
-                        flex: 1, borderRadius: 1, px: 0.5, py: 0.3,
-                        bgcolor: (hasPartialDateRange && !date) ? "#FFF3CD" : "transparent",
-                        outline: (hasPartialDateRange && !date) ? "1.5px dashed #F59E0B" : "none",
-                        transition: "background-color 0.2s",
-                        "& input": { fontSize: tokens.fontSize.body, color: tokens.color.text, py: 0.2 },
-                      },
-                    },
-                    openPickerButton: { size: "small" },
-                  }}
-                />
-                <Typography sx={{ fontSize: tokens.fontSize.caption, color: tokens.color.placeholder, mx: 0.25 }}>~</Typography>
-                <DatePicker
-                  value={parseYmd(dateEnd)}
-                  onChange={(d) => setDateEnd(formatYmd(d))}
-                  format={dateFormat}
-                  dayOfWeekFormatter={dayOfWeekFormatter}
-                  slotProps={{
-                    textField: {
-                      variant: "standard",
-                      placeholder: dateFormat.toLowerCase(),
-                      InputProps: { disableUnderline: true },
-                      sx: {
-                        flex: 1, borderRadius: 1, px: 0.5, py: 0.3,
-                        bgcolor: (hasPartialDateRange && !dateEnd) ? "#FFF3CD" : "transparent",
-                        outline: (hasPartialDateRange && !dateEnd) ? "1.5px dashed #F59E0B" : "none",
-                        transition: "background-color 0.2s",
-                        "& input": { fontSize: tokens.fontSize.body, color: tokens.color.text, py: 0.2 },
-                      },
-                    },
-                    openPickerButton: { size: "small" },
-                  }}
-                />
+              <CalendarTodayIcon sx={{ fontSize: 18, color: hasPartialDateRange ? "#F59E0B" : tokens.color.placeholder }} />
+              <Box sx={{
+                flex: 1, borderRadius: 1, px: 0.5, py: 0.5, fontSize: tokens.fontSize.body,
+                color: date ? tokens.color.text : tokens.color.placeholder,
+                bgcolor: (hasPartialDateRange && !date) ? "#FFF3CD" : "transparent",
+                outline: (hasPartialDateRange && !date) ? "1.5px dashed #F59E0B" : "none",
+              }}>
+                {date ? displayDate(date) : dateFormat.toUpperCase()}
               </Box>
-            </LocalizationProvider>
+              <Typography sx={{ fontSize: tokens.fontSize.caption, color: tokens.color.placeholder, mx: 0.25 }}>~</Typography>
+              <Box sx={{
+                flex: 1, borderRadius: 1, px: 0.5, py: 0.5, fontSize: tokens.fontSize.body,
+                color: dateEnd ? tokens.color.text : tokens.color.placeholder,
+                bgcolor: (hasPartialDateRange && !dateEnd) ? "#FFF3CD" : "transparent",
+                outline: (hasPartialDateRange && !dateEnd) ? "1.5px dashed #F59E0B" : "none",
+              }}>
+                {dateEnd ? displayDate(dateEnd) : dateFormat.toUpperCase()}
+              </Box>
+            </Box>
+            <Popover
+              open={Boolean(calAnchor)}
+              anchorEl={calAnchor}
+              onClose={() => setCalAnchor(null)}
+              anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
+            >
+              <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={dfLocale}>
+                <DateCalendar
+                  value={parseYmd(date)}
+                  onChange={handleDayPick}
+                  dayOfWeekFormatter={dayOfWeekFormatter}
+                  slots={{
+                    day: (dayProps) => {
+                      const { day } = dayProps;
+                      const start = parseYmd(date);
+                      const end = parseYmd(dateEnd);
+                      const isEndpoint = (start && isSameDay(day, start)) || (end && isSameDay(day, end));
+                      const inRange = start && end && isWithinInterval(day, { start, end });
+                      return (
+                        <PickersDay
+                          {...dayProps}
+                          sx={{
+                            ...(inRange && !isEndpoint && {
+                              bgcolor: "rgba(245,158,11,0.15)", borderRadius: 0,
+                            }),
+                            ...(isEndpoint && {
+                              bgcolor: "#F59E0B !important", color: "#fff",
+                            }),
+                          }}
+                        />
+                      );
+                    },
+                  }}
+                />
+              </LocalizationProvider>
+              <Box sx={{ display: "flex", justifyContent: "flex-end", px: 2, pb: 1.5 }}>
+                <Button
+                  size="small"
+                  onClick={() => { setDate(""); setDateEnd(""); }}
+                  sx={{ textTransform: "none" }}
+                >
+                  {t("filter.clear")}
+                </Button>
+              </Box>
+            </Popover>
             <Typography sx={{
               fontSize: tokens.fontSize.caption, mt: 0.5,
               color: hasPartialDateRange ? "#F59E0B" : tokens.color.placeholder,
