@@ -8,8 +8,8 @@ from sqlalchemy.orm import Session, selectinload
 from app.core.admin import is_admin_email
 from app.core.deps import get_current_user
 from app.db.session import get_db
-from app.models.event import Event
-from app.models.post import Comment, Post
+from app.models.event import Event, EventSession
+from app.models.post import Comment, EventBookmark, Post
 from app.models.registration import Registration
 from app.models.user import User
 from app.schemas.event import EventDetailOut, EventListResponse
@@ -30,6 +30,8 @@ class UserProfileOut(UserOut):
     model_config = ConfigDict(from_attributes=True)
     post_count: int = 0
     joined_event_count: int = 0
+    upcoming_event_count: int = 0
+    bookmarked_event_count: int = 0
 
 
 @router.patch("/me", response_model=UserOut)
@@ -143,8 +145,30 @@ def get_user(user_id: int, db: Session = Depends(get_db)):
     joined = db.query(Registration).filter(
         Registration.user_id == user_id, Registration.status == "success"
     ).count()
+    # Upcoming = successful registrations whose session date is today or later.
+    # Session dates are stored as ISO "YYYY-MM-DD" strings, so a lexical
+    # comparison against today is also chronological. Counting on the backend
+    # avoids the frontend's paginated registration list undercounting the badge.
+    today = datetime.now().strftime("%Y-%m-%d")
+    upcoming = (
+        db.query(Registration)
+        .join(EventSession, EventSession.id == Registration.session_id)
+        .filter(
+            Registration.user_id == user_id,
+            Registration.status == "success",
+            EventSession.date >= today,
+        )
+        .count()
+    )
+    # Bookmarked = number of event bookmarks (one row per bookmarked session),
+    # matching the "收藏活動" tab.
+    bookmarked = db.query(EventBookmark).filter(
+        EventBookmark.user_id == user_id
+    ).count()
     return UserProfileOut(
         **UserOut.model_validate(user).model_dump(),
         post_count=post_count,
         joined_event_count=joined,
+        upcoming_event_count=upcoming,
+        bookmarked_event_count=bookmarked,
     )

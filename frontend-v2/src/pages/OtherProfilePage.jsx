@@ -59,7 +59,7 @@ export default function OtherProfilePage() {
   const stats = [
     { label: t("profile.stats.posts"), value: profileUser.post_count ?? 0 },
     { label: t("profile.stats.joined"), value: profileUser.joined_event_count ?? 0 },
-    { label: t("profile.stats.tags"), value: "" },
+    { label: t("profile.stats.bookmarked"), value: profileUser.bookmarked_event_count ?? 0 },
   ];
 
   return (

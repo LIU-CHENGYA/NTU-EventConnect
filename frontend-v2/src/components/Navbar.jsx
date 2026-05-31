@@ -19,6 +19,8 @@ import { tokens } from "../theme";
 import LocaleSwitcher from "./LocaleSwitcher";
 import { usersApi, postsApi } from "../api";
 
+const NOTIF_SEEN_KEY = "ntu_notif_last_seen";
+
 export default function Navbar() {
   const { user, logout } = useAuth();
   const { t } = useTranslation();
@@ -32,17 +34,25 @@ export default function Navbar() {
   const [upcomingRegs, setUpcomingRegs] = useState([]);
   const [groupPosts, setGroupPosts] = useState([]);
   const [notifLoading, setNotifLoading] = useState(false);
+  // Keep the "seen" marker in state (not a bare localStorage read) so that
+  // marking notifications as seen re-renders the badge immediately.
+  const [lastSeen, setLastSeen] = useState(
+    () => parseInt(localStorage.getItem(NOTIF_SEEN_KEY) || "0", 10)
+  );
 
-  const NOTIF_SEEN_KEY = "ntu_notif_last_seen";
   const totalNotifs = upcomingRegs.length + groupPosts.length;
-  const lastSeen = parseInt(localStorage.getItem(NOTIF_SEEN_KEY) || "0", 10);
   const badgeCount = totalNotifs > lastSeen ? totalNotifs - lastSeen : 0;
 
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
 
+  const markSeen = useCallback((count) => {
+    localStorage.setItem(NOTIF_SEEN_KEY, String(count));
+    setLastSeen(count);
+  }, []);
+
   const loadNotifData = useCallback(async () => {
-    if (!user) return;
+    if (!user) return 0;
     const [regs, posts] = await Promise.all([
       usersApi.myRegistrations().catch(() => []),
       postsApi.list({ visibility: "group", size: 10 }).catch(() => []),
@@ -54,8 +64,10 @@ export default function Navbar() {
       const d = new Date(r.date);
       return d >= now && d <= in7days;
     });
+    const groups = posts.filter((p) => p.userId !== user.id).slice(0, 5);
     setUpcomingRegs(upcoming);
-    setGroupPosts(posts.filter((p) => p.userId !== user.id).slice(0, 5));
+    setGroupPosts(groups);
+    return upcoming.length + groups.length;
   }, [user]);
 
   // Load on mount so badge appears without clicking first.
@@ -65,13 +77,22 @@ export default function Navbar() {
     setNotifAnchor(e.currentTarget);
     if (!user) return;
     setNotifLoading(true);
-    try { await loadNotifData(); } finally { setNotifLoading(false); }
+    try {
+      // Opening the panel means the user is viewing the notifications, so
+      // mark them seen with the freshly fetched total — this clears the badge
+      // regardless of how the panel is later dismissed (outside click,
+      // escape, or tapping a notification item).
+      const total = await loadNotifData();
+      markSeen(total);
+    } finally {
+      setNotifLoading(false);
+    }
   };
 
   const handleNotifClose = () => {
     setNotifAnchor(null);
-    // Mark current notifications as seen so badge clears.
-    localStorage.setItem(NOTIF_SEEN_KEY, String(totalNotifs));
+    // Safety net in case the count changed while the panel was open.
+    markSeen(totalNotifs);
   };
 
   const handleLogout = () => {

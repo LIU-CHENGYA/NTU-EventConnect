@@ -10,6 +10,7 @@ import AddPhotoAlternateIcon from "@mui/icons-material/AddPhotoAlternate";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../context/AuthContext";
 import { eventsApi, uploadsApi, resolveUrl } from "../api";
+import { translateTag } from "../i18n/tagLabels";
 import { tokens } from "../theme";
 
 const labelSx = { fontSize: tokens.fontSize.body, fontWeight: 700, color: tokens.color.text, mb: 0.5, mt: 0 };
@@ -59,7 +60,7 @@ function parseTimeRange(tr = "") {
 }
 
 export default function EventCreatePage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const { id } = useParams();
   const isEdit = Boolean(id);
@@ -165,7 +166,7 @@ export default function EventCreatePage() {
       if (res?.url) setImageUrl(res.url);
     } catch (err) {
       const detail = err?.response?.data?.detail;
-      setError(detail ? `圖片上傳失敗：${detail}` : "圖片上傳失敗");
+      setError(detail ? `${t("admin.imageUploadFailed")}: ${detail}` : t("admin.imageUploadFailed"));
     } finally {
       setUploading(false);
     }
@@ -233,7 +234,7 @@ export default function EventCreatePage() {
 
           {/* ── 基本資訊 ── */}
           <Typography sx={{ fontSize: tokens.fontSize.subtitle, fontWeight: 700, color: tokens.color.navy }}>
-            基本資訊
+            {t("admin.sectionBasic")}
           </Typography>
 
           <Box sx={{ mt: 2, display: "flex", flexDirection: "column", gap: 2 }}>
@@ -242,11 +243,11 @@ export default function EventCreatePage() {
             </Field>
 
             <Box sx={grid2}>
-              <Field label="母活動名稱（官方分類）">
-                <TextField fullWidth size="small" placeholder="例：2026年研究倫理課程" value={officialCategory} onChange={(e) => setOfficialCategory(e.target.value)} sx={fieldSx} />
+              <Field label={t("admin.officialCategory")}>
+                <TextField fullWidth size="small" placeholder={t("admin.officialCategoryPlaceholder")} value={officialCategory} onChange={(e) => setOfficialCategory(e.target.value)} sx={fieldSx} />
               </Field>
               <Field label={t("admin.category")}>
-                <TextField fullWidth size="small" placeholder="例：講座、工作坊" value={category} onChange={(e) => setCategory(e.target.value)} sx={fieldSx} />
+                <TextField fullWidth size="small" placeholder={t("admin.categoryPlaceholder")} value={category} onChange={(e) => setCategory(e.target.value)} sx={fieldSx} />
               </Field>
             </Box>
 
@@ -256,52 +257,52 @@ export default function EventCreatePage() {
           </Box>
 
           {/* ── 聯絡資訊 ── */}
-          <SectionHeader>聯絡資訊</SectionHeader>
+          <SectionHeader>{t("admin.sectionContact")}</SectionHeader>
           <Box sx={grid2}>
-            <Field label="聯絡電話">
+            <Field label={t("admin.contactPhone")}>
               <TextField fullWidth size="small" value={contactPhone} onChange={(e) => setContactPhone(e.target.value)} sx={fieldSx} />
             </Field>
-            <Field label="聯絡信箱">
+            <Field label={t("admin.contactEmail")}>
               <TextField fullWidth size="small" type="email" value={contactEmail} onChange={(e) => setContactEmail(e.target.value)} sx={fieldSx} />
             </Field>
           </Box>
 
           {/* ── 報名設定 ── */}
-          <SectionHeader>報名設定</SectionHeader>
+          <SectionHeader>{t("admin.sectionRegistration")}</SectionHeader>
           <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
             <Box sx={grid2}>
-              <Field label="報名方式">
-                <TextField fullWidth size="small" placeholder="例：線上報名、現場報名" value={registrationType} onChange={(e) => setRegistrationType(e.target.value)} sx={fieldSx} />
+              <Field label={t("admin.registrationType")}>
+                <TextField fullWidth size="small" placeholder={t("admin.registrationTypePlaceholder")} value={registrationType} onChange={(e) => setRegistrationType(e.target.value)} sx={fieldSx} />
               </Field>
-              <Field label="費用">
-                <TextField fullWidth size="small" placeholder="例：免費、NT$500" value={registrationFee} onChange={(e) => setRegistrationFee(e.target.value)} sx={fieldSx} />
+              <Field label={t("admin.registrationFee")}>
+                <TextField fullWidth size="small" placeholder={t("admin.registrationFeePlaceholder")} value={registrationFee} onChange={(e) => setRegistrationFee(e.target.value)} sx={fieldSx} />
               </Field>
             </Box>
             <Box sx={grid2}>
-              <Field label="適合對象">
-                <TextField fullWidth size="small" placeholder="例：全校師生" value={targetAudience} onChange={(e) => setTargetAudience(e.target.value)} sx={fieldSx} />
+              <Field label={t("admin.targetAudience")}>
+                <TextField fullWidth size="small" placeholder={t("admin.targetAudiencePlaceholder")} value={targetAudience} onChange={(e) => setTargetAudience(e.target.value)} sx={fieldSx} />
               </Field>
-              <Field label="學習分類">
-                <TextField fullWidth size="small" placeholder="例：人文藝術、科技創新" value={learningCategory} onChange={(e) => setLearningCategory(e.target.value)} sx={fieldSx} />
+              <Field label={t("admin.learningCategory")}>
+                <TextField fullWidth size="small" placeholder={t("admin.learningCategoryPlaceholder")} value={learningCategory} onChange={(e) => setLearningCategory(e.target.value)} sx={fieldSx} />
               </Field>
             </Box>
           </Box>
 
           {/* ── 活動說明 ── */}
-          <SectionHeader>活動說明</SectionHeader>
+          <SectionHeader>{t("admin.sectionDescription")}</SectionHeader>
           <TextField
             fullWidth multiline minRows={5}
-            placeholder="詳細說明活動內容、目標、注意事項等..."
+            placeholder={t("admin.contentPlaceholder")}
             value={content} onChange={(e) => setContent(e.target.value)}
             sx={fieldSx}
           />
 
           {/* ── 封面圖片 ── */}
-          <SectionHeader>封面圖片</SectionHeader>
+          <SectionHeader>{t("admin.sectionCover")}</SectionHeader>
           <Box sx={{ display: "flex", gap: 1, alignItems: "center", flexWrap: "wrap" }}>
             <TextField
               size="small" sx={{ ...fieldSx, flex: 1, minWidth: 220 }}
-              placeholder="貼上圖片網址，或點右側上傳"
+              placeholder={t("admin.coverImagePlaceholder")}
               value={imageUrl} onChange={(e) => setImageUrl(e.target.value)}
             />
             <Button
@@ -311,7 +312,7 @@ export default function EventCreatePage() {
               startIcon={uploading ? <CircularProgress size={16} /> : <AddPhotoAlternateIcon />}
               sx={{ textTransform: "none", borderRadius: "10px", whiteSpace: "nowrap" }}
             >
-              {uploading ? "上傳中..." : t("admin.uploadImage")}
+              {uploading ? t("admin.uploading") : t("admin.uploadImage")}
               <input type="file" accept="image/png,image/jpeg,image/gif,image/webp" hidden onChange={handleImageUpload} />
             </Button>
           </Box>
@@ -319,17 +320,17 @@ export default function EventCreatePage() {
             <Box
               component="img"
               src={resolveUrl(imageUrl)}
-              alt="封面預覽"
+              alt={t("admin.coverPreview")}
               sx={{ mt: 1.5, width: "100%", maxWidth: 360, height: 180, objectFit: "cover", borderRadius: "10px", display: "block" }}
             />
           )}
 
           {/* ── 標籤 ── */}
-          <SectionHeader>標籤</SectionHeader>
+          <SectionHeader>{t("admin.tags")}</SectionHeader>
           <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.8 }}>
             {tagOptions.map((tag) => (
               <Chip
-                key={tag} label={tag}
+                key={tag} label={translateTag(tag, i18n.language)}
                 onClick={() => toggleTag(tag)}
                 color={tags.includes(tag) ? "primary" : "default"}
                 variant={tags.includes(tag) ? "filled" : "outlined"}
@@ -352,7 +353,7 @@ export default function EventCreatePage() {
             <Paper key={idx} variant="outlined" sx={{ p: 2.5, mt: 1.5, borderRadius: "12px" }}>
               <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1.5 }}>
                 <Typography sx={{ fontSize: tokens.fontSize.body, fontWeight: 600, color: tokens.color.text }}>
-                  場次 {idx + 1}
+                  {t("admin.sessionLabel")} {idx + 1}
                 </Typography>
                 {sessions.length > 1 && (
                   <IconButton size="small" onClick={() => removeSession(idx)} sx={{ color: tokens.color.heart }}>
@@ -363,8 +364,8 @@ export default function EventCreatePage() {
 
               <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
                 <Box sx={grid2}>
-                  <TextField size="small" label="場次名稱" value={s.session_name} onChange={(e) => updateSession(idx, "session_name", e.target.value)} sx={fieldSx} />
-                  <TextField size="small" label="講師" value={s.instructor} onChange={(e) => updateSession(idx, "instructor", e.target.value)} sx={fieldSx} />
+                  <TextField size="small" label={t("admin.sessionName")} value={s.session_name} onChange={(e) => updateSession(idx, "session_name", e.target.value)} sx={fieldSx} />
+                  <TextField size="small" label={t("admin.instructor")} value={s.instructor} onChange={(e) => updateSession(idx, "instructor", e.target.value)} sx={fieldSx} />
                 </Box>
                 <Box sx={grid2}>
                   <Box>
@@ -393,31 +394,31 @@ export default function EventCreatePage() {
                 </Box>
                 <TextField size="small" label={t("admin.location")} value={s.location} onChange={(e) => updateSession(idx, "location", e.target.value)} sx={fieldSx} />
                 <Box sx={grid2}>
-                  <TextField size="small" type="date" label="報名開始日期"
+                  <TextField size="small" type="date" label={t("admin.registrationStart")}
                     InputLabelProps={{ shrink: true }}
                     value={s.registration_start} onChange={(e) => updateSession(idx, "registration_start", e.target.value)} sx={fieldSx} />
-                  <TextField size="small" type="date" label="報名截止日期"
+                  <TextField size="small" type="date" label={t("admin.registrationEnd")}
                     InputLabelProps={{ shrink: true }}
                     value={s.registration_end} onChange={(e) => updateSession(idx, "registration_end", e.target.value)} sx={fieldSx} />
                 </Box>
                 <Box sx={grid2}>
                   <TextField size="small" type="number" label={t("admin.capacity")} value={s.capacity} onChange={(e) => updateSession(idx, "capacity", e.target.value)} sx={fieldSx} />
                   <FormControl size="small" fullWidth sx={fieldSx}>
-                    <InputLabel>餐點</InputLabel>
+                    <InputLabel>{t("admin.meal")}</InputLabel>
                     <Select
-                      label="餐點"
+                      label={t("admin.meal")}
                       value={s.meal || "不提供"}
                       onChange={(e) => updateSession(idx, "meal", e.target.value)}
                     >
                       {MEAL_OPTIONS.map((opt) => (
-                        <MenuItem key={opt} value={opt}>{opt}</MenuItem>
+                        <MenuItem key={opt} value={opt}>{t(`admin.mealOptions.${opt}`)}</MenuItem>
                       ))}
                     </Select>
                   </FormControl>
                 </Box>
                 <TextField
                   size="small" multiline minRows={2}
-                  label="場次說明"
+                  label={t("admin.sessionContent")}
                   value={s.session_content} onChange={(e) => updateSession(idx, "session_content", e.target.value)}
                   sx={fieldSx}
                 />

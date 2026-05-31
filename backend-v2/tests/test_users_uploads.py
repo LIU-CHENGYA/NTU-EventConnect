@@ -1,5 +1,8 @@
 import io
 
+from app.models.event import Event, EventSession
+from app.models.registration import Registration
+
 
 def _register(client, email):
     r = client.post("/api/auth/register", json={
@@ -57,6 +60,55 @@ def test_profile_post_count_reflects_public_only(client):
     client.post("/api/posts", headers=_auth(t), json={"content": "draft", "visibility": "private"})
     body = client.get(f"/api/users/{uid}").json()
     assert body["post_count"] == 2
+
+
+def _make_event_two_sessions(client, past_date="2020-01-01", future_date="2099-12-31"):
+    db = client.db_factory()
+    try:
+        e = Event(source_url="http://x/p", title="活動", category="講座")
+        db.add(e); db.flush()
+        s_past = EventSession(
+            event_id=e.id, source_url="http://x/s1", session_name="過去",
+            date=past_date, capacity=5, remaining_slots=5,
+        )
+        s_future = EventSession(
+            event_id=e.id, source_url="http://x/s2", session_name="未來",
+            date=future_date, capacity=5, remaining_slots=5,
+        )
+        db.add(s_past); db.add(s_future); db.commit()
+        return e.id, s_past.id, s_future.id
+    finally:
+        db.close()
+
+
+def test_profile_upcoming_count_only_future_sessions(client):
+    t, uid = _register(client, "a@b.com")
+    eid, sid_past, sid_future = _make_event_two_sessions(client)
+    # Insert the registrations directly: the API blocks registering for an
+    # already-ended (past) session, but historically a user can still hold a
+    # successful past registration.
+    db = client.db_factory()
+    try:
+        db.add(Registration(user_id=uid, session_id=sid_past, status="success"))
+        db.add(Registration(user_id=uid, session_id=sid_future, status="success"))
+        db.commit()
+    finally:
+        db.close()
+
+    body = client.get(f"/api/users/{uid}").json()
+    # Both registrations are successful, but only the future session is upcoming.
+    assert body["joined_event_count"] == 2
+    assert body["upcoming_event_count"] == 1
+
+
+def test_profile_bookmarked_count(client):
+    t, uid = _register(client, "a@b.com")
+    eid, _, _ = _make_event_two_sessions(client)
+    assert client.get(f"/api/users/{uid}").json()["bookmarked_event_count"] == 0
+
+    r = client.post(f"/api/events/{eid}/bookmark", headers=_auth(t), json={"session_id": 0})
+    assert r.status_code == 200
+    assert client.get(f"/api/users/{uid}").json()["bookmarked_event_count"] == 1
 
 
 # ----- uploads -----

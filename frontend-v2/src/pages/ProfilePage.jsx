@@ -51,7 +51,7 @@ export default function ProfilePage() {
 
   const [myPosts, setMyPosts] = useState([]);
   const [myRegistrations, setMyRegistrations] = useState([]);
-  const [profileStats, setProfileStats] = useState({ post_count: 0, joined_event_count: 0 });
+  const [profileStats, setProfileStats] = useState({ post_count: 0, joined_event_count: 0, upcoming_event_count: 0, bookmarked_event_count: 0 });
   const [bookmarkedEvents, setBookmarkedEvents] = useState([]);
   const [bookmarkedPosts, setBookmarkedPosts] = useState([]);
   const [pendingCancel, setPendingCancel] = useState(null);
@@ -140,13 +140,13 @@ export default function ProfilePage() {
     setEditForm({ ...editForm, avatarUrl: previewUrl });
   };
 
-  // sidebar count uses upcoming filter
-  const upcomingCount = myRegistrations.filter((r) => r.status === "success" && isUpcoming(r)).length;
+  // All stat counts come from the backend (GET /api/users/{id}) so they are
+  // accurate and not capped by the paginated registration/post/bookmark lists.
   const stats = [
     { label: t("profile.stats.posts"), value: profileStats.post_count },
     { label: t("profile.stats.joined"), value: profileStats.joined_event_count },
-    { label: t("profile.stats.upcoming"), value: upcomingCount },
-    { label: t("profile.stats.tags"), value: "" },
+    { label: t("profile.stats.upcoming"), value: profileStats.upcoming_event_count },
+    { label: t("profile.stats.bookmarked"), value: profileStats.bookmarked_event_count },
   ];
 
   const handleSaveEdit = async () => {
