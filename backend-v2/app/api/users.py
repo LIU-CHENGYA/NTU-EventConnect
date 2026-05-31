@@ -140,7 +140,7 @@ def get_user(user_id: int, db: Session = Depends(get_db)):
     if not user:
         raise HTTPException(404, "User not found")
     post_count = db.query(Post).filter(
-        Post.user_id == user_id, Post.visibility == "public", Post.is_draft == False  # noqa: E712
+        Post.user_id == user_id, Post.is_draft == False  # noqa: E712
     ).count()
     joined = db.query(Registration).filter(
         Registration.user_id == user_id, Registration.status == "success"
