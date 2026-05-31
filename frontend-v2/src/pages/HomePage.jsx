@@ -9,7 +9,11 @@ import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import SearchIcon from "@mui/icons-material/Search";
 import ClearIcon from "@mui/icons-material/Clear";
-import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
+import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
+import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
+import { DatePicker } from "@mui/x-date-pickers/DatePicker";
+import { enUS, zhTW } from "date-fns/locale";
+import { format as formatFn, parseISO } from "date-fns";
 import EventCard from "../components/EventCard";
 import { eventsApi } from "../api";
 import { useData } from "../context/DataContext";
@@ -28,8 +32,17 @@ const SHORTCUT_TABS = [
   { id: "meal",     labelKey: "filter.tabs.meal",     kind: "shortcut", query: { tag: "免費餐點" } },
 ];
 
+// Native <input type="date"> ignores the page lang in Chrome, so the empty
+// placeholder stays "年/月/日" even in English. Use MUI DatePicker instead,
+// whose textfield format + calendar popover follow the chosen date-fns locale.
+const isEn = (lng) => lng.startsWith("en");
+const parseYmd = (s) => (s ? parseISO(s) : null);
+const formatYmd = (d) => (d && !Number.isNaN(d.getTime()) ? formatFn(d, "yyyy-MM-dd") : "");
+
 export default function HomePage() {
   const { t, i18n } = useTranslation();
+  const dfLocale = isEn(i18n.language) ? enUS : zhTW;
+  const dateFormat = isEn(i18n.language) ? "MM/dd/yyyy" : "yyyy/MM/dd";
   const [searchParams, setSearchParams] = useSearchParams();
   const searchQuery = searchParams.get("search") || "";
 
@@ -390,48 +403,57 @@ export default function HomePage() {
             <Typography sx={{ fontSize: tokens.fontSize.caption, color: tokens.color.placeholder, mb: 0.4 }}>
               {t("filter.dateRangeLabel")}
             </Typography>
-            <Box sx={{
-              display: "flex", gap: 0.5, alignItems: "center",
-              bgcolor: "#fff",
-              border: `1px solid ${hasPartialDateRange ? "#F59E0B" : tokens.color.border}`,
-              borderRadius: 1.5, px: 1.4, height: 52,
-              transition: "border-color 0.2s",
-            }}>
-              <CalendarTodayIcon sx={{ fontSize: 16, color: hasPartialDateRange ? "#F59E0B" : tokens.color.placeholder }} />
+            <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={dfLocale}>
               <Box sx={{
-                borderRadius: 1, px: 0.5, py: 0.3,
-                bgcolor: (hasPartialDateRange && !date) ? "#FFF3CD" : "transparent",
-                outline: (hasPartialDateRange && !date) ? "1.5px dashed #F59E0B" : "none",
-                transition: "background-color 0.2s",
+                display: "flex", gap: 0.5, alignItems: "center",
+                bgcolor: "#fff",
+                border: `1px solid ${hasPartialDateRange ? "#F59E0B" : tokens.color.border}`,
+                borderRadius: 1.5, px: 1, height: 52,
+                transition: "border-color 0.2s",
               }}>
-                <input
-                  type="date"
-                  value={date}
-                  onChange={(e) => setDate(e.target.value)}
-                  style={{
-                    border: "none", outline: "none", background: "transparent",
-                    width: 130, fontSize: tokens.fontSize.body, color: tokens.color.text, fontFamily: "inherit",
+                <DatePicker
+                  value={parseYmd(date)}
+                  onChange={(d) => setDate(formatYmd(d))}
+                  format={dateFormat}
+                  slotProps={{
+                    textField: {
+                      variant: "standard",
+                      placeholder: dateFormat.toLowerCase(),
+                      InputProps: { disableUnderline: true },
+                      sx: {
+                        flex: 1, borderRadius: 1, px: 0.5, py: 0.3,
+                        bgcolor: (hasPartialDateRange && !date) ? "#FFF3CD" : "transparent",
+                        outline: (hasPartialDateRange && !date) ? "1.5px dashed #F59E0B" : "none",
+                        transition: "background-color 0.2s",
+                        "& input": { fontSize: tokens.fontSize.body, color: tokens.color.text, py: 0.2 },
+                      },
+                    },
+                    openPickerButton: { size: "small" },
+                  }}
+                />
+                <Typography sx={{ fontSize: tokens.fontSize.caption, color: tokens.color.placeholder, mx: 0.25 }}>~</Typography>
+                <DatePicker
+                  value={parseYmd(dateEnd)}
+                  onChange={(d) => setDateEnd(formatYmd(d))}
+                  format={dateFormat}
+                  slotProps={{
+                    textField: {
+                      variant: "standard",
+                      placeholder: dateFormat.toLowerCase(),
+                      InputProps: { disableUnderline: true },
+                      sx: {
+                        flex: 1, borderRadius: 1, px: 0.5, py: 0.3,
+                        bgcolor: (hasPartialDateRange && !dateEnd) ? "#FFF3CD" : "transparent",
+                        outline: (hasPartialDateRange && !dateEnd) ? "1.5px dashed #F59E0B" : "none",
+                        transition: "background-color 0.2s",
+                        "& input": { fontSize: tokens.fontSize.body, color: tokens.color.text, py: 0.2 },
+                      },
+                    },
+                    openPickerButton: { size: "small" },
                   }}
                 />
               </Box>
-              <Typography sx={{ fontSize: tokens.fontSize.caption, color: tokens.color.placeholder, mx: 0.5 }}>~</Typography>
-              <Box sx={{
-                borderRadius: 1, px: 0.5, py: 0.3,
-                bgcolor: (hasPartialDateRange && !dateEnd) ? "#FFF3CD" : "transparent",
-                outline: (hasPartialDateRange && !dateEnd) ? "1.5px dashed #F59E0B" : "none",
-                transition: "background-color 0.2s",
-              }}>
-                <input
-                  type="date"
-                  value={dateEnd}
-                  onChange={(e) => setDateEnd(e.target.value)}
-                  style={{
-                    border: "none", outline: "none", background: "transparent",
-                    width: 130, fontSize: tokens.fontSize.body, color: tokens.color.text, fontFamily: "inherit",
-                  }}
-                />
-              </Box>
-            </Box>
+            </LocalizationProvider>
             <Typography sx={{
               fontSize: tokens.fontSize.caption, mt: 0.5,
               color: hasPartialDateRange ? "#F59E0B" : tokens.color.placeholder,
