@@ -268,18 +268,18 @@ def managed_events(
     db: Session = Depends(get_db),
     current: User = Depends(get_current_user),
 ):
-    """Events the current admin manages (all events visible to any admin)."""
+    """Events the current admin manages (the events they created)."""
     if not is_admin_email(current.email):
         raise HTTPException(403, "Admin only")
     total = (
         db.query(func.count(Event.id))
-        .filter(Event.created_by_user_id.isnot(None))
+        .filter(Event.created_by_user_id == current.id)
         .scalar() or 0
     )
     items = (
         db.query(Event)
         .options(selectinload(Event.sessions), selectinload(Event.tags))
-        .filter(Event.created_by_user_id.isnot(None))
+        .filter(Event.created_by_user_id == current.id)
         .order_by(Event.id.desc())
         .offset((page - 1) * size)
         .limit(size)
