@@ -1,22 +1,21 @@
 # NTU EventConnect
 
-台大校園活動的整合平台 — 把 [`my.ntu.edu.tw/actregister`](https://my.ntu.edu.tw/actregister) 上分散的活動資料抓下來，加上貼文、評分、收藏、報名紀錄、個人頭貼、行事曆等社群功能，讓學生用一個介面瀏覽所有校內活動。
+台大校園活動整合平台 — 把 [`my.ntu.edu.tw/actregister`](https://my.ntu.edu.tw/actregister) 上分散的活動資料抓下來，加上留言板、群組、收藏、報名紀錄、個人行事曆、i18n 等社群功能，讓學生用一個介面瀏覽所有校內活動。
 
 > 軟體工程課期末專案
 
 **線上網址：** <https://d1tz6syfib05nx.cloudfront.net/>
 
-> **第二階段程式碼位置**：第一階段保留在 `frontend/` 與 `backend/`，第二階段新功能（留言板、群組、SSO、取消確認、i18n、官方分類 + 標籤篩選、APScheduler 每日資料更新等）放在 `frontend-v2/` 與 `backend-v2/`。**生產環境目前指向 v2** —`.github/workflows/deploy.yml` 透過 GitHub Actions Variables `BACKEND_DIR` / `FRONTEND_DIR` 切換，目前兩者皆設為 `backend-v2` / `frontend-v2`。
+> 程式碼分成兩個世代：v1（`frontend/` + `backend/`）與 v2（`frontend-v2/` + `backend-v2/`）。**生產環境目前指向 v2**，本文件以 v2 為主。
 
 ---
 
 ## 目錄
 
-- [v2 Updates](#v2-updates)
 - [功能](#功能)
 - [技術棧](#技術棧)
 - [架構](#架構)
-- [Quick Start（不耐看版）](#quick-start不耐看版)
+- [Quick Start](#quick-start)
 - [完整安裝](#完整安裝)
   - [事前準備](#事前準備)
   - [Frontend](#frontend)
@@ -33,35 +32,20 @@
 
 ---
 
-## v2 Updates
-
-Latest features layered on the v1 baseline. All changes live in `frontend-v2/` and `backend-v2/`; the v1 `frontend/` and `backend/` are untouched.
-
-**Frontend**
-- Admin tooling: a navbar "Create activity" button, an event create/edit page, a per-event registration list, and a "Manage events" profile tab.
-- Profile: renamed tabs (My comments / My registrations), a comment-drafts tab, registrations split into upcoming vs. ended, and a calendar with prev/next month arrows, hover tooltips (name · time · location · date), click-to-event, and cancelled-event marker cleanup.
-- Home: multi-select tag filtering, "hot" events shown on top, search results that hide the hot section, date-range + location filters, and a single unified search box.
-- Board: own-comment edit/delete (CRUD), comment-to-event links, an image lightbox, and login redirects for logged-out actions.
-- i18n: full English coverage and unified "post" → "comment" wording, with a consistent font and type scale.
-
-**Backend**
-- `is_draft` decoupled from post visibility, with a dedicated `/api/users/me/drafts` endpoint.
-- Last-slot registration races handled atomically (`UPDATE ... WHERE remaining_slots > 0`).
-- Admin endpoints for event create/edit and per-event registration lists.
-- Registration details now expose the session `time`; private posts are gated behind authentication.
-
----
-
 ## 功能
 
-- **活動瀏覽**：分類、關鍵字搜尋、按收藏熱度排序
-- **個人行事曆**：標出有報名的日子
-- **收藏 / 報名**：活動 / 貼文都能收藏，報名場次有候補機制
-- **貼文系統**：評分 + 圖片 + 留言 + 按讚 + 草稿
-- **個人資料**：頭貼上傳、自介、報名紀錄
-- **登入**：本地註冊 + Google OAuth
+- **活動瀏覽**：分類篩選、多標籤 AND 篩選（免費/餐點/即將到來…）、關鍵字搜尋、日期區間、熱門排序
+- **留言板（Board）**：發文、評分、圖片（最多 4 張）、按讚、收藏、草稿、公開 / 私人 / 群組可見
+- **群組系統**：建立群組、邀請成員、群組限定貼文
+- **個人行事曆**：標出有報名的日子，點擊跳轉活動詳情
+- **收藏 / 報名**：活動與貼文皆可收藏；報名場次有候補自動遞補機制
+- **個人資料**：頭貼上傳、自介、我的留言 / 報名 / 收藏 / 草稿 / 活動管理
+- **通知中心**：即將到來的活動提醒、我的留言板動態、群組新貼文
+- **登入**：本地帳密 + Google OAuth，密碼重設 via 電子郵件
+- **i18n**：繁體中文 / English 即時切換
 - **RWD**：手機 / 平板 / 桌面自適應排版
-- **資料來源**：從台大活動報名網站爬取 336 場真實活動、1217 個場次
+- **管理員工具**：建立 / 編輯活動、查看 & 匯出報名名單
+- **資料來源**：從台大活動報名網站爬取 336 場真實活動、1217 個場次；每日 02:00 自動 reseed
 
 ---
 
@@ -69,8 +53,8 @@ Latest features layered on the v1 baseline. All changes live in `frontend-v2/` a
 
 | 層 | 技術 |
 |---|---|
-| **Frontend** | Vite 8 + React 19 + MUI 7 + react-router-dom 7 + axios + @mui/x-date-pickers + date-fns |
-| **Backend** | FastAPI 0.115 + SQLAlchemy 2.0 + Pydantic 2 + uvicorn + python-jose（JWT）+ passlib（bcrypt） |
+| **Frontend** | Vite 8 + React 19 + MUI 7 + react-router-dom 7 + axios + react-i18next + @mui/x-date-pickers + date-fns |
+| **Backend** | FastAPI 0.115 + SQLAlchemy 2.0 + Pydantic 2 + uvicorn + APScheduler 3.10 + python-jose（JWT）+ passlib（bcrypt） |
 | **資料庫** | SQLite（預設）/ PostgreSQL（透過 `DATABASE_URL` 切換） |
 | **ETL** | requests + BeautifulSoup（三層爬蟲） |
 | **CI/CD** | GitHub Actions → S3 + CloudFront（前端）/ EC2 docker-compose（後端） |
@@ -81,52 +65,51 @@ Latest features layered on the v1 baseline. All changes live in `frontend-v2/` a
 
 ```
 NTU-EventConnect/
-├── frontend/         # Vite + React 19 + MUI 7
-├── backend/          # FastAPI + SQLAlchemy
-└── fetch_data/       # ETL：三層爬蟲 + csv → mock json
-    ├── crawl_first/second/third.py   # 三層爬蟲
-    ├── csv/                          # 爬蟲產物（活動列表 / 場次明細）
-    └── build_mock.py                 # csv → events.generated.json（前端 mock 用）
+├── frontend-v2/      # Vite + React 19 + MUI 7  ← 生產用
+├── backend-v2/       # FastAPI + SQLAlchemy       ← 生產用
+├── frontend/         # v1（保留，未修改）
+├── backend/          # v1（保留，未修改）
+└── fetch_data/       # ETL：三層爬蟲 + CSV → DB
 ```
 
 **資料流：**
 
 ```
-my.ntu.edu.tw → crawl_*.py → csv/events.csv
-                                    │
-                    ┌───────────────┤
-                    ▼               ▼
-          seed_events.py     build_mock.py
-                │                   │
-                ▼                   ▼
-         Database (API)     events.generated.json (前端 mock 備用)
-                │
-                ▼
-      FastAPI /api/* ←→ React frontend
+my.ntu.edu.tw → crawl_*.py → fetch_data/csv/events.csv
+                                        │
+                          ┌─────────────┘
+                          ▼
+                   seed_events.py  ←─── APScheduler（每日 02:00）
+                          │
+                          ▼
+              PostgreSQL / SQLite（DB）
+                          │
+                          ▼
+              FastAPI /api/* ←→ React frontend
 ```
 
-後端對外暴露 8 組 router（auth / events / posts / comments / bookmarks / registrations / users / uploads），SQLAlchemy 走 `DATABASE_URL` 自動分派 SQLite 或 Postgres dialect，**程式碼層完全不用改**。
+後端對外暴露 10 組 router（auth / events / posts / comments / bookmarks / registrations / users / uploads / groups / notifications）。SQLAlchemy 走 `DATABASE_URL` 自動分派 SQLite 或 PostgreSQL dialect，**程式碼層完全不用改**。
 
 ---
 
-## Quick Start（不耐看版）
+## Quick Start
 
 開兩個 terminal：
 
 ```bash
-# Terminal 1 - Backend
-cd backend
+# Terminal 1 — Backend
+cd backend-v2
 python -m venv venv
-source venv/Scripts/activate         # Windows Git Bash
-# .\venv\Scripts\Activate.ps1        # Windows PowerShell
-# source venv/bin/activate           # macOS/Linux
+source venv/bin/activate           # macOS/Linux
+# source venv/Scripts/activate     # Windows Git Bash
+# .\venv\Scripts\Activate.ps1      # Windows PowerShell
 pip install -r requirements.txt
 uvicorn app.main:app --reload --port 8010
 ```
 
 ```bash
-# Terminal 2 - Frontend
-cd frontend
+# Terminal 2 — Frontend
+cd frontend-v2
 npm install
 npm run dev
 ```
@@ -157,16 +140,15 @@ python --version    # Windows 也可以用 py --version
 
 #### Windows 額外設定（PowerShell 啟動 venv 用得到）
 
-第一次用 venv 可能會遇到「無法載入指令碼」錯誤。**用系統管理員身分**開 PowerShell，跑一次：
-
 ```powershell
+# 用系統管理員身分開 PowerShell，跑一次：
 Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
 ```
 
 ### Frontend
 
 ```bash
-cd frontend
+cd frontend-v2
 npm install
 npm run dev          # 預設 http://localhost:5173
 npm run build        # 產 dist/
@@ -175,10 +157,11 @@ npm run lint         # ESLint
 npm test             # vitest
 ```
 
-如果你想讓 frontend 連到非預設的後端 URL，在 `frontend/` 建一個 `.env.local`：
+如果你想讓 frontend 連到非預設的後端 URL，在 `frontend-v2/` 建一個 `.env.local`：
 
 ```env
 VITE_API_URL=http://localhost:8010
+VITE_GOOGLE_CLIENT_ID=your-google-client-id   # Google OAuth 用，可選
 ```
 
 設完要**重啟 `npm run dev`**（vite 對環境變數的改動不會 HMR）。
@@ -186,25 +169,25 @@ VITE_API_URL=http://localhost:8010
 ### Backend
 
 ```bash
-cd backend
+cd backend-v2
 
 # 1. 建虛擬環境（只要做一次）
 python -m venv venv
 
 # 2. 啟用 venv
-source venv/Scripts/activate         # Windows Git Bash
-# .\venv\Scripts\Activate.ps1        # Windows PowerShell
-# source venv/bin/activate           # macOS/Linux
+source venv/bin/activate           # macOS/Linux
+# source venv/Scripts/activate     # Windows Git Bash
+# .\venv\Scripts\Activate.ps1      # Windows PowerShell
 
 # 3. 安裝依賴
 pip install -r requirements.txt
 
 # 4. （可選）建立 .env 設定環境變數
-# 如果不建，會使用預設值（SQLite + 預設 JWT secret）
 cat > .env << 'EOF'
 DATABASE_URL=sqlite:///./dev.db
 JWT_SECRET=change-me-in-prod
 CORS_ORIGINS=http://localhost:5173,http://localhost:5174,http://localhost:5175,http://localhost:5176,http://localhost:5177
+GOOGLE_CLIENT_ID=your-google-client-id
 EOF
 
 # 5. 啟動
@@ -226,67 +209,66 @@ python -m scripts.seed_admin     # 建一個 admin 帳號（admin@ntu.edu.tw / A
 python -m scripts.seed_events    # 灌活動資料（讀 fetch_data/csv/events.csv）
 ```
 
+管理員白名單放在 `backend-v2/admin_whitelist.txt`，每行一個 email。
+
 #### 跑測試
 
 ```bash
 pytest
 ```
 
-> pytest 會用同一個 `DATABASE_URL`。如果你連的是共用 Postgres，跑測試會污染資料。先把 `DATABASE_URL` 切回 SQLite 再跑，或設一個獨立 test DB。
+> pytest 使用 in-memory SQLite fixture，不會污染開發 DB。
 
 ### ETL（產真實活動資料）
 
-爬蟲跟 backend 共用一個 venv：
-
 ```bash
-# 在專案根目錄
-source venv/Scripts/activate
-python fetch_data/build_mock.py    # 產 frontend/src/mock/events.generated.json（前端 mock 備用）
+# 在專案根目錄，使用 backend-v2 的 venv
+source backend-v2/venv/bin/activate
+
+# 三層爬蟲（會花一段時間）
+python fetch_data/crawl_first.py
+python fetch_data/crawl_second.py
+python fetch_data/crawl_third.py
+
+# 後處理（標籤表 + 活動分類）
+python -m fetch_data.process_data
+python -m fetch_data.build_tags_table
+
+# 灌進 DB
+cd backend-v2
+python -m scripts.seed_events
 ```
 
-`seed_events.py` 直接讀 `fetch_data/csv/events.csv` 灌進資料庫，不需要先跑 `build_mock.py`。
+`seed_events.py` 是 idempotent，重複跑不會產生重複資料。
 
 ---
 
 ## 資料庫：SQLite ↔ PostgreSQL
 
-**同一份程式碼可以同時跑 SQLite 和 PostgreSQL**，差別只在 `DATABASE_URL` 環境變數。`backend/app/db/session.py` 會根據 URL scheme 自動分派 dialect，**程式碼不用任何 if/else**。
+**同一份程式碼支援兩種 DB**，差別只在 `DATABASE_URL`。
 
 | 模式 | 適用情境 | 設定難度 |
 |---|---|---|
 | **SQLite**（預設） | 本機開發、單人測試、Demo | 零設定 |
 | **PostgreSQL** | 多人共用、部署、Staging/Prod | 需要 DB server + 連線字串 |
 
-### 為什麼兩個都支援
-
-- **SQLite**：一個檔案就是一個資料庫，clone 完直接 `uvicorn` 就能跑。新組員不用裝 DB、不用設連線、不用問密碼。
-- **PostgreSQL**：多人可以共用同一份資料、部署到雲端後資料持久（不會被 redeploy 沖掉）、撐得住併發寫入、更貼近生產環境。
-
 ### 模式 A：SQLite（預設）
 
-什麼都不用設。`backend/app/core/config.py` 預設 `DATABASE_URL=sqlite:///./dev.db`。
+什麼都不用設。`backend-v2/app/core/config.py` 預設 `DATABASE_URL=sqlite:///./dev.db`，第一次啟動自動建表。
 
 ```bash
-cd backend
+cd backend-v2
 uvicorn app.main:app --reload --port 8010
 ```
 
-第一次啟動會在 `backend/dev.db` 自動建表。要砍掉重來就刪 `dev.db` 後重啟。
-
-`dev.db` 已被 `.gitignore` 排除，不會 commit。
+`dev.db` 已被 `.gitignore` 排除。
 
 ### 模式 B：PostgreSQL
 
-#### B-1. 安裝 driver
+#### B-1. 啟動一個 Postgres
 
-`backend/requirements.txt` 已經包含 `psycopg[binary]==3.3.3`，照常 `pip install -r requirements.txt` 就會裝好。
-
-#### B-2. 準備一個 Postgres 給你連
-
-選一個：
-
-**選項 A：Docker（最快）**
 ```bash
+# Docker（最快）
 docker run --name eventconnect-pg -d \
   -e POSTGRES_PASSWORD=postgres \
   -e POSTGRES_DB=eventconnect \
@@ -294,65 +276,29 @@ docker run --name eventconnect-pg -d \
   postgres:16
 ```
 
-**選項 B：本機裝 Postgres**
-從 <https://www.postgresql.org/download/> 下載安裝，用 `psql` 或 pgAdmin 建一個叫 `eventconnect` 的 database。
-
-**選項 C：用組員/雲端的 Postgres**
-跟組員拿連線字串。常見來源：Supabase、Neon、AWS RDS、GCP Cloud SQL、自架 VM。
-
-#### B-3. 設 `.env`
-
-在 `backend/` 建（或編輯）`.env`，把 `DATABASE_URL` 改成 Postgres：
+#### B-2. 設 `.env`
 
 ```env
 DATABASE_URL=postgresql+psycopg://postgres:postgres@localhost:5432/eventconnect
 ```
 
-> scheme **一定要是 `postgresql+psycopg://`**（用 v3 driver）。
-> - `postgresql://` 會去抓 psycopg2（沒裝會錯）
-> - `postgres://` SQLAlchemy 不認
+> scheme **一定要是 `postgresql+psycopg://`**（psycopg v3 driver）。
 
 雲端 Postgres 通常強制 SSL：
 ```env
 DATABASE_URL=postgresql+psycopg://user:pass@host:5432/db?sslmode=require
 ```
 
-#### B-4. 啟動
+#### B-3. 啟動 & 建表
 
 ```bash
 uvicorn app.main:app --reload --port 8010
+# 第一次啟動自動 create_all
 ```
-
-第一次啟動會自動 `Base.metadata.create_all` 建表。打開 <http://localhost:8010/api/health> 確認 `{"status":"ok"}`。
 
 ### 切回 SQLite
 
-只要把 `.env` 的 `DATABASE_URL` 那行改回 `sqlite:///./dev.db`，重啟 uvicorn 就好。**程式碼一行都不用動**。
-
-注意：SQLite 跟 Postgres 是兩個獨立的 DB，切換之後資料**不會自動搬過去**。
-
-### 把 SQLite 的資料搬到 Postgres（一次性）
-
-最簡單：在 Postgres 那邊重跑種子腳本：
-```bash
-python -m scripts.seed_events
-```
-
-要逐筆搬：用 [`pgloader`](https://pgloader.readthedocs.io/)（推薦）：
-```bash
-docker run --rm -v $(pwd)/backend:/data dimitri/pgloader \
-  pgloader sqlite:///data/dev.db postgresql://user:pass@host:5432/eventconnect
-```
-
-### 連線字串保密
-
-- **不要 commit `.env`**（已 gitignore）
-- **不要把連線字串貼到 PR / Slack 公開頻道 / GitHub issue**
-- 用 1Password / Bitwarden / 私訊傳
-
-### 連線管理（自動處理）
-
-`backend/app/db/session.py` 對 Postgres 啟用 `pool_pre_ping=True`：閒置連線被防火牆/雲端 NAT 砍掉時，SQLAlchemy 在取出 connection 前會先送一個輕量 `SELECT 1` 確認還活著，避免拿到死連線。SQLite 不需要這個（沒有真的 pool），所以條件式啟用。
+把 `.env` 的 `DATABASE_URL` 改回 `sqlite:///./dev.db` 重啟即可。兩個 DB 的資料**不會自動搬移**。
 
 ---
 
@@ -364,32 +310,41 @@ docker run --rm -v $(pwd)/backend:/data dimitri/pgloader \
 
 | Method | Path | 用途 | 需登入 |
 |---|---|---|---|
-| `POST` | `/api/auth/register` | 註冊（name + email + password） | - |
-| `POST` | `/api/auth/login` | 登入（回 JWT） | - |
+| `POST` | `/api/auth/register` | 帳密註冊 | - |
+| `POST` | `/api/auth/login` | 帳密登入（回 JWT） | - |
 | `POST` | `/api/auth/google` | Google OAuth 登入 | - |
 | `GET` | `/api/auth/me` | 取得目前登入使用者 | Yes |
+| `POST` | `/api/auth/forgot-password` | 發送密碼重設信 | - |
+| `POST` | `/api/auth/reset-password` | 重設密碼（用信中 token） | - |
 
 ### Events
 
 | Method | Path | 用途 | 需登入 |
 |---|---|---|---|
-| `GET` | `/api/events` | 活動列表（支援 `category` / `keyword` / `sort=hot` / `page` / `size`） | - |
-| `GET` | `/api/events/categories` | 所有分類 + 數量 | - |
+| `GET` | `/api/events` | 活動列表（`category` / `tag` / `tags` / `keyword` / `date` / `date_to` / `sort=hot` / `page` / `size`） | - |
+| `GET` | `/api/events/categories` | 所有母活動分類 + 數量 | - |
+| `GET` | `/api/events/tags` | 所有標籤 + 數量 | - |
+| `GET` | `/api/events/managed` | 我建立的活動（管理員） | Yes |
+| `POST` | `/api/events` | 建立活動（管理員） | Yes |
+| `PATCH` | `/api/events/{event_id}` | 編輯活動（建立者） | Yes |
 | `GET` | `/api/events/{event_id}` | 活動詳情（含所有場次） | - |
 | `GET` | `/api/events/{event_id}/sessions/{session_id}` | 場次詳情 | - |
+| `GET` | `/api/events/{event_id}/registrations` | 活動的報名名單（建立者） | Yes |
 
-**熱門排序邏輯**：`GET /api/events?sort=hot` 依「該活動被收藏的次數」由多到少排序，沒人收藏的擺最後。
+**熱門排序**：`sort=hot` 依「被收藏次數」由多到少排序。  
+**即將到來**：送 `date=YYYY-MM-DD` 只回傳有場次 ≥ 該日期的活動。  
+**多標籤 AND**：`tags=免費餐點,工作坊`（逗號分隔，必須同時符合所有標籤）。
 
-### Posts
+### Posts（留言板）
 
 | Method | Path | 用途 | 需登入 |
 |---|---|---|---|
-| `GET` | `/api/posts` | 貼文列表（支援 `event_id` / `user_id` / `visibility` / 分頁） | - |
+| `GET` | `/api/posts` | 貼文列表（`tab=all/hot/new/mine/bookmarked/private` / `group_id` / `event_id` / `is_board_post` / 分頁） | - |
 | `POST` | `/api/posts` | 發貼文 | Yes |
 | `GET` | `/api/posts/{post_id}` | 貼文詳情（含留言、讚/收藏狀態） | - |
-| `PATCH` | `/api/posts/{post_id}` | 編輯貼文（僅作者） | Yes |
-| `DELETE` | `/api/posts/{post_id}` | 刪除貼文（僅作者） | Yes |
-| `POST` | `/api/posts/{post_id}/comments` | 留言 | Yes |
+| `PATCH` | `/api/posts/{post_id}` | 編輯貼文（作者） | Yes |
+| `DELETE` | `/api/posts/{post_id}` | 刪除貼文（作者） | Yes |
+| `POST` | `/api/posts/{post_id}/comments` | 新增留言 | Yes |
 | `POST` | `/api/posts/{post_id}/like` | 按讚（冪等） | Yes |
 | `DELETE` | `/api/posts/{post_id}/like` | 取消讚 | Yes |
 | `POST` | `/api/posts/{post_id}/bookmark` | 收藏貼文（冪等） | Yes |
@@ -399,7 +354,21 @@ docker run --rm -v $(pwd)/backend:/data dimitri/pgloader \
 
 | Method | Path | 用途 | 需登入 |
 |---|---|---|---|
-| `DELETE` | `/api/comments/{comment_id}` | 刪留言（僅作者） | Yes |
+| `PATCH` | `/api/comments/{comment_id}` | 編輯留言（作者） | Yes |
+| `DELETE` | `/api/comments/{comment_id}` | 刪除留言（作者） | Yes |
+
+### Groups
+
+| Method | Path | 用途 | 需登入 |
+|---|---|---|---|
+| `GET` | `/api/groups` | 我加入的群組列表 | Yes |
+| `POST` | `/api/groups` | 建立群組 | Yes |
+| `GET` | `/api/groups/{group_id}` | 群組詳情（含成員） | Yes |
+| `PATCH` | `/api/groups/{group_id}` | 更新群組名稱（建立者） | Yes |
+| `DELETE` | `/api/groups/{group_id}` | 刪除群組（建立者） | Yes |
+| `POST` | `/api/groups/{group_id}/invite` | 邀請成員（寄出邀請） | Yes |
+| `DELETE` | `/api/groups/{group_id}/members/{user_id}` | 移除成員 | Yes |
+| `DELETE` | `/api/groups/{group_id}/invitations/{invite_id}` | 撤銷邀請 | Yes |
 
 ### Bookmarks & Registrations
 
@@ -407,25 +376,27 @@ docker run --rm -v $(pwd)/backend:/data dimitri/pgloader \
 |---|---|---|---|
 | `POST` | `/api/events/{event_id}/bookmark` | 收藏活動（冪等） | Yes |
 | `DELETE` | `/api/events/{event_id}/bookmark` | 取消收藏活動 | Yes |
-| `POST` | `/api/sessions/{session_id}/register` | 報名場次（額滿進候補） | Yes |
+| `GET` | `/api/users/me/bookmarks/events` | 我收藏的活動 | Yes |
+| `GET` | `/api/users/me/bookmarks/posts` | 我收藏的貼文 | Yes |
+| `POST` | `/api/sessions/{session_id}/register` | 報名場次（額滿自動進候補） | Yes |
 | `DELETE` | `/api/registrations/{reg_id}` | 取消報名（自動遞補候補） | Yes |
+| `GET` | `/api/users/me/registrations` | 我的報名紀錄 | Yes |
 
 ### Users
 
 | Method | Path | 用途 | 需登入 |
 |---|---|---|---|
-| `GET` | `/api/users/{user_id}` | 使用者公開資料（含貼文數、參加活動數） | - |
+| `GET` | `/api/users/{user_id}` | 使用者公開資料（含留言數、參加活動數） | - |
 | `PATCH` | `/api/users/me` | 更新自己的資料（name / bio / avatar_url / department / student_id） | Yes |
-| `GET` | `/api/users/me/drafts` | 我的草稿（visibility=private 的貼文） | Yes |
-| `GET` | `/api/users/me/registrations` | 我的報名紀錄 | Yes |
-| `GET` | `/api/users/me/bookmarks/events` | 收藏的活動 | Yes |
-| `GET` | `/api/users/me/bookmarks/posts` | 收藏的貼文 | Yes |
+| `GET` | `/api/users/me/comments` | 我發過的留言（含所屬貼文標題） | Yes |
+| `GET` | `/api/users/me/managed_events` | 我建立的活動（管理員） | Yes |
+| `GET` | `/api/users/me/drafts` | 我的草稿 | Yes |
 
 ### Uploads & Health
 
 | Method | Path | 用途 | 需登入 |
 |---|---|---|---|
-| `POST` | `/api/uploads` | 上傳圖片（jpg/png/gif/webp，最大 5MB） | Yes |
+| `POST` | `/api/uploads` | 上傳圖片（jpg/png/gif/webp，最大 5 MB） | Yes |
 | `GET` | `/api/health` | Health check | - |
 
 ---
@@ -434,19 +405,24 @@ docker run --rm -v $(pwd)/backend:/data dimitri/pgloader \
 
 | 路徑 | 頁面 | 需登入 | 說明 |
 |---|---|---|---|
-| `/` | HomePage | - | 活動列表 + 熱門活動，分類篩選、搜尋、分頁 |
-| `/login` | LoginPage | - | Email + 密碼登入、Google OAuth |
-| `/register` | RegisterPage | - | 註冊帳號 |
-| `/forgot-password` | ForgotPasswordPage | - | 忘記密碼 |
-| `/events/:id` | EventDetailPage | - | 活動詳情、場次資訊、評論列表 |
+| `/` | HomePage | - | 活動列表 + 熱門活動；分類 / 標籤 / 關鍵字 / 日期篩選，#即將到來 chip |
+| `/login` | LoginPage | - | Email 登入 + Google OAuth |
+| `/register` | RegisterPage | - | 帳密註冊 |
+| `/forgot-password` | ForgotPasswordPage | - | 忘記密碼（寄重設信） |
+| `/reset-password` | ResetPasswordPage | - | 密碼重設（信中 token） |
+| `/events/:id` | EventDetailPage | - | 活動詳情、場次資訊、留言 |
 | `/events/:id/register` | EventRegisterPage | - | 選擇場次報名 |
 | `/events/create` | EventCreatePage | Yes | 新增活動（管理員） |
-| `/profile` | ProfilePage | Yes | 個人資料、日曆、我的貼文/報名/收藏 |
+| `/events/:id/edit` | EventCreatePage | Yes | 編輯活動（管理員，複用同頁面） |
+| `/events/:id/registrations` | EventRegistrationsPage | Yes | 查看 & 匯出活動報名名單（管理員） |
+| `/profile` | ProfilePage | Yes | 個人頁面：我的留言 / 報名 / 收藏留言 / 收藏活動 / 草稿 / 活動管理 + 行事曆 |
 | `/profile/:userId` | OtherProfilePage | - | 查看其他使用者的公開資料與貼文 |
-| `/posts/create` | PostCreatePage | Yes | 發表貼文或評論（可帶 `?eventId=` 寫活動評論） |
-| `/posts/:id` | PostDetailPage | - | 貼文詳情、留言、按讚/收藏 |
+| `/posts/create` | PostCreatePage | Yes | 發表活動評論（可帶 `?eventId=`） |
+| `/posts/:id` | PostDetailPage | - | 貼文詳情、留言、讚/收藏 |
 | `/posts/:id/edit` | PostEditPage | Yes | 編輯自己的貼文 |
-| `/my-registrations` | RegistrationRecordPage | Yes | 報名紀錄列表，可展開查看詳情或取消報名 |
+| `/my-registrations` | RegistrationRecordPage | Yes | 報名紀錄列表，可取消報名 |
+| `/board` | BoardPage | - | 留言板：全部 / 熱門 / 最新 / 我的 / 收藏 / 群組；左側邊欄導航 |
+| `/board/posts/:id` | BoardPostDetailPage | - | 留言板貼文詳情 |
 
 ---
 
@@ -454,115 +430,120 @@ docker run --rm -v $(pwd)/backend:/data dimitri/pgloader \
 
 ```
 NTU-EventConnect/
-├── README.md                       # ← 你正在看的
-├── CLAUDE.md                       # 給 Claude 的專案規則（commit / 套件版本鎖定）
-├── DOC.md                          # 早期設計文件
-├── DOC_INFRA.md                    # 基礎設施文件
-├── TEST_PLAN.md                    # 測試計畫
+├── README.md
+├── CLAUDE.md                       # 給 Claude 的專案規則
+├── docker-compose.yml              # EC2 生產環境（backend + postgres + caddy）
 ├── .github/workflows/deploy.yml    # GitHub Actions：build → AWS
 │
-├── frontend/
+├── frontend-v2/                    # ← 生產前端
 │   ├── package.json
 │   ├── vite.config.js
 │   ├── vitest.config.js
-│   ├── postcss.config.js
-│   ├── .env.example                # 環境變數範本
-│   ├── public/
 │   └── src/
 │       ├── main.jsx                # entry
-│       ├── App.jsx                 # routes（13 條路由）
-│       ├── theme.js                # MUI theme tokens（顏色/字型/陰影/圓角）
-│       ├── index.css               # Global styles + Google Fonts
+│       ├── App.jsx                 # 路由（15 條）
+│       ├── theme.js                # MUI token（顏色/字型/陰影/圓角）
 │       ├── api/
-│       │   ├── client.js           # axios instance（吃 VITE_API_URL，預設 localhost:8010）
-│       │   └── index.js            # endpoint wrappers + snake↔camel mapper
+│       │   ├── client.js           # axios instance（吃 VITE_API_URL）
+│       │   └── index.js            # endpoint wrappers + snake↔camelCase mapper
 │       ├── context/
 │       │   ├── AuthContext.jsx     # JWT + 使用者狀態 + Google OAuth
 │       │   └── DataContext.jsx     # 收藏 / 草稿 cache + 樂觀更新
+│       ├── i18n/
+│       │   ├── index.js            # i18next 設定（語言偵測、繁中/英）
+│       │   ├── zh-TW.json          # 繁體中文翻譯
+│       │   ├── en.json             # 英文翻譯
+│       │   └── tagLabels.js        # 標籤 ZH↔EN 對照
 │       ├── components/
-│       │   ├── Navbar.jsx          # 導覽列（桌面搜尋列 + 手機漢堡選單 Drawer）
-│       │   ├── EventCard.jsx       # 活動卡片（圖片/日期/地點/名額/收藏）
-│       │   ├── PostCard.jsx        # 貼文卡片（作者/評分/內容預覽）
-│       │   ├── ProtectedRoute.jsx  # 登入保護 wrapper
-│       │   └── ErrorBoundary.jsx   # React error boundary
+│       │   ├── Navbar.jsx                # 導覽列 + 語言切換 + 通知
+│       │   ├── EventCard.jsx             # 活動卡片（圖片/日期/地點/名額/收藏）
+│       │   ├── PostCard.jsx              # 貼文卡片（作者/評分/內容）
+│       │   ├── BoardPostCreateDialog.jsx # 留言板發文 modal
+│       │   ├── CancelConfirmDialog.jsx   # 取消報名確認對話框
+│       │   ├── GroupEditDialog.jsx       # 建立/編輯群組對話框
+│       │   ├── GoogleSSOButton.jsx       # Google 登入按鈕
+│       │   ├── ImageLightbox.jsx         # 圖片燈箱
+│       │   ├── LocaleSwitcher.jsx        # 語言切換按鈕
+│       │   ├── ProtectedRoute.jsx        # 登入保護 wrapper
+│       │   └── ErrorBoundary.jsx         # React error boundary
 │       ├── pages/
-│       │   ├── HomePage.jsx              # 活動列表 + 熱門活動
+│       │   ├── HomePage.jsx              # 活動列表 + 篩選 + 熱門
 │       │   ├── EventDetailPage.jsx       # 活動詳情 + 評論
-│       │   ├── EventCreatePage.jsx       # 新增活動（管理員）
+│       │   ├── EventCreatePage.jsx       # 新增/編輯活動（管理員）
 │       │   ├── EventRegisterPage.jsx     # 場次報名
+│       │   ├── EventRegistrationsPage.jsx # 報名名單（管理員）
 │       │   ├── PostDetailPage.jsx        # 貼文詳情 + 留言
-│       │   ├── PostCreatePage.jsx        # 發表貼文/評論
+│       │   ├── PostCreatePage.jsx        # 發表活動評論
 │       │   ├── PostEditPage.jsx          # 編輯貼文
-│       │   ├── ProfilePage.jsx           # 個人頁面（日曆 + 頭貼上傳 + 4 個 tab）
+│       │   ├── ProfilePage.jsx           # 個人頁面（行事曆 + 6 個 tab）
 │       │   ├── OtherProfilePage.jsx      # 其他使用者主頁
 │       │   ├── RegistrationRecordPage.jsx # 報名紀錄
+│       │   ├── BoardPage.jsx             # 留言板
+│       │   ├── BoardPostDetailPage.jsx   # 留言板貼文詳情
 │       │   ├── LoginPage.jsx             # 登入
 │       │   ├── RegisterPage.jsx          # 註冊
-│       │   └── ForgotPasswordPage.jsx    # 忘記密碼
-│       ├── mock/                         # ETL 產出的備用資料
-│       │   └── events.generated.json
-│       └── test/                         # vitest tests
-│           ├── setup.js
-│           └── mappers.test.js           # API mapper 單元測試
+│       │   ├── ForgotPasswordPage.jsx    # 忘記密碼
+│       │   └── ResetPasswordPage.jsx     # 密碼重設
+│       └── utils/
+│           └── format.js                 # 日期格式化工具
 │
-├── backend/
+├── backend-v2/                     # ← 生產後端
 │   ├── requirements.txt
 │   ├── pytest.ini
-│   ├── dockerfile                  # Docker image（Python 3.11-slim）
-│   ├── .env                        # 環境變數（gitignore 排除，但目前誤 commit 了）
-│   ├── dev.db                      # SQLite（gitignore）
-│   ├── uploads/                    # /api/uploads 存的檔案
+│   ├── dockerfile
+│   ├── admin_whitelist.txt         # 管理員 email 白名單（每行一個）
 │   ├── app/
-│   │   ├── main.py                 # FastAPI app + router 註冊 + CORS + static mount
+│   │   ├── main.py                 # FastAPI app + router 註冊 + CORS + APScheduler
 │   │   ├── core/
 │   │   │   ├── config.py           # Pydantic Settings（吃 .env）
+│   │   │   ├── admin.py            # is_admin_email()（讀 admin_whitelist.txt）
 │   │   │   ├── deps.py             # get_current_user / get_current_user_optional
-│   │   │   └── security.py         # bcrypt + JWT (create/decode)
+│   │   │   ├── security.py         # bcrypt + JWT（create / decode）
+│   │   │   └── time.py             # session_has_ended() 工具
 │   │   ├── db/session.py           # SQLAlchemy engine + session（雙 dialect）
-│   │   ├── models/                 # SQLAlchemy ORM（8 個 model）
+│   │   ├── models/
 │   │   │   ├── user.py             # User
-│   │   │   ├── event.py            # Event + EventSession
+│   │   │   ├── event.py            # Event + EventSession + EventTag
 │   │   │   ├── post.py             # Post + Comment + PostLike + PostBookmark + EventBookmark
-│   │   │   └── registration.py     # Registration
-│   │   ├── schemas/                # Pydantic request/response
-│   │   │   ├── user.py             # UserRegister / UserLogin / UserOut / TokenResponse / GoogleLoginRequest
-│   │   │   ├── event.py            # EventOut / EventSessionOut / EventDetailOut / EventListResponse
-│   │   │   ├── post.py             # PostCreate / PostUpdate / PostOut / PostDetailOut / CommentCreate / CommentOut
-│   │   │   └── registration.py     # RegistrationOut / RegistrationDetailOut
-│   │   └── api/                    # router 們（8 個）
-│   │       ├── auth.py             # 註冊 / 登入 / Google OAuth / me
-│   │       ├── events.py           # 活動列表 / 分類 / 詳情 / 場次
-│   │       ├── posts.py            # CRUD + 留言 + 讚 + 收藏
-│   │       ├── comments.py         # 刪留言
-│   │       ├── bookmarks.py        # 活動收藏 + 使用者收藏列表 + 草稿
-│   │       ├── registrations.py    # 報名 / 取消（含候補遞補）
-│   │       ├── users.py            # 使用者資料 CRUD
-│   │       └── uploads.py          # 圖片上傳（jpg/png/gif/webp，5MB limit）
+│   │   │   ├── registration.py     # Registration
+│   │   │   └── group.py            # Group + GroupMember + GroupInvitation
+│   │   ├── schemas/
+│   │   │   ├── user.py             # UserRegister / UserOut / TokenResponse / GoogleLoginRequest
+│   │   │   ├── event.py            # EventOut / EventSessionOut / EventDetailOut / EventListResponse / EventCreateIn / EventUpdateIn
+│   │   │   ├── post.py             # PostCreate / PostUpdate / PostOut / CommentCreate / CommentOut
+│   │   │   ├── registration.py     # RegistrationOut / RegistrationDetailOut / EventRegistrationOut
+│   │   │   └── group.py            # GroupOut / GroupDetailOut / GroupInvitationOut
+│   │   └── api/
+│   │       ├── auth.py             # 註冊 / 登入 / Google OAuth / me / 密碼重設
+│   │       ├── events.py           # 活動 CRUD + 分類 / 標籤列表 + 場次
+│   │       ├── posts.py            # 貼文 CRUD + 留言 + 讚 + 收藏
+│   │       ├── comments.py         # 編輯 / 刪除留言
+│   │       ├── bookmarks.py        # 活動收藏 + 貼文收藏列表 + 草稿
+│   │       ├── registrations.py    # 報名 / 取消（含候補自動遞補）
+│   │       ├── users.py            # 使用者資料 CRUD + 我的留言 / 活動管理
+│   │       ├── groups.py           # 群組 CRUD + 邀請 / 成員管理
+│   │       └── uploads.py          # 圖片上傳（jpg/png/gif/webp，5 MB limit）
 │   ├── scripts/
 │   │   ├── seed_admin.py           # 建 admin 帳號
-│   │   └── seed_events.py          # 從 fetch_data/csv/events.csv 灌活動 + 場次
-│   ├── check.py                    # 簡易爬蟲測試腳本
-│   ├── scrap.py                    # 活動列表解析腳本
-│   └── tests/                      # pytest 測試（7 個檔案）
+│   │   └── seed_events.py          # 從 fetch_data/csv/events.csv 灌活動 + 場次（idempotent）
+│   └── tests/
 │       ├── conftest.py             # in-memory SQLite fixture
-│       ├── test_auth.py            # 註冊 / 登入 / me
-│       ├── test_events.py          # 活動列表 / 篩選 / 分頁 / 詳情
-│       ├── test_posts.py           # CRUD + 留言 + 讚 + 收藏 + 草稿
-│       ├── test_registrations.py   # 報名 / 候補 / 取消遞補 / 權限
-│       ├── test_users_uploads.py   # 使用者資料 + 圖片上傳
-│       ├── test_edge_cases.py      # 邊界：cascade delete / 冪等 / token 竄改
-│       └── test_seed_events.py     # seed_events 整合測試
+│       └── test_*.py               # pytest 測試
+│
+├── frontend/                       # v1（保留）
+├── backend/                        # v1（保留）
 │
 └── fetch_data/
     ├── info.md                     # 爬蟲說明（336 活動、1217 場次）
     ├── crawl_first.py              # 第一層：活動列表頁
     ├── crawl_second.py             # 第二層：母活動頁
     ├── crawl_third.py              # 第三層：場次詳情頁
-    ├── build_mock.py               # csv → events.generated.json
+    ├── process_data.py             # 後處理：整合欄位
+    ├── build_tags_table.py         # 產標籤對照表
     └── csv/                        # 爬蟲產物
-        ├── activities.csv          # 活動列表
-        ├── activity_session.csv    # 母活動 + 場次 URL
-        └── events.csv              # 完整場次資料（seed_events.py 的資料來源）
+        ├── activities.csv
+        ├── activity_session.csv
+        └── events.csv              # seed_events.py 的資料來源
 ```
 
 ---
@@ -571,81 +552,68 @@ NTU-EventConnect/
 
 ### 加新 API endpoint
 
-1. 在 `backend/app/schemas/` 加 Pydantic schema（request / response）
-2. 在 `backend/app/api/<resource>.py` 加 router function
-3. 如果是新 resource 要在 `app/main.py` `include_router`
-4. 重啟 uvicorn（`--reload` 應該會自動 reload）
+1. 在 `backend-v2/app/schemas/` 加 Pydantic schema
+2. 在 `backend-v2/app/api/<resource>.py` 加 router function
+3. 如果是新 resource，在 `app/main.py` `include_router`
+4. 重啟 uvicorn（`--reload` 會自動 reload）
 5. 在 <http://localhost:8010/docs> 驗證
 
 ### 加新 model 欄位
 
-1. 改 `backend/app/models/<resource>.py` 的 SQLAlchemy column
-2. 改 `backend/app/schemas/<resource>.py` 對應 schema
-3. **dev 環境**：刪 `backend/dev.db` 重啟，`create_all` 會自動建新欄位
-4. **共用 Postgres 環境**：手動 `ALTER TABLE`，或乾脆 drop schema 重來
-5. （長期）導入 Alembic migration
+1. 改 `backend-v2/app/models/<resource>.py` 的 SQLAlchemy column
+2. 改對應 schema
+3. **dev 環境**：刪 `backend-v2/dev.db` 重啟，`create_all` 自動建新欄位
+4. **共用 Postgres**：手動 `ALTER TABLE`，或 drop schema 重來
 
 ### 加新前端頁面
 
-1. 在 `frontend/src/pages/` 加 `XxxPage.jsx`
-2. 在 `frontend/src/App.jsx` 註冊 route
-3. 如果需要登入才看，包 `<ProtectedRoute>`
-4. 如果要打 API，從 `frontend/src/api` import 對應的 wrapper
+1. 在 `frontend-v2/src/pages/` 加 `XxxPage.jsx`
+2. 在 `frontend-v2/src/App.jsx` 註冊 route
+3. 需要登入才看的話，包 `<ProtectedRoute>`
+4. 多語系字串加進 `src/i18n/zh-TW.json` 和 `src/i18n/en.json`
 
 ### 重置 SQLite DB
 
 ```bash
-rm backend/dev.db
-# 重啟 uvicorn 會自動 create_all
-python -m scripts.seed_events    # 重新灌資料
+rm backend-v2/dev.db
+# 重啟 uvicorn 自動 create_all
+cd backend-v2 && python -m scripts.seed_events
 ```
 
-### 砍掉所有舊的 vite 進程（Windows）
+### 新增管理員帳號
 
-```powershell
-taskkill /F /IM node.exe
-```
-
-### 看 backend log 但只想看自己的請求
-
-```bash
-uvicorn app.main:app --reload --port 8010 --log-level info
-```
+在 `backend-v2/admin_whitelist.txt` 加一行 email，**不需要重啟 backend**（每次呼叫時即時讀檔）。
 
 ---
 
 ## 套件版本鎖定規則
 
-> 為了避免 npm / PyPI 供應鏈投毒攻擊，**所有相依套件都必須鎖版本，禁止使用發布未滿 7 天的版本**。
+> 為了避免供應鏈投毒攻擊，**所有依賴都必須鎖版本，禁止使用發布未滿 7 天的版本**。
 
 ### Frontend
 
-`package.json` 用**精確版本**（不加 `^` 或 `~`）。當前鎖定的關鍵套件：
+`package.json` 用**精確版本**（不加 `^` 或 `~`）：
 
-| 套件 | 鎖定版本 | 備註 |
-|---|---|---|
-| react | `19.2.4` | |
-| react-dom | `19.2.4` | |
-| react-router-dom | `7.13.2` | |
-| @mui/material | `7.3.9` | |
-| @mui/icons-material | `7.3.9` | |
-| @mui/x-date-pickers | `8.27.2` | v9 太新（< 7 天）暫時鎖在 v8 |
-| @emotion/react | `11.14.0` | MUI 底層依賴 |
-| @emotion/styled | `11.14.1` | MUI 底層依賴 |
-| axios | `1.14.0` | |
-| date-fns | `4.1.0` | |
-| vite | `8.0.1` | |
+| 套件 | 鎖定版本 |
+|---|---|
+| react / react-dom | `19.2.4` |
+| react-router-dom | `7.13.2` |
+| @mui/material | `7.3.9` |
+| @mui/icons-material | `7.3.9` |
+| @mui/x-date-pickers | `8.27.2` |
+| @emotion/react | `11.14.0` |
+| @emotion/styled | `11.14.1` |
+| axios | `1.14.0` |
+| date-fns | `4.1.0` |
+| i18next | `23.16.5` |
+| react-i18next | `15.1.1` |
+| vite | `8.0.1` |
 
-新增任何套件前：
+新增套件前：`npm view <package> time` 確認最新版本發布超過 7 天，再用精確版本寫進 `package.json`。
 
-1. `npm view <package> time` 確認最新版本發布超過 7 天
-2. 不夠 7 天請退回上一個穩定版本
-3. 在 `package.json` 用**精確版本**寫死
-4. 確保 `package-lock.json` 一定要 commit 進 repo
+### Backend
 
-### Backend / ETL
-
-`backend/requirements.txt` 用 `==` 鎖版本，不要用 `>=`。當前鎖定：
+`requirements.txt` 用 `==` 鎖版本：
 
 ```
 fastapi==0.115.0
@@ -659,17 +627,18 @@ passlib[bcrypt]==1.7.4
 bcrypt==4.0.1
 python-multipart==0.0.12
 email-validator==2.2.0
+apscheduler==3.10.4
 pytest==8.3.3
 httpx==0.27.2
 ```
 
-新增 Python 套件前 `pip index versions <package>` 確認版本/時間。
+新增套件前：`pip index versions <package>` 確認版本發布日期。
 
 ---
 
 ## 部署
 
-### 雲端基礎設施架構（v2 起，2026-05-10 切換）
+### 雲端基礎設施架構
 
 ```
                          Internet
@@ -680,202 +649,89 @@ httpx==0.27.2
 ┌─────────────────────┐               ┌──────────────────────────────┐
 │  CloudFront (CDN)   │               │  EC2 Instance                │
 │  d1tz6syfib05nx     │               │  54.175.31.32.nip.io         │
-│  .cloudfront.net    │               │  (VITE_API_URL)              │
-│                     │               │                              │
+│  .cloudfront.net    │               │                              │
 │  Origin: S3 (OAC)   │               │  docker-compose.yml          │
-│  ─ / → 前端靜態檔   │               │  ┌────────────────────────┐  │
-│  ─ SPA 404→index    │               │  │ caddy:2-alpine         │  │
-└──────────┬──────────┘               │  │  - Let's Encrypt 自動  │  │
-           │                          │  │    申請 HTTPS 憑證     │  │
-           ▼                          │  │  - 80/443 → backend    │  │
+│  SPA 404→index.html │               │  ┌────────────────────────┐  │
+└──────────┬──────────┘               │  │ caddy:2-alpine         │  │
+           │                          │  │  80/443 → backend:8000 │  │
+           ▼                          │  │  Let's Encrypt 自動憑證│  │
 ┌─────────────────────┐               │  └──────────┬─────────────┘  │
 │  S3 (private)       │               │             ▼                │
 │  Vite build 產物    │               │  ┌────────────────────────┐  │
-└─────────────────────┘               │  │ backend (FastAPI)      │  │
-                                      │  │  build: ${BACKEND_DIR} │  │
-前端 JS（在使用者瀏覽器）             │  │  + APScheduler 02:00   │  │
-│                                     │  └──────────┬─────────────┘  │
-│  CORS request ─────────────────────►│             ▼                │
-│  VITE_API_URL/api/*                 │  ┌────────────────────────┐  │
-│  （直連 EC2，不過 CloudFront）       │  │ postgres:16-alpine     │  │
+└─────────────────────┘               │  │ backend-v2 (FastAPI)   │  │
+                                      │  │  + APScheduler 02:00   │  │
+前端 JS（使用者瀏覽器）               │  └──────────┬─────────────┘  │
+│  VITE_API_URL/api/* ────────────────►             ▼                │
+│  （直連 EC2，不過 CloudFront）       │  ┌────────────────────────┐  │
+│                                     │  │ postgres:16-alpine     │  │
 │                                     │  │  pg_data volume        │  │
 │                                     │  └────────────────────────┘  │
-│                                     │                              │
-│                                     │  host volumes (read-only):   │
-│                                     │   - ./fetch_data             │
-│                                     │   - ./${BACKEND_DIR}/scripts │
 │                                     └──────────────────────────────┘
 ```
 
-**設計重點：** CloudFront 只負責前端靜態檔分發，**不 proxy `/api/*`**。前端 build 時把 `VITE_API_URL` 寫死成 EC2 的 HTTPS domain，瀏覽器直接打 backend。這樣做是為了避免 CloudFront 預設 cache policy 把 query string 吃掉（查詢 / 分頁參數遺失）。EC2 上的 HTTPS 由 Caddy 自動向 Let's Encrypt 申請憑證，使用 `nip.io` wildcard DNS（`54.175.31.32.nip.io` → `54.175.31.32`）。
+**設計重點：** CloudFront 只負責前端靜態檔分發，**不 proxy `/api/*`**。前端 build 時把 `VITE_API_URL` 寫死成 EC2 HTTPS domain，瀏覽器直接打 backend，避免 CloudFront cache 吃掉 query string。
 
-**部署組件說明：**
+### CI/CD（GitHub Actions）
 
-| 組件 | 服務 | 配置 | 說明 |
-|------|------|------|------|
-| **前端 CDN** | CloudFront | OAC + custom error（403/404 → index.html）| SPA 路由重整不會 404 |
-| **前端靜態檔** | S3（private bucket）| 透過 OAC 只接受 CloudFront 存取 | Vite build 產物 |
-| **後端** | EC2 + docker-compose | t3.micro 1 vCPU / 1 GiB（+2 GiB swap）| FastAPI image 在 EC2 上 build，不經過 ECR |
-| **資料庫** | docker-compose `postgres:16-alpine` 同機 | volume `pg_data` | 與 backend 同一台 EC2 |
-| **反向代理 / HTTPS** | docker-compose `caddy:2-alpine` | 80/443 expose | Let's Encrypt 自動憑證，proxy 到 backend:8000 |
-| **CSV 資料** | host volume `./fetch_data` | read-only mount | EC2 主機檔案，由 ETL 流程更新 |
-| **Scheduler** | APScheduler（backend container 內）| 02:00 Asia/Taipei | 每日呼叫 `scripts.seed_events`，CSV → DB |
-| **日誌** | `docker compose logs backend` | EC2 在地 | 沒有 CloudWatch 集中收集，需 SSH 進機器看 |
+**觸發條件：** push 到 `main` 或手動 `workflow_dispatch`
 
-### CI/CD 自動化流程
+**前端（S3 + CloudFront）：**
+1. `npm ci` → `npm run build`（注入 `VITE_API_URL` / `VITE_GOOGLE_CLIENT_ID`）
+2. `aws s3 sync dist/ --delete`
+3. CloudFront invalidation
 
-```
-Developer Push → GitHub → Actions Workflow → AWS Deployment
+**後端（EC2 SSH）：**
+1. `paths-filter` 判斷 backend-v2 / fetch_data 是否變更
+2. SSH 到 EC2：`git reset --hard origin/main`
+3. `docker compose up -d --build backend`
+4. Health check（重試 5 次）
 
-開發流程：
-1. 開發者 commit & push 到 main branch
-2. GitHub Actions 自動觸發
-3. 平行執行前後端構建
-4. 部署到對應的 AWS 服務
-5. 自動更新與健康檢查
-```
+切換 v1 ↔ v2 只需在 GitHub → Settings → Variables 改 `BACKEND_DIR` / `FRONTEND_DIR`。
 
-**觸發條件：** push 到 `main` branch，或手動執行 workflow_dispatch
-
----
-
-### Frontend（AWS S3 + CloudFront）
-
-**前端網址：** <https://d1tz6syfib05nx.cloudfront.net>
-
-#### 自動部署流程（GitHub Actions）
-
-```yaml
-1. Checkout 程式碼
-2. 設定 Node.js 環境
-3. 安裝依賴 (npm ci)
-4. 設定環境變數 (VITE_API_URL)
-5. 構建生產版本 (npm run build)
-6. 同步到 S3 (aws s3 sync dist/ --delete)
-7. 清除 CloudFront 快取 (create-invalidation)
-```
-
-#### 需要的 GitHub Secrets
-
-- `AWS_ACCESS_KEY_ID`
-- `AWS_SECRET_ACCESS_KEY`
-- `AWS_S3_BUCKET`
-- `CLOUDFRONT_DISTRIBUTION_ID`
-- `VITE_API_URL`（EC2 的 HTTPS URL，例如 `https://54.175.31.32.nip.io`；瀏覽器直接呼叫 `${VITE_API_URL}/api/...`，不經 CloudFront）
----
-
-### Backend（AWS EC2 + docker-compose）
-
-> v2 切換時（YOLIN, 2026-05-10）已從 ECS Fargate 改為 EC2 自架 docker-compose。理由：v1/v2 切換僅需更動環境變數 `BACKEND_DIR`，不必為了切版本另開 ECS task definition；`fetch_data/csv` 也能透過 volume 直接掛載而不必塞進 image。
-
-#### 自動部署流程（GitHub Actions）
-
-```yaml
-1. dorny/paths-filter 判斷 backend / backend-v2 / fetch_data 是否變更
-2. appleboy/ssh-action 連線到 EC2（使用 EC2_HOST / EC2_USER / EC2_SSH_KEY）
-3. 在 EC2 執行：
-   - cd ~/NTU-EventConnect && git fetch && git reset --hard origin/main
-   - 把 BACKEND_DIR (vars) 寫入 ~/.env
-   - docker compose up -d --build backend
-   - docker image prune -f
-4. 健康檢查：curl ${VITE_API_URL}/api/health 重試 5 次
-```
-
-`docker-compose.yml`（repo 根目錄）使用 `${BACKEND_DIR:-backend}` 動態決定 build context，並把 `${BACKEND_DIR}/scripts` 與 `fetch_data` 以 read-only volume 掛入容器；切換 v1/v2 不需修改 compose 本身，只需要改 GitHub Variable。
-
-#### EC2 SSH 連線方式（新成員加入時）
-
-EC2 的連線資訊存在 GitHub Repository Secrets（**值不公開，無法用 CLI 讀取**）：
-
-| Secret | 內容 |
-|---|---|
-| `EC2_HOST` | EC2 instance 的 public DNS / IP |
-| `EC2_USER` | SSH 使用者（通常為 `ubuntu` 或 `ec2-user`） |
-| `EC2_SSH_KEY` | 連線用的 OpenSSH private key（PEM 格式） |
-
-新成員需要 SSH 進機器除錯時，請：
-
-1. 跟 repo 管理員（@LIU-CHENGYA / @yolin-tsai）拿 PEM private key
-2. 拿到 `EC2_HOST` / `EC2_USER`
-3. 本機儲存 PEM 並設權限：
-   ```bash
-   chmod 600 ~/.ssh/ntu-eventconnect.pem
-   ssh -i ~/.ssh/ntu-eventconnect.pem <EC2_USER>@<EC2_HOST>
-   ```
-4. 進入機器後，專案位於 `~/NTU-EventConnect`：
-   ```bash
-   cd ~/NTU-EventConnect
-   docker compose ps                                    # 確認 services
-   docker compose logs backend --tail 100               # 看後端 log
-   docker compose exec backend python -m scripts.seed_events   # 手動 reseed
-   ```
-
-> ⚠️ PEM key 與連線資訊請走私密管道（1Password / Bitwarden / 私訊），**不要 commit 進 repo / 不要貼到 PR / 不要傳到公開 Slack**。
-
-#### 需要的 GitHub Secrets / Variables
+### 需要的 GitHub Secrets / Variables
 
 | 類型 | 名稱 | 用途 |
 |---|---|---|
 | Secret | `EC2_HOST` / `EC2_USER` / `EC2_SSH_KEY` | EC2 SSH 連線 |
-| Secret | `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` | 前端 S3 + CloudFront 部署 |
+| Secret | `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` | S3 + CloudFront |
 | Secret | `AWS_S3_BUCKET` / `CLOUDFRONT_DISTRIBUTION_ID` | 前端目標 |
-| Secret | `VITE_API_URL` | 前端 build 時注入；同時被後端 health check 引用 |
+| Secret | `VITE_API_URL` | 前端 build 注入；後端 health check 引用 |
 | Secret | `VITE_GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_ID` | Google SSO |
-| Variable | `BACKEND_DIR` | `backend` 或 `backend-v2`（目前 = `backend-v2`） |
-| Variable | `FRONTEND_DIR` | `frontend` 或 `frontend-v2`（目前 = `frontend-v2`） |
+| Variable | `BACKEND_DIR` | `backend-v2`（目前值） |
+| Variable | `FRONTEND_DIR` | `frontend-v2`（目前值） |
 
-切換 v1 ↔ v2 只需在 GitHub Repo → Settings → Secrets and variables → Actions → Variables 修改 `BACKEND_DIR` / `FRONTEND_DIR`，下次 push / 手動 dispatch 即會用新值部署。
-
-#### 手動觸發部署
-
-GitHub UI → Actions → "Deploy NTU EventConnect to AWS" → Run workflow，或本機透過 `gh workflow run`：
-
-```bash
-gh workflow run "Deploy NTU EventConnect to AWS" --ref main
-```
-
-#### EC2 上的每日資料更新（v2 起內建）
-
-`backend-v2/app/main.py` 的 lifespan 啟動 APScheduler，每日 02:00 Asia/Taipei 自動執行 `python -m scripts.seed_events`。
-若想立即手動跑（push 後立刻反映新 tag / 母活動名變更）：
+### EC2 上手動操作
 
 ```bash
 ssh -i ~/.ssh/ntu-eventconnect.pem <EC2_USER>@<EC2_HOST>
 cd ~/NTU-EventConnect
 
-# 1. 重新生成 tag CSV（若 fetch_data/process_data.py 或 build_tags_table.py 有改）
-python -m fetch_data.process_data
-python -m fetch_data.build_tags_table
+docker compose ps                                          # 確認 services
+docker compose logs backend --tail 100                    # 看後端 log
+docker compose exec backend python -m scripts.seed_events # 手動 reseed
+```
 
-# 2. 套進 DB（idempotent，重複跑沒副作用）
+### 每日資料更新
+
+`backend-v2/app/main.py` 啟動 APScheduler，每日 **02:00 Asia/Taipei** 自動執行 `python -m scripts.seed_events`（CSV → DB，idempotent）。
+
+手動立即更新：
+
+```bash
+# 在 EC2 上
 docker compose exec backend python -m scripts.seed_events
 ```
 
-CSV 自身的爬蟲更新（`crawl_*.py`）仍需另行 cron / 手動觸發；APScheduler 只負責 CSV → DB 的最後 ingest 步驟。
-
-
-**部署後驗證：**
+### 部署後驗證
 
 ```bash
-# 測試後端健康檢查（VITE_API_URL = EC2 HTTPS URL，例如 https://54.175.31.32.nip.io）
-curl ${VITE_API_URL}/api/health
-# 預期: {"status":"ok"}
-
-# 測試前端（CloudFront URL）
-curl -I https://d1tz6syfib05nx.cloudfront.net/
-# 預期: HTTP 200
-
-# 測試 API 連接
-curl "${VITE_API_URL}/api/events?size=3"
-# 預期: JSON 活動列表（items + total）
-
-# 測試 v2 新端點（標籤列表）
-curl ${VITE_API_URL}/api/events/tags
-# 預期: 至少包含 免費餐點 / 遠距參加 / 工作坊 / 競賽 / 徵才 / 講座 / 課程 等
+curl ${VITE_API_URL}/api/health         # {"status":"ok"}
+curl "${VITE_API_URL}/api/events?size=3" # JSON 活動列表
+curl ${VITE_API_URL}/api/events/tags    # 標籤列表
 ```
 
-**生產環境注意事項：**
-- 設 `ENV=prod`
+### 生產環境注意事項
+
 - 設強密碼 `JWT_SECRET`：`python -c "import secrets; print(secrets.token_urlsafe(48))"`
 - 使用 PostgreSQL（不要用 SQLite）
 - `CORS_ORIGINS` 包含正式前端 domain
@@ -884,97 +740,53 @@ curl ${VITE_API_URL}/api/events/tags
 
 ## 疑難排解
 
-### Backend `[WinError 10013] 嘗試存取通訊端被拒絕`
+### Backend `[WinError 10013]` 通訊端被拒絕
 
-Port 被 Windows 保留住了（Hyper-V / WSL2 會動態保留一堆 port）。
+Port 被 Windows 保留。換一個沒被保留的 port：
 
 ```powershell
-# 看哪些 port 被保留
 netsh interface ipv4 show excludedportrange protocol=tcp
-
-# 換一個沒被保留的 port
 uvicorn app.main:app --reload --port 8010
 ```
 
-### Backend 啟動但前端「沒資料」
+### Frontend 打 API 沒資料（CORS 錯誤）
 
-99% 是 **CORS** 問題。Vite 自動跳 port 時（5173 → 5174 → 5175...），瀏覽器會用新 port 當 origin，但後端 `CORS_ORIGINS` 預設只允許特定 port。
+Vite 自動跳 port（5173 → 5174...）時，瀏覽器 origin 改變，後端 CORS 拒絕。  
+排查：F12 → Console，找 `CORS` 紅字。  
+修法：在 `backend-v2/.env` 把新 port 加進 `CORS_ORIGINS`，重啟 backend。
 
-排查：
-1. 看 frontend terminal 印的 `Local:` 是哪個 port
-2. 看 backend log，請求來了嗎？status 是 200 嗎？
-3. **最關鍵**：開瀏覽器 F12 → Console，有沒有 `CORS` 紅字
+### `ModuleNotFoundError: No module named 'app'`
 
-修法：在 `backend/.env` 把 `CORS_ORIGINS` 加上對應的 port，重啟 backend。預設已經包含 `5173-5177`。
+沒在 `backend-v2/` 目錄下跑 uvicorn。`cd backend-v2` 後再執行。
 
-> 為什麼 backend log 看起來 200 OK 但前端拿不到？
-> CORS 是純粹瀏覽器端的安全機制。伺服器照常處理請求並回應，是瀏覽器收到 response 後**主動把它丟掉**。所以後端 log 看不出來，**一定要看瀏覽器 DevTools**。
+### `ModuleNotFoundError: No module named 'psycopg2'`
 
-### 部署後活動列表異常（太多排 / 篩選沒反應）
+`DATABASE_URL` 的 scheme 寫成 `postgresql://`，改成 `postgresql+psycopg://`（psycopg v3）。
 
-CloudFront 預設會**吃掉 query string**。`?size=4&category=講座` 被 CloudFront 移除後，後端用預設 `size=20` 回傳所有資料。
+### `sqlalchemy.exc.NoSuchModuleError: Can't load plugin: sqlalchemy.dialects:postgresql.psycopg`
 
-修法：在 CloudFront Distribution → Behaviors → `/api/*` 的 Cache policy 改成 `CachingDisabled`，Origin request policy 改成 `AllViewer`。
+SQLAlchemy 版本太舊。`pip install --upgrade sqlalchemy`（需要 2.0.36+）。
 
-### `npm` 不是內部或外部命令（Windows）
+### 部署後活動列表異常（篩選沒反應）
 
-Node.js 沒裝好或沒重開 terminal。重開 PowerShell 再試。
-
-### `python` 跳出 Microsoft Store（Windows）
-
-Windows 預設的 alias 在搗亂。**重裝 Python 並務必勾「Add Python to PATH」**，或改用 `py`：
-```powershell
-py -m venv venv
-py -m pip install -r requirements.txt
-```
+CloudFront 預設吃掉 query string。  
+修法：CloudFront → Behaviors → `/api/*` → Cache policy 改 `CachingDisabled`，Origin request policy 改 `AllViewer`。
 
 ### PowerShell 啟動 venv 跳「無法載入指令碼」
 
-用系統管理員身分跑：
 ```powershell
 Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
 ```
 
-### `ModuleNotFoundError: No module named 'app'`
-
-你不在 `backend/` 目錄下跑 uvicorn。`cd backend` 後再執行。
-
-### `ModuleNotFoundError: No module named 'psycopg2'`
-
-`DATABASE_URL` 的 scheme 寫成 `postgresql://` 了。改成 `postgresql+psycopg://`（用 v3 driver）。
-
-### `ModuleNotFoundError: No module named 'psycopg'`
-
-driver 沒裝。`pip install -r requirements.txt`。
-
-### `sqlalchemy.exc.NoSuchModuleError: Can't load plugin: sqlalchemy.dialects:postgresql.psycopg`
-
-SQLAlchemy 太舊。`pip install --upgrade sqlalchemy`，需要 `2.0.36+`。
-
-### Postgres `connection refused`
-
-Postgres 沒在跑、port 不對、防火牆擋了。先用 `psql -h HOST -p PORT -U USER -d DB` 試，能連上 psql 才有可能用 SQLAlchemy 連。
-
-### bcrypt 安裝失敗（Windows）
-
-先升級 pip：
-```powershell
-python -m pip install --upgrade pip
-pip install -r requirements.txt
-```
-
-### 想重置 SQLite DB
+### 重置 SQLite DB
 
 ```bash
-rm backend/dev.db
-# 重啟 uvicorn 自動建表
+rm backend-v2/dev.db
+# 重啟 uvicorn 自動 create_all，再 seed
+cd backend-v2 && python -m scripts.seed_events
 ```
 
-### 想看 DB 內容
+### 看 DB 內容
 
-- **SQLite**：[DB Browser for SQLite](https://sqlitebrowser.org/) 開 `backend/dev.db`
-- **Postgres**：[DBeaver](https://dbeaver.io/) / [TablePlus](https://tableplus.com/) / pgAdmin 連線
-
-### 路徑出現中文 / 空格亂碼
-
-把專案放在純英文路徑（例：`C:\workspace\` 而不是 `C:\Users\使用者\桌面\`），可以避開很多 Python / Node 的怪 bug。
+- **SQLite**：[DB Browser for SQLite](https://sqlitebrowser.org/) 開 `backend-v2/dev.db`
+- **Postgres**：[DBeaver](https://dbeaver.io/) / [TablePlus](https://tableplus.com/) / pgAdmin
